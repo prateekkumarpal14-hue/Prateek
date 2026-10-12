@@ -268,6 +268,109 @@ function togglePause(){
 refreshAll();
 setInterval(()=>{if(!paused)refreshAll();},10000);
 setInterval(()=>{if(!paused){evaluateHistory();renderHistory();}},15000);
+ 
+<style>
+#live-news { margin:20px 0; padding:16px; border:1px solid #5555; border-radius:14px; }
+#live-news article { padding:12px 0; border-bottom:1px solid #7774; }
+#live-news a { color:inherit; font-weight:600; text-decoration:none; }
+#live-news small { display:block; margin-top:6px; opacity:.75; }
+.news-tag { font-size:12px; padding:4px 8px; border-radius:8px; }
+</style>
+
+<section id="live-news">
+  <h2>📰 Live Crypto News</h2>
+  <p id="news-status">ताज़ा खबरें लोड हो रही हैं…</p>
+  <button id="news-refresh" type="button">Refresh News</button>
+  <div id="news-list"></div>
+  <small>
+    News bias केवल headline के शब्दों पर आधारित अनुमान है,
+    ट्रेडिंग संकेत या भविष्यवाणी नहीं।
+  </small>
+</section>
+
+<script>
+(function () {
+  const status = document.getElementById("news-status");
+  const list = document.getElementById("news-list");
+  const button = document.getElementById("news-refresh");
+  let loading = false;
+
+  function bias(text) {
+    const s = text.toLowerCase();
+    const positive =
+      /\b(surge|surges|rally|rallies|gain|gains|approval|approved|inflow|bullish|breakout|record high|adoption)\b/i.test(s);
+    const negative =
+      /\b(crash|crashes|plunge|plunges|hack|hacked|ban|banned|lawsuit|outflow|bearish|liquidation|selloff|sell-off)\b/i.test(s);
+
+    if (positive && !negative) return "संभावित Positive";
+    if (negative && !positive) return "संभावित Negative";
+    return "Neutral / Unclear";
+  }
+
+  async function loadNews() {
+    if (loading) return;
+    loading = true;
+    button.disabled = true;
+    status.textContent = "खबरें अपडेट हो रही हैं…";
+
+    try {
+      const response = await fetch(
+        "https://cryptocurrency.cv/api/news?limit=15",
+        { cache: "no-store" }
+      );
+      if (!response.ok) throw new Error("News feed unavailable");
+
+      const data = await response.json();
+      const articles = Array.isArray(data.articles)
+        ? data.articles.slice(0, 15) : [];
+
+      if (!articles.length) throw new Error("No articles received");
+
+      list.replaceChildren();
+
+      articles.forEach(function (item) {
+        const article = document.createElement("article");
+        const link = document.createElement("a");
+        const title = String(item.title || "Untitled news");
+        const url = String(item.link || "");
+
+        link.textContent = title;
+        if (/^https:\/\/[^\s]+$/i.test(url)) {
+          link.href = url;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+        }
+
+        const tag = document.createElement("small");
+        tag.className = "news-tag";
+        tag.textContent = bias(title);
+
+        const meta = document.createElement("small");
+        meta.textContent =
+          String(item.source || "News source") + " · " +
+          String(item.timeAgo || item.pubDate || "");
+
+        article.append(link, tag, meta);
+        list.appendChild(article);
+      });
+
+      status.textContent =
+        "अपडेट: " + new Date().toLocaleTimeString() +
+        " · Headlines: " + articles.length;
+    } catch (error) {
+      status.textContent =
+        "अभी news feed नहीं खुल रही। कुछ देर बाद Refresh News दबाएँ।";
+    } finally {
+      loading = false;
+      button.disabled = false;
+    }
+  }
+
+  button.addEventListener("click", loadNews);
+  loadNews();
+  setInterval(loadNews, 180000);
+})();
+</script>
 </script>
 </body>
 </html>
