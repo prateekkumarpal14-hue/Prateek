@@ -166,32 +166,77 @@ function scoreFor(cs){
  if(last>prev)s++;else if(last<prev)s--;
  return s;
 }
-function analyze(raw1,raw5,coin){
- const now=Date.now();
- const m1=raw1.filter(c=>c.closeTime<now);
- const m5=raw5.filter(c=>c.closeTime<now);
- if(m1.length<30||m5.length<30)throw Error("Closed candles कम हैं");
- const c=m1[m1.length-1],prev=m1[m1.length-2];
- const s1=scoreFor(m1),s5=scoreFor(m5);
- const rr=rsi(m1.map(x=>x.c));
- let sig="WAIT",reason="Trend कमजोर या संकेत असहमत हैं";
- if(s1>=3&&s5>=2&&rr>=35&&rr<=70){
-  sig="LONG";reason="1m और 5m bullish confirmation";
- }else if(s1<=-3&&s5<=-2&&rr>=30&&rr<=65){
-  sig="SHORT";reason="1m और 5m bearish confirmation";
- }else if(s1>=3&&s5<2)reason="1m bullish, 5m confirmation नहीं";
- else if(s1<=-3&&s5>-2)reason="1m bearish, 5m confirmation नहीं";
- else if(rr<30)reason="RSI कम है";
- else if(rr>70)reason="RSI ऊँचा है";
 
- const entry=c.c;
- return {
-  sig,reason,price:entry,change:(c.c-prev.c)/prev.c*100,
-  s1,s5,rsi:rr,vol:c.v,time:c.t,m1, name:coin.name,
-  symbol:coin.symbol,key:coin.key,
-  stop:sig==="SHORT"?entry*1.0035:entry*.9965,
-  target:sig==="SHORT"?entry*.995:entry*1.005
- };
+function analyze(raw1,raw5,coin){
+  const now=Date.now();
+  const m1=raw1.filter(c=>c.closeTime<now);
+  const m5=raw5.filter(c=>c.closeTime<now);
+
+  if(m1.length<30||m5.length<30)
+    throw Error("Closed candles kam hain");
+
+  const c=m1[m1.length-1];
+  const prev=m1[m1.length-2];
+  const prev2=m1[m1.length-3];
+
+  const s1=scoreFor(m1);
+  const s5=scoreFor(m5);
+  const rr=rsi(m1.map(x=>x.c));
+
+  const v1=m1.map(x=>x.c);
+  const v5=m5.map(x=>x.c);
+  const fast1=ema(v1,9);
+  const slow1=ema(v1,21);
+  const fast5=ema(v5,9);
+  const slow5=ema(v5,21);
+
+  const gap1=Math.abs(fast1-slow1)/c.c;
+  const gap5=Math.abs(fast5-slow5)/m5[m5.length-1].c;
+
+  const rising=c.c>prev.c && prev.c>prev2.c;
+  const falling=c.c<prev.c && prev.c<prev2.c;
+
+  const longOK=
+    s1>=3 && s5>=3 &&
+    fast1>slow1 && fast5>slow5 &&
+    c.c>fast1 && prev.c>fast1 &&
+    rising && rr>=45 && rr<=65 &&
+    gap1>=0.00015 && gap5>=0.00025;
+
+  const shortOK=
+    s1<=-3 && s5<=-3 &&
+    fast1<slow1 && fast5<slow5 &&
+    c.c<fast1 && prev.c<fast1 &&
+    falling && rr>=35 && rr<=55 &&
+    gap1>=0.00015 && gap5>=0.00025;
+
+  let sig="WAIT";
+  let reason="Trend ya momentum ki strong confirmation nahi";
+
+  if(longOK){
+    sig="LONG";
+    reason="Closed candles bullish; 1m + 5m confirmation";
+  }else if(shortOK){
+    sig="SHORT";
+    reason="Closed candles bearish; 1m + 5m confirmation";
+  }else if(gap1<0.00015 || gap5<0.00025){
+    reason="Trend weak/choppy; WAIT";
+  }else if(rr>65){
+    reason="RSI high; LONG confirmation nahi";
+  }else if(rr<35){
+    reason="RSI low; SHORT confirmation nahi";
+  }
+
+  const entry=c.c;
+
+  return {
+    sig,reason,price:entry,
+    change:(c.c-prev.c)/prev.c*100,
+    s1,s5,rsi:rr,vol:c.v,time:c.t,m1,
+    name:coin.name,symbol:coin.symbol,key:coin.key,
+    stop:sig==="SHORT"?entry*1.0035:entry*.9965,
+    target:sig==="SHORT"?entry*.995:entry*1.005
+  };
 }
 async function refreshAll(){
  if(busy)return;
