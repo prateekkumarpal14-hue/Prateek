@@ -1,1 +1,203 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Crypto Signal Board</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0b1020;color:#edf2ff;font:15px Arial,sans-serif}
+main{max-width:850px;margin:auto;padding:16px}
+header,.card{background:#151d30;border:1px solid #293651;border-radius:15px;padding:16px;margin-bottom:14px}
+h1{font-size:23px;margin:0 0 7px}
+h2{font-size:17px;margin:0 0 13px}
+.sub,.muted{color:#aab7d0;font-size:13px;line-height:1.5}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.price{font-size:25px;font-weight:bold;margin:12px 0}
+.signal{font-size:22px;font-weight:bold;padding:9px 13px;border-radius:9px;display:inline-block;background:#293247}
+.green{color:#54e6a0}.red{color:#ff7e88}.yellow{color:#ffd479}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.metric{background:#0e1526;border-radius:9px;padding:11px;overflow-wrap:anywhere}
+.metric small{display:block;color:#aab7d0;margin-bottom:7px}
+.metric strong{font-size:16px}
+button{border:0;border-radius:9px;padding:12px;background:#79a7ff;color:#07101f;font-weight:bold;font-size:14px}
+button:disabled{opacity:.5}
+button.secondary{background:#293651;color:white}
+input,select{background:#0e1526;color:white;border:1px solid #384764;padding:10px;border-radius:8px;max-width:100%}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.note{font-size:12px;color:#aab7d0;line-height:1.6}
+#status{color:#ffd479}
+@media(max-width:420px){main{padding:10px}.grid{gap:7px}.metric{padding:9px}.price{font-size:21px}}
+</style>
+</head>
+<body>
+<main>
+<header>
+ <h1>₿ Crypto Signal Board</h1>
+ <div class="sub">Live public market data · BTC/USDT · ETH/USDT</div>
+ <p id="status">Connecting to market data...</p>
+ <div class="row">
+  <span class="muted">Last update</span>
+  <strong id="updated">--</strong>
+ </div>
+ <div class="actions">
+  <button onclick="refreshAll()">Refresh now</button>
+  <button class="secondary" id="pause" onclick="togglePause()">Pause updates</button>
+ </div>
+</header>
 
+<div id="boards"></div>
+
+<section class="card">
+ <h2>Paper Trading Calculator</h2>
+ <p class="note">यह केवल अनुमानित हिसाब है। कोई असली ऑर्डर नहीं लगता। पहले signals का परीक्षण कर।</p>
+ <div class="grid">
+  <label class="metric"><small>Position direction</small>
+   <select id="side"><option value="LONG">LONG</option><option value="SHORT">SHORT</option></select>
+  </label>
+  <label class="metric"><small>Entry price</small><input id="entry" type="number" placeholder="Entry price"></label>
+  <label class="metric"><small>Exit price</small><input id="exit" type="number" placeholder="Exit price"></label>
+  <label class="metric"><small>Position size (USDT)</small><input id="size" type="number" value="100" min="1"></label>
+  <label class="metric"><small>Fee per side (%)</small><input id="fee" type="number" value="0.1" min="0" step="0.01"></label>
+ </div>
+ <div class="actions"><button onclick="calculate()">Calculate paper P/L</button></div>
+ <h2 id="result" style="margin-top:16px">Estimated P/L: --</h2>
+ <p class="note">Fees default to 0.1% per side as an example; actual fees depend on your exchange and trade type. Slippage and funding are not included.</p>
+</section>
+
+<section class="card">
+ <h2>How signals are calculated</h2>
+ <p class="note">Demo rules use EMA 9/21, RSI 14, recent candle movement, and 1-minute versus 5-minute trend. LONG/SHORT means indicators currently lean that way, not that the price is certain to move that way. News, order book, funding and liquidations are not included in this first version.</p>
+ <p class="note">No signal is guaranteed. Test with paper trades before risking money.</p>
+</section>
+</main>
+
+<script>
+const coins=[
+ {symbol:"BTCUSDT",name:"Bitcoin",id:"btc"},
+ {symbol:"ETHUSDT",name:"Ethereum",id:"eth"}
+];
+let paused=false,timer=null,busy=false;
+const fmt=n=>Number.isFinite(n)?n.toLocaleString("en-US",{maximumFractionDigits:n>100?2:5}):"--";
+const pct=n=>Number.isFinite(n)?(n>=0?"+":"")+n.toFixed(2)+"%":"--";
+async function getJSON(url){
+ const r=await fetch(url,{cache:"no-store"});
+ if(!r.ok)throw Error("Market data HTTP "+r.status);
+ return r.json();
+}
+async function candles(symbol,interval,limit=80){
+ return getJSON("https://api.binance.com/api/v3/klines?symbol="+symbol+"&interval="+interval+"&limit="+limit);
+}
+function ema(values,period){
+ if(values.length<period)return NaN;
+ let e=values.slice(0,period).reduce((a,b)=>a+b,0)/period;
+ const k=2/(period+1);
+ for(let i=period;i<values.length;i++)e=values[i]*k+e*(1-k);
+ return e;
+}
+function rsi(values,period=14){
+ if(values.length<=period)return NaN;
+ let gains=0,losses=0;
+ for(let i=values.length-period;i<values.length;i++){
+  const d=values[i]-values[i-1];
+  if(d>0)gains+=d;else losses-=d;
+ }
+ if(losses===0)return 100;
+ return 100-100/(1+gains/losses);
+}
+function analyze(rows){
+ const c=rows.map(x=>+x[4]),v=rows.map(x=>+x[5]);
+ const last=c[c.length-1],prev=c[c.length-2];
+ const e9=ema(c.slice(-35),9),e21=ema(c.slice(-55),21),rs=rsi(c);
+ const move=(last-prev)/prev*100;
+ const avgV=v.slice(-21,-1).reduce((a,b)=>a+b,0)/20;
+ let score=0;
+ if(e9>e21)score++;else if(e9<e21)score--;
+ if(last>e9)score++;else if(last<e9)score--;
+ if(rs>=55&&rs<75)score++;else if(rs<=45&&rs>25)score--;
+ if(move>0)score++;else if(move<0)score--;
+ if(v[v.length-1]>avgV)score+=move>0?1:move<0?-1:0;
+ return {last,prev,move,e9,e21,rs,volume:v[v.length-1],avgV,score};
+}
+function signal(a,b){
+ const aligned=(a.score>=2&&b.score>=1)||(a.score<=-2&&b.score<=-1);
+ if(aligned&&a.score>=2&&b.score>=1&&a.rs<70)
+  return {name:"LONG BIAS",cls:"green",why:"1m और 5m indicators ऊपर की दिशा में सहमत हैं"};
+ if(aligned&&a.score<=-2&&b.score<=-1&&a.rs>30)
+  return {name:"SHORT BIAS",cls:"red",why:"1m और 5m indicators नीचे की दिशा में सहमत हैं"};
+ return {name:"WAIT",cls:"yellow",why:"ट्रेंड कमजोर या आपस में असहमत हैं"};
+}
+function render(c,a,b){
+ const s=signal(a,b),change=(a.last-a.prev)/a.prev*100;
+ const stopPct=Math.max(.15,Math.min(.6,Math.abs(a.move)*2));
+ const stop=a.last*(s.name==="SHORT BIAS"?1+stopPct/100:1-stopPct/100);
+ const target=a.last*(s.name==="SHORT BIAS"?1-stopPct*1.5/100:1+stopPct*1.5/100);
+ const old=document.getElementById(c.id);
+ old.innerHTML=`
+ <section class="card">
+  <div class="row"><h2>${c.name} · ${c.symbol.replace("USDT","/USDT")}</h2>
+  <span class="muted">1m + 5m</span></div>
+  <div class="price">${fmt(a.last)} USDT</div>
+  <div class="${change>=0?"green":"red"}">${pct(change)} last candle</div>
+  <p><span class="signal ${s.cls}">${s.name}</span></p>
+  <p class="muted">${s.why}</p>
+  <div class="grid">
+   <div class="metric"><small>1-minute trend</small><strong class="${a.score>0?"green":a.score<0?"red":"yellow"}">${a.score>0?"Bullish":a.score<0?"Bearish":"Mixed"} (${a.score})</strong></div>
+   <div class="metric"><small>5-minute trend</small><strong class="${b.score>0?"green":b.score<0?"red":"yellow"}">${b.score>0?"Bullish":b.score<0?"Bearish":"Mixed"} (${b.score})</strong></div>
+   <div class="metric"><small>RSI (1m)</small><strong>${fmt(a.rs)}</strong></div>
+   <div class="metric"><small>Latest candle volume</small><strong>${fmt(a.volume)}</strong></div>
+   <div class="metric"><small>Illustrative stop level</small><strong>${fmt(stop)}</strong></div>
+   <div class="metric"><small>Illustrative target</small><strong>${fmt(target)}</strong></div>
+  </div>
+  <p class="note">Stop/target shown are formula examples, not validated trade recommendations. The last candle may still be forming.</p>
+  <div class="actions"><button onclick="useEntry('${c.id}',${a.last},'LONG')">Paper LONG entry</button>
+  <button class="secondary" onclick="useEntry('${c.id}',${a.last},'SHORT')">Paper SHORT entry</button></div>
+ </section>`;
+}
+function useEntry(id,price,side){
+ document.getElementById("entry").value=price;
+ document.getElementById("side").value=side;
+ document.getElementById("result").textContent="Entry filled in calculator (paper only)";
+}
+async function refreshAll(){
+ if(busy||paused)return;
+ busy=true;document.getElementById("status").textContent="Updating public market data...";
+ try{
+  const results=await Promise.all(coins.map(async c=>{
+   const [one,five]=await Promise.all([candles(c.symbol,"1m"),candles(c.symbol,"5m")]);
+   return {c,a:analyze(one),b:analyze(five)};
+  }));
+  for(const x of results)render(x.c,x.a,x.b);
+  document.getElementById("updated").textContent=new Date().toLocaleTimeString();
+  document.getElementById("status").textContent="Connected · public market data · refreshes every 5 seconds";
+ }catch(e){
+  document.getElementById("status").textContent="Data unavailable: "+e.message+". Check connection or try again.";
+ }finally{busy=false;}
+}
+function togglePause(){
+ paused=!paused;
+ document.getElementById("pause").textContent=paused?"Resume updates":"Pause updates";
+ document.getElementById("status").textContent=paused?"Updates paused":"Resuming market data...";
+ if(!paused)refreshAll();
+}
+function calculate(){
+ const entry=+document.getElementById("entry").value;
+ const exit=+document.getElementById("exit").value;
+ const size=+document.getElementById("size").value;
+ const fee=+document.getElementById("fee").value/100;
+ const side=document.getElementById("side").value;
+ if(!(entry>0&&exit>0&&size>0)){document.getElementById("result").textContent="Enter valid entry, exit and position size.";return;}
+ const direction=side==="LONG"?1:-1;
+ const gross=size*((exit-entry)/entry)*direction;
+ const fees=size*fee+(size*exit/entry)*fee;
+ const net=gross-fees;
+ const el=document.getElementById("result");
+ el.textContent="Estimated net P/L: "+(net>=0?"+":"")+net.toFixed(4)+" USDT (before slippage/funding)";
+ el.className=net>=0?"green":"red";
+}
+document.getElementById("boards").innerHTML=coins.map(c=>`<div id="${c.id}"><section class="card">Loading ${c.name} data...</section></div>`).join("");
+refreshAll();
+timer=setInterval(()=>{if(!paused)refreshAll()},5000);
+</script>
+</body>
+</html>
