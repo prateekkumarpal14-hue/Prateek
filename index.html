@@ -3,168 +3,216 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b1020">
 <title>Crypto Signal Board</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;padding:14px;background:#0b1020;color:#e8eefc;font:15px Arial,sans-serif}
-.wrap{max-width:850px;margin:auto}
-h1{font-size:24px}h2{font-size:19px}
+body{margin:0;padding:12px;background:#0b1020;color:#e8eefc;font:15px Arial,sans-serif}
+.wrap{max-width:900px;margin:auto}
+h1{font-size:24px}h2{font-size:19px}h3{font-size:16px}
 p,.muted{color:#aab6d3;line-height:1.5}
-.card{background:#151d32;border:1px solid #2b3855;border-radius:14px;padding:15px;margin:14px 0}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.stat{background:#0d1426;padding:11px;border-radius:9px;overflow-wrap:anywhere}
+.card{background:#151d32;border:1px solid #2b3855;border-radius:14px;padding:14px;margin:13px 0}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.stat{background:#0d1426;padding:11px;border-radius:9px;overflow-wrap:anywhere;min-width:0}
 .stat small{display:block;color:#aab6d3;margin-bottom:7px}
-.price{font-size:26px;font-weight:bold;margin:10px 0}
+.price{font-size:25px;font-weight:bold;margin:10px 0;overflow-wrap:anywhere}
 .signal{font-size:23px;font-weight:bold}
 .LONG,.positive{color:#42e6a4}
 .SHORT,.negative{color:#ff7485}
 .WAIT,.neutral{color:#ffd479}
-button{background:#77a7ff;color:#08101f;border:0;border-radius:9px;padding:11px 14px;font-weight:bold;margin:4px 4px 4px 0}
+button{background:#77a7ff;color:#08101f;border:0;border-radius:9px;padding:11px 13px;font-weight:bold;margin:4px 4px 4px 0;cursor:pointer}
 button.secondary{background:#2a3854;color:#fff}
-button:disabled{opacity:.6}
+button:disabled{opacity:.55}
+.pill{display:inline-block;border:1px solid #354564;border-radius:20px;padding:5px 9px;margin:3px 4px 3px 0;font-size:12px}
 #news-list article{padding:12px 0;border-bottom:1px solid #2b3855}
-#news-list a{color:#9dc0ff;font-weight:bold;text-decoration:none}
-#news-list small{display:block;color:#aab6d3;margin-top:6px}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{padding:9px 5px;border-bottom:1px solid #2b3855;text-align:left}
+#news-list a{color:#9dc0ff;font-weight:bold;text-decoration:none;overflow-wrap:anywhere}
+#news-list small{display:block;color:#aab6d3;margin-top:6px;line-height:1.5}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:9px 6px;border-bottom:1px solid #2b3855;text-align:left;white-space:nowrap}
 .tablewrap{overflow-x:auto}
+.error{color:#ffb0ba}
+.good{color:#42e6a4}
+@media(min-width:650px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}.newsgrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 </style>
 </head>
 <body>
 <div class="wrap">
-
 <h1>₿ Crypto Signal Board</h1>
 <p>Live public market data · 1m + 5m trend · Manual trading only</p>
 <p id="status">Market data लोड हो रहा है...</p>
-<button onclick="refreshAll()">Refresh now</button>
-<button class="secondary" onclick="togglePause()" id="pause">Pause updates</button>
+<button id="refresh-market">Refresh market</button>
+<button class="secondary" id="pause">Pause updates</button>
 
 <div id="markets"></div>
 
 <div class="card">
 <h2>Signal history & paper test</h2>
-<p>Paper signals का demo record। यह वास्तविक trading result या profit की गारंटी नहीं है।</p>
+<p>यह demo record है। यह वास्तविक trading result या profit की गारंटी नहीं है।</p>
 <div class="grid">
 <div class="stat"><small>Recorded signals</small><strong id="total">0</strong></div>
 <div class="stat"><small>Target पहले लगा</small><strong id="wins">0</strong></div>
 <div class="stat"><small>Stop पहले लगा</small><strong id="losses">0</strong></div>
 <div class="stat"><small>Pending</small><strong id="pending">0</strong></div>
 </div>
-<p id="accuracy">अभी पर्याप्त test data नहीं है।</p>
+<p id="accuracy">अभी पर्याप्त resolved test data नहीं है।</p>
 <div class="tablewrap">
 <table>
 <thead><tr><th>समय</th><th>Coin</th><th>Signal</th><th>Entry</th><th>Target</th><th>Stop</th><th>Result</th></tr></thead>
 <tbody id="history"></tbody>
 </table>
 </div>
-<button class="secondary" onclick="clearHistory()">Clear history</button>
+<button class="secondary" id="clear-history">Clear history</button>
 </div>
 
 <div class="card" id="live-news">
-<h2>📰 Relevant Crypto News</h2>
-<p id="news-status">खबरें लोड हो रही हैं...</p>
-<button id="news-refresh" type="button">Refresh News</button>
-
-<div class="grid">
+<h2>📰 Crypto News + Sentiment</h2>
+<p id="news-status">News feeds से headlines लोड हो रही हैं...</p>
+<button id="news-refresh">Refresh news</button>
+<div class="grid newsgrid">
 <div class="stat"><small>Potential Positive</small><strong id="news-positive">0</strong></div>
 <div class="stat"><small>Potential Negative</small><strong id="news-negative">0</strong></div>
 <div class="stat"><small>Neutral / Unclear</small><strong id="news-neutral">0</strong></div>
 <div class="stat"><small>Relevant headlines</small><strong id="news-total">0</strong></div>
 </div>
-
-<p id="news-summary">अभी sentiment उपलब्ध नहीं है।</p>
+<p id="news-summary">Sentiment अभी उपलब्ध नहीं है।</p>
+<div class="grid">
+<div class="stat">
+<small>BTC-related headlines</small>
+<strong id="btc-news-count">0</strong>
+<p id="btc-news-bias" class="neutral">अभी जानकारी नहीं</p>
+</div>
+<div class="stat">
+<small>ETH-related headlines</small>
+<strong id="eth-news-count">0</strong>
+<p id="eth-news-bias" class="neutral">अभी जानकारी नहीं</p>
+</div>
+</div>
+<h3>Headlines</h3>
 <div id="news-list"></div>
-<p class="muted">Sentiment केवल headline keywords पर आधारित है। यह verified market analysis या buy/sell recommendation नहीं है।</p>
+<p class="muted">Positive/Negative labels केवल headline keywords पर आधारित हैं। ये verified sentiment, market-wide analysis या buy/sell recommendation नहीं हैं।</p>
 </div>
 
 <div class="card">
 <h2>Signal rules & limitations</h2>
-<p>EMA 9/21, RSI 14, candle momentum और 1m/5m trend का सरल indicator score इस्तेमाल होता है। दोनों timeframes सहमत न हों तो WAIT दिख सकता है।</p>
-<p>Demo levels में 0.35% stop और 0.50% target इस्तेमाल होते हैं। Fees, slippage और वास्तविक Mudrex execution शामिल नहीं हैं। ये levels validated recommendations नहीं हैं।</p>
+<p>EMA 9/21, RSI 14, candle momentum और 1m/5m trend का सरल indicator score इस्तेमाल होता है। दोनों timeframes सहमत न हों तो WAIT आ सकता है।</p>
+<p>LONG bullish paper signal और SHORT bearish paper signal है। Mudrex पर order अपने-आप नहीं लगता।</p>
+<p>Demo levels में 0.35% stop और 0.50% target इस्तेमाल होते हैं। Fees, slippage, spread और वास्तविक execution शामिल नहीं हैं। ये validated recommendations नहीं हैं।</p>
+<p>News feed उपलब्ध न होने या relevant headlines न मिलने पर website यह साफ बताएगी। खाली feed का अर्थ यह नहीं कि market में खबरें नहीं हैं।</p>
 </div>
 </div>
 
 <script>
+"use strict";
+
 const COINS=[
- {symbol:"BTCUSDT",name:"Bitcoin"},
- {symbol:"ETHUSDT",name:"Ethereum"}
+ {symbol:"BTCUSDT",name:"Bitcoin",key:"BTC"},
+ {symbol:"ETHUSDT",name:"Ethereum",key:"ETH"}
 ];
-const API="https://api.binance.com/api/v3/klines";
-let paused=false,busy=false,data={},history=[];
+const MARKET_API="https://api.binance.com/api/v3/klines";
+const NEWS_FEEDS=[
+ {name:"CryptoCompare",url:"https://min-api.cryptocompare.com/data/v2/news/?lang=EN"},
+ {name:"Crypto news feed",url:"https://cryptocurrency.cv/api/news?limit=50"}
+];
+
+let paused=false,busy=false,newsBusy=false,data={},headlines=[];
+let history=[];
 
 try{
- history=JSON.parse(localStorage.getItem("csb_history_v2")||"[]");
- if(!Array.isArray(history))history=[];
+ const saved=JSON.parse(localStorage.getItem("csb_history_v3")||"[]");
+ if(Array.isArray(saved))history=saved;
 }catch(e){history=[]}
 
-function saveHistory(){
- try{localStorage.setItem("csb_history_v2",JSON.stringify(history.slice(0,300)))}
- catch(e){}
-}
+const $=id=>document.getElementById(id);
+
 function fmt(n){
- if(!Number.isFinite(n))return "—";
+ if(!Number.isFinite(Number(n)))return "—";
+ n=Number(n);
  return n>=100?n.toLocaleString("en-US",{maximumFractionDigits:2}):
  n.toLocaleString("en-US",{maximumFractionDigits:5});
 }
 function pct(n){return (n>=0?"+":"")+n.toFixed(2)+"%"}
-
+function saveHistory(){
+ try{localStorage.setItem("csb_history_v3",JSON.stringify(history.slice(0,300)))}
+ catch(e){}
+}
+async function getJson(url){
+ const r=await fetch(url,{cache:"no-store"});
+ if(!r.ok)throw Error("HTTP "+r.status);
+ return r.json();
+}
 async function candles(symbol,interval){
- const r=await fetch(`${API}?symbol=${symbol}&interval=${interval}&limit=100`);
- if(!r.ok)throw Error("Market API error "+r.status);
- return (await r.json()).map(k=>({
-  t:k[0],o:+k[1],h:+k[2],l:+k[3],c:+k[4],v:+k[5]
+ const raw=await getJson(
+  `${MARKET_API}?symbol=${symbol}&interval=${interval}&limit=100`
+ );
+ if(!Array.isArray(raw))throw Error("Invalid candle data");
+ return raw.map(k=>({
+  t:Number(k[0]),o:Number(k[1]),h:Number(k[2]),
+  l:Number(k[3]),c:Number(k[4]),v:Number(k[5]),
+  closeTime:Number(k[6])
  }));
 }
-function ema(a,p){
- if(a.length<p)return NaN;
- let e=a.slice(0,p).reduce((x,y)=>x+y,0)/p,m=2/(p+1);
- for(let i=p;i<a.length;i++)e=a[i]*m+e*(1-m);
- return e;
+function ema(values,period){
+ if(values.length<period)return NaN;
+ let value=values.slice(0,period).reduce((a,b)=>a+b,0)/period;
+ const mult=2/(period+1);
+ for(let i=period;i<values.length;i++)
+  value=values[i]*mult+value*(1-mult);
+ return value;
 }
-function rsi(a,p=14){
- if(a.length<=p)return 50;
- let g=0,l=0;
- for(let i=a.length-p;i<a.length;i++){
-  let d=a[i]-a[i-1];
-  if(d>0)g+=d;else l-=d;
+function rsi(values,period=14){
+ if(values.length<=period)return 50;
+ let gains=0,losses=0;
+ for(let i=values.length-period;i<values.length;i++){
+  const d=values[i]-values[i-1];
+  if(d>0)gains+=d;else losses-=d;
  }
- if(l===0)return 100;
- return 100-100/(1+g/l);
+ if(losses===0)return gains===0?50:100;
+ const avgGain=gains/period,avgLoss=losses/period;
+ return 100-100/(1+avgGain/avgLoss);
 }
 function scoreFor(cs){
- let a=cs.map(x=>x.c),f=ema(a.slice(0,-1),9),s=ema(a.slice(0,-1),21);
- let last=a[a.length-1],prev=a[a.length-2],n=0;
- if(f>s)n+=2;else if(f<s)n-=2;
- if(last>f)n++;else if(last<f)n--;
- if(last>prev)n++;else if(last<prev)n--;
- return n;
+ const closes=cs.map(c=>c.c);
+ if(closes.length<30)throw Error("Candles पर्याप्त नहीं हैं");
+ const fast=ema(closes,9),slow=ema(closes,21);
+ const last=closes[closes.length-1],prev=closes[closes.length-2];
+ let score=0;
+ if(fast>slow)score+=2;else if(fast<slow)score-=2;
+ if(last>fast)score++;else if(last<fast)score--;
+ if(last>prev)score++;else if(last<prev)score--;
+ return score;
 }
-function analyze(m1,m5){
- let a=m1.slice(0,-1),b=m5.slice(0,-1);
- if(a.length<30||b.length<30)throw Error("Candles पर्याप्त नहीं हैं");
- let c=a[a.length-1],prev=a[a.length-2],s1=scoreFor(a),s5=scoreFor(b);
- let rr=rsi(a.map(x=>x.c)),sig="WAIT",reason="Trend कमजोर या संकेत असहमत हैं";
+function analyze(m1raw,m5raw,coin){
+ // अधूरी/current candle को indicator calculation से बाहर रखें
+ const m1=m1raw.filter(c=>c.closeTime<Date.now());
+ const m5=m5raw.filter(c=>c.closeTime<Date.now());
+ if(m1.length<30||m5.length<30)throw Error("Closed candles पर्याप्त नहीं हैं");
+ const c=m1[m1.length-1],prev=m1[m1.length-2];
+ const s1=scoreFor(m1),s5=scoreFor(m5);
+ const rr=rsi(m1.map(x=>x.c));
+ let sig="WAIT",reason="Trend कमजोर या संकेत असहमत हैं";
  if(s1>=3&&s5>=2&&rr>=35&&rr<=70){
-  sig="LONG";reason="1m और 5m bullish; RSI confirmation";
+  sig="LONG";reason="1m और 5m bullish हैं; RSI भी नियम के अंदर है";
  }else if(s1<=-3&&s5<=-2&&rr>=30&&rr<=65){
-  sig="SHORT";reason="1m और 5m bearish; RSI confirmation";
+  sig="SHORT";reason="1m और 5m bearish हैं; RSI भी नियम के अंदर है";
  }else if(s1>=3&&s5<2)reason="1m bullish है, लेकिन 5m confirmation नहीं";
  else if(s1<=-3&&s5>-2)reason="1m bearish है, लेकिन 5m confirmation नहीं";
- else if(rr<30)reason="RSI कम है; reversal risk";
- else if(rr>70)reason="RSI ऊँचा है; reversal risk";
- let entry=c.c,sp=.0035,tp=.005;
+ else if(rr<30)reason="RSI कम है; reversal risk हो सकता है";
+ else if(rr>70)reason="RSI ऊँचा है; reversal risk हो सकता है";
+
+ const entry=c.c,stopPct=.0035,targetPct=.005;
  return {
-  sig,reason,price:entry,change:(c.c-prev.c)/prev.c*100,s1,s5,rsi:rr,
-  vol:c.v,time:c.t,m1,
-  stop:sig==="SHORT"?entry*(1+sp):entry*(1-sp),
-  target:sig==="SHORT"?entry*(1-tp):entry*(1+tp)
+  sig,reason,price:entry,change:(c.c-prev.c)/prev.c*100,
+  s1,s5,rsi:rr,vol:c.v,time:c.t,m1:m1raw,
+  stop:sig==="SHORT"?entry*(1+stopPct):entry*(1-stopPct),
+  target:sig==="SHORT"?entry*(1-targetPct):entry*(1+targetPct),
+  name:coin.name,symbol:coin.symbol,key:coin.key
  };
 }
 function recordSignals(){
  for(const coin of COINS){
   const x=data[coin.symbol];
   if(!x||x.sig==="WAIT")continue;
-  let key=coin.symbol+":"+x.time;
+  const key=coin.symbol+":"+x.time;
   if(history.some(h=>h.key===key))continue;
   history.unshift({
    key,symbol:coin.symbol,name:coin.name,side:x.sig,
@@ -172,55 +220,99 @@ function recordSignals(){
    result:"PENDING"
   });
  }
- history=history.slice(0,300);saveHistory();
+ history=history.slice(0,300);
+ saveHistory();
 }
 async function refreshAll(){
  if(busy)return;
  busy=true;
- document.getElementById("status").textContent="Market data लोड हो रहा है...";
+ $("status").textContent="Live market data अपडेट हो रहा है...";
+ let success=0,errors=[];
  try{
   for(const coin of COINS){
-   const [m1,m5]=await Promise.all([
-    candles(coin.symbol,"1m"),candles(coin.symbol,"5m")
-   ]);
-   data[coin.symbol]={...analyze(m1,m5),name:coin.name,symbol:coin.symbol};
+   try{
+    const [m1,m5]=await Promise.all([
+     candles(coin.symbol,"1m"),candles(coin.symbol,"5m")
+    ]);
+    data[coin.symbol]=analyze(m1,m5,coin);
+    success++;
+   }catch(e){errors.push(coin.key+": "+e.message)}
   }
-  recordSignals();evaluateHistory();renderMarkets();renderHistory();
-  document.getElementById("status").textContent=
-   "Live data received · Updated "+new Date().toLocaleTimeString();
- }catch(e){
-  document.getElementById("status").textContent=
-   "Data error: "+e.message+" · Refresh करके कोशिश करें।";
+  if(success){
+   recordSignals();
+   evaluateHistory();
+   renderMarkets();
+   renderHistory();
+   $("status").textContent=
+    (errors.length?"कुछ coins का data नहीं मिला · ":"Live data received · ")+
+    "Updated "+new Date().toLocaleTimeString();
+   if(errors.length)$("status").title=errors.join(" | ");
+  }else{
+   $("status").textContent="Market data उपलब्ध नहीं है। Internet/API जाँचकर Refresh दबाएँ।";
+  }
  }finally{busy=false}
 }
+function getCoinNewsBias(key){
+ const items=headlines.filter(h=>isCoinHeadline(h.title,key));
+ const pos=items.filter(h=>classify(h.title)==="Positive").length;
+ const neg=items.filter(h=>classify(h.title)==="Negative").length;
+ let bias="Neutral / Unclear";
+ if(pos>neg)bias="Potential Positive";
+ if(neg>pos)bias="Potential Negative";
+ if(!items.length)bias="कोई relevant headline नहीं";
+ return {count:items.length,bias};
+}
 function renderMarkets(){
- const root=document.getElementById("markets");root.replaceChildren();
+ const root=$("markets");root.replaceChildren();
  for(const coin of COINS){
   const x=data[coin.symbol];if(!x)continue;
+  const news=getCoinNewsBias(coin.key);
   const div=document.createElement("div");div.className="card";
-  div.innerHTML=`
-  <h2>${x.name} · ${x.symbol}</h2>
-  <div class="price">${fmt(x.price)} USDT</div>
-  <div class="signal ${x.sig}">${x.sig}</div>
-  <p>${x.reason}</p>
-  <div class="grid">
-   <div class="stat"><small>Last closed candle</small>${pct(x.change)}</div>
-   <div class="stat"><small>1m trend score</small>${x.s1}</div>
-   <div class="stat"><small>5m trend score</small>${x.s5}</div>
-   <div class="stat"><small>RSI (1m)</small>${x.rsi.toFixed(2)}</div>
-   <div class="stat"><small>Last candle volume</small>${fmt(x.vol)}</div>
-   <div class="stat"><small>Demo stop</small>${fmt(x.stop)}</div>
-   <div class="stat"><small>Demo target</small>${fmt(x.target)}</div>
-  </div>
-  <p>Demo levels; validated trading recommendations नहीं।</p>`;
-  root.appendChild(div);
+  const h=document.createElement("h2");h.textContent=x.name+" · "+x.symbol;
+  const price=document.createElement("div");price.className="price";
+  price.textContent=fmt(x.price)+" USDT";
+  const signal=document.createElement("div");signal.className="signal "+x.sig;
+  signal.textContent=x.sig;
+  const reason=document.createElement("p");reason.textContent=x.reason;
+  const grid=document.createElement("div");grid.className="grid";
+  const stats=[
+   ["Last closed candle",pct(x.change)],
+   ["1m trend score",x.s1],
+   ["5m trend score",x.s5],
+   ["RSI (1m)",x.rsi.toFixed(2)],
+   ["Last candle volume",fmt(x.vol)],
+   ["Demo stop",fmt(x.stop)],
+   ["Demo target",fmt(x.target)]
+  ];
+  stats.forEach(([label,value])=>{
+   const box=document.createElement("div");box.className="stat";
+   const small=document.createElement("small");small.textContent=label;
+   const strong=document.createElement("strong");strong.textContent=value;
+   box.append(small,strong);grid.append(box);
+  });
+  const newsBox=document.createElement("div");newsBox.className="stat";
+  const newsLabel=document.createElement("small");
+  newsLabel.textContent="Related news sentiment";
+  const newsValue=document.createElement("strong");
+  newsValue.textContent=news.bias;
+  newsValue.className=news.bias==="Potential Positive"?"positive":
+   news.bias==="Potential Negative"?"negative":"neutral";
+  const newsCount=document.createElement("p");
+  newsCount.textContent="Related headlines: "+news.count;
+  newsBox.append(newsLabel,newsValue,newsCount);
+  grid.append(newsBox);
+  const note=document.createElement("p");
+  note.textContent="Demo levels; fees/slippage शामिल नहीं। News bias अलग जानकारी है, signal की पुष्टि नहीं।";
+  div.append(h,price,signal,reason,grid,note);
+  root.append(div);
  }
 }
 function evaluateHistory(){
  for(const h of history){
   if(h.result!=="PENDING")continue;
   const x=data[h.symbol];if(!x)continue;
-  const future=x.m1.filter(c=>c.t>h.time&&c.t<=h.time+5*60000);
+  const closed=x.m1.filter(c=>c.closeTime<Date.now());
+  const future=closed.filter(c=>c.t>h.time&&c.t<=h.time+5*60000);
   for(const c of future){
    const stop=h.side==="LONG"?c.l<=h.stop:c.h>=h.stop;
    const target=h.side==="LONG"?c.h>=h.target:c.l<=h.target;
@@ -234,143 +326,195 @@ function evaluateHistory(){
 }
 function renderHistory(){
  let wins=0,losses=0,pending=0;
- const body=document.getElementById("history");body.replaceChildren();
+ const body=$("history");body.replaceChildren();
  for(const h of history.slice(0,40)){
   if(h.result==="TARGET")wins++;
   else if(h.result==="STOP")losses++;
   else if(h.result==="PENDING")pending++;
   const tr=document.createElement("tr");
-  [new Date(h.time).toLocaleTimeString(),h.symbol.replace("USDT",""),h.side,
-   fmt(h.entry),fmt(h.target),fmt(h.stop),h.result].forEach(v=>{
-    const td=document.createElement("td");td.textContent=v;tr.appendChild(td);
-   });
-  body.appendChild(tr);
+  const values=[
+   new Date(h.time).toLocaleTimeString(),
+   h.symbol.replace("USDT",""),h.side,fmt(h.entry),
+   fmt(h.target),fmt(h.stop),h.result
+  ];
+  values.forEach(v=>{
+   const td=document.createElement("td");td.textContent=v;tr.append(td);
+  });
+  body.append(tr);
  }
- document.getElementById("total").textContent=history.length;
- document.getElementById("wins").textContent=wins;
- document.getElementById("losses").textContent=losses;
- document.getElementById("pending").textContent=pending;
- let n=wins+losses;
- document.getElementById("accuracy").textContent=n?
-  `Target-first rate: ${(wins/n*100).toFixed(1)}% (${n} resolved; fees शामिल नहीं)।`:
+ $("total").textContent=history.length;
+ $("wins").textContent=wins;
+ $("losses").textContent=losses;
+ $("pending").textContent=pending;
+ const resolved=wins+losses;
+ $("accuracy").textContent=resolved?
+  `Target-first rate: ${(wins/resolved*100).toFixed(1)}% (${resolved} target/stop outcomes; fees शामिल नहीं)।`:
   "अभी पर्याप्त resolved test data नहीं है।";
 }
 function clearHistory(){
  if(!confirm("सभी saved paper signals हटाएँ?"))return;
  history=[];saveHistory();renderHistory();
 }
-function togglePause(){
- paused=!paused;
- document.getElementById("pause").textContent=paused?"Resume updates":"Pause updates";
+
+/* News: दो public feeds की कोशिश; जो उपलब्ध हो, उससे headlines मिलाएँ */
+const positiveWords=[
+ "surge","surges","rally","rallies","gain","gains","soar","soars",
+ "approval","approved","inflow","bullish","breakout","adoption",
+ "record high","rises","rising","upgrade","buyback","wins","jumps",
+ "jumped","rebound","recovery","higher","highs"
+];
+const negativeWords=[
+ "crash","crashes","plunge","plunges","hack","hacked","exploit",
+ "ban","banned","lawsuit","outflow","bearish","liquidation",
+ "selloff","sell-off","falls","falling","drops","drop","fraud",
+ "breach","bankruptcy","rejects","rejected","slumps","slump",
+ "lower","losses","warning","probe","investigation"
+];
+const cryptoWords=[
+ "bitcoin","ethereum","cryptocurrency","crypto market","crypto",
+ "blockchain","digital asset","altcoin","solana","ripple","xrp",
+ "stablecoin","defi","binance","coinbase","kraken","crypto etf",
+ "token","wallet","mining","gas fee","web3","on-chain","onchain",
+ "btc","eth","defi","cryptomarket","digital currencies"
+];
+function classify(title){
+ const t=title.toLowerCase();
+ const p=positiveWords.some(w=>t.includes(w));
+ const n=negativeWords.some(w=>t.includes(w));
+ if(p&&!n)return "Positive";
+ if(n&&!p)return "Negative";
+ return "Neutral / Unclear";
 }
+function isCoinHeadline(title,key){
+ const t=title.toLowerCase();
+ if(key==="BTC")return /\bbitcoin\b|\bbitcoins\b|\bbtc\b/.test(t);
+ if(key==="ETH")return /\bethereum\b|\beth\b|\b ether\b|\b ether\b/.test(t)||
+  t.startsWith("ether ");
+ return false;
+}
+function isCryptoHeadline(title){
+ const t=title.toLowerCase();
+ return cryptoWords.some(w=>{
+  if(w==="btc"||w==="eth")return new RegExp("\\b"+w+"\\b").test(t);
+  return t.includes(w);
+ });
+}
+function safeUrl(value){
+ try{
+  const u=new URL(value);
+  return u.protocol==="https:"?u.href:"";
+ }catch(e){return ""}
+}
+function normalizeArticle(a,feedName){
+ const title=String(a.title||a.headline||"").trim();
+ if(!title)return null;
+ let timestamp=Number(a.published_on||a.publishedAt||a.pubDate||0);
+ if(timestamp>0&&timestamp<10000000000)timestamp*=1000;
+ if(!Number.isFinite(timestamp))timestamp=0;
+ return {
+  title,
+  link:String(a.url||a.link||""),
+  source:String(a.source||a.source_info?.name||feedName||"News source"),
+  timestamp,
+  timeAgo:timestamp?timeAgo(timestamp):String(a.timeAgo||"समय उपलब्ध नहीं")
+ };
+}
+function timeAgo(ts){
+ const mins=Math.max(0,Math.floor((Date.now()-ts)/60000));
+ if(mins<1)return "अभी";
+ if(mins<60)return mins+" मिनट पहले";
+ const hours=Math.floor(mins/60);
+ if(hours<24)return hours+" घंटे पहले";
+ return Math.floor(hours/24)+" दिन पहले";
+}
+async function fetchFeed(feed){
+ const d=await getJson(feed.url);
+ let arr=[];
+ if(Array.isArray(d.articles))arr=d.articles;
+ else if(Array.isArray(d.Data))arr=d.Data;
+ else if(Array.isArray(d.data))arr=d.data;
+ return arr.map(a=>normalizeArticle(a,feed.name)).filter(Boolean);
+}
+async function loadNews(){
+ if(newsBusy)return;
+ newsBusy=true;$("news-refresh").disabled=true;
+ $("news-status").textContent="News feeds अपडेट हो रही हैं…";
+ try{
+  const results=await Promise.allSettled(NEWS_FEEDS.map(fetchFeed));
+  let all=[];
+  let sourcesWorked=0;
+  results.forEach((r,i)=>{
+   if(r.status==="fulfilled"){
+    sourcesWorked++;
+    all=all.concat(r.value);
+   }
+  });
+  if(!sourcesWorked)throw Error("दोनों news feeds उपलब्ध नहीं हैं");
 
-/* Relevant headline filter and basic keyword sentiment */
-(function(){
- const status=document.getElementById("news-status");
- const list=document.getElementById("news-list");
- const button=document.getElementById("news-refresh");
- let loading=false;
+  const seen=new Set();
+  headlines=all.filter(h=>{
+   const key=h.title.toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+   if(seen.has(key)||!isCryptoHeadline(h.title))return false;
+   seen.add(key);return true;
+  }).sort((a,b)=>(b.timestamp||0)-(a.timestamp||0)).slice(0,30);
 
- const relevant=[
-  "bitcoin","btc","ethereum","ether","eth ","crypto","cryptocurrency",
-  "blockchain","digital asset","altcoin","solana","sol ","xrp","ripple",
-  "stablecoin","defi","binance","coinbase","kraken","etf","sec ",
-  "crypto market","token","wallet","exchange","mining","gas fee",
-  "hack","hacked","exploit","regulation","liquidation","bullish","bearish",
-  "treasury","buyback","inflow","outflow"
- ];
- const positive=[
-  "surge","surges","rally","rallies","gain","gains","soar","soars",
-  "approval","approved","inflow","bullish","breakout","adoption",
-  "record high","rises","rising","upgrade","buyback","wins"
- ];
- const negative=[
-  "crash","crashes","plunge","plunges","hack","hacked","exploit",
-  "ban","banned","lawsuit","outflow","bearish","liquidation",
-  "selloff","sell-off","falls","falling","drops","drop","fraud",
-  "breach","bankruptcy","rejects","rejected"
- ];
- function hasWord(text,words){
-  return words.some(w=>text.includes(w));
+  renderNews();
+  const partial=results.some(r=>r.status==="rejected");
+  $("news-status").textContent=
+   "Updated "+new Date().toLocaleTimeString()+
+   " · Feeds available: "+sourcesWorked+"/"+NEWS_FEEDS.length+
+   (partial?" · कुछ feeds उपलब्ध नहीं थीं":"");
+  renderMarkets();
+ }catch(e){
+  $("news-status").textContent="News feeds अभी उपलब्ध नहीं हैं। थोड़ी देर बाद Refresh news दबाएँ।";
+  $("news-status").className="error";
+  $("news-summary").textContent="Feed error के कारण sentiment की गणना नहीं की जा सकी।";
+  $("news-list").replaceChildren();
+  $("news-positive").textContent="—";
+  $("news-negative").textContent="—";
+  $("news-neutral").textContent="—";
+  $("news-total").textContent="—";
+  $("btc-news-count").textContent="—";
+  $("eth-news-count").textContent="—";
+  $("btc-news-bias").textContent="News unavailable";
+  $("eth-news-bias").textContent="News unavailable";
+ }finally{
+  newsBusy=false;$("news-refresh").disabled=false;
  }
- function classify(title){
-  const t=title.toLowerCase();
-  const p=hasWord(t,positive),n=hasWord(t,negative);
-  if(p&&!n)return "Positive";
-  if(n&&!p)return "Negative";
-  return "Neutral / Unclear";
- }
- function safeUrl(value){
-  try{
-   const u=new URL(value);
-   return u.protocol==="https:"?u.href:"";
-  }catch(e){return ""}
- }
- async function loadNews(){
-  if(loading)return;
-  loading=true;button.disabled=true;
-  status.textContent="Crypto headlines अपडेट हो रही हैं…";
-  try{
-   const r=await fetch("https://cryptocurrency.cv/api/news?limit=50",
-    {cache:"no-store"});
-   if(!r.ok)throw Error("News feed unavailable");
-   const d=await r.json();
-   const articles=Array.isArray(d.articles)?d.articles:[];
-   const seen=new Set();
-   const filtered=articles.filter(a=>{
-    const title=String(a.title||"").trim();
-    const t=title.toLowerCase();
-    if(!title||!hasWord(t,relevant))return false;
-    const key=t;
-    if(seen.has(key))return false;
-    seen.add(key);return true;
-   }).slice(0,15);
+}
+function renderNews(){
+ const list=$("news-list");list.replaceChildren();
+ let positive=0,negative=0,neutral=0;
+ headlines.forEach(item=>{
+  const bias=classify(item.title);
+  if(bias==="Positive")positive++;
+  else if(bias==="Negative")negative++;
+  else neutral++;
 
-   list.replaceChildren();
-   let p=0,n=0,z=0;
-   filtered.forEach(item=>{
-    const title=String(item.title||"Untitled headline");
-    const b=classify(title);
-    if(b==="Positive")p++;else if(b==="Negative")n++;else z++;
+  const article=document.createElement("article");
+  const a=document.createElement("a");
+  a.textContent=item.title;
+  const url=safeUrl(item.link);
+  if(url){a.href=url;a.target="_blank";a.rel="noopener noreferrer"}
+  else a.removeAttribute("href");
 
-    const article=document.createElement("article");
-    const a=document.createElement("a");
-    a.textContent=title;
-    const url=safeUrl(String(item.link||""));
-    if(url){a.href=url;a.target="_blank";a.rel="noopener noreferrer"}
-    const tag=document.createElement("small");
-    tag.textContent="Headline bias: "+b;
-    tag.className=b==="Positive"?"positive":b==="Negative"?"negative":"neutral";
-    const meta=document.createElement("small");
-    meta.textContent=String(item.source||"News source")+" · "+
-     String(item.timeAgo||item.pubDate||"समय उपलब्ध नहीं");
-    article.append(a,tag,meta);list.appendChild(article);
-   });
-   document.getElementById("news-positive").textContent=p;
-   document.getElementById("news-negative").textContent=n;
-   document.getElementById("news-neutral").textContent=z;
-   document.getElementById("news-total").textContent=filtered.length;
-   document.getElementById("news-summary").textContent=filtered.length?
-    "ये counts केवल filtered headlines के शब्दों पर आधारित हैं; market-wide sentiment नहीं।":
-    "इस बार feed में कोई relevant crypto headline नहीं मिली। इसका अर्थ यह नहीं कि market में खबरें नहीं हैं।";
-   status.textContent="अपडेट: "+new Date().toLocaleTimeString()+
-    " · Filtered headlines: "+filtered.length;
-  }catch(e){
-   status.textContent="News feed नहीं खुल रही। Refresh News दबाएँ या बाद में कोशिश करें।";
-   document.getElementById("news-summary").textContent=
-    "Feed error के कारण sentiment उपलब्ध नहीं है।";
-  }finally{
-   loading=false;button.disabled=false;
-  }
- }
- button.addEventListener("click",loadNews);
- loadNews();
- setInterval(loadNews,180000);
-})();
+  const tag=document.createElement("small");
+  tag.textContent="Headline bias: "+bias;
+  tag.className=bias==="Positive"?"positive":bias==="Negative"?"negative":"neutral";
 
-refreshAll();
-setInterval(()=>{if(!paused)refreshAll()},10000);
-setInterval(()=>{if(!paused){evaluateHistory();renderHistory()}},15000);
-</script>
-</body>
-</html>
+  const meta=document.createElement("small");
+  meta.textContent=item.source+" · "+item.timeAgo;
+  article.append(a,tag,meta);list.append(article);
+ });
+ $("news-positive").textContent=positive;
+ $("news-negative").textContent=negative;
+ $("news-neutral").textContent=neutral;
+ $("news-total").textContent=headlines.length;
+
+ $("news-summary").textContent=headlines.length?
+  "इन "+headlines.length+" crypto-related headlines में keyword counts हैं; यह पूरे market का sentiment नहीं है।":
+  "Feeds मिलीं, लेकिन इस समय relevant crypto headlines नहीं मिलीं।";
+
+ for(const key of ["BTC","ETH"]){
+  const x=getCoinNewsBias(key);
+  $(key.toLowerCase()+"-news-co
