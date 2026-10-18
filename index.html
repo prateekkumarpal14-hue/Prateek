@@ -196,22 +196,57 @@ function marketFresh(s) {
     !candleStatus(s.candles15,900000,1200000);
 }
 
-async function fetchJSON(url, timeoutMs=10000) {
-  const controller=new AbortController();
-  const timeout=setTimeout(()=>controller.abort(),timeoutMs);
-  try {
-    const response=await fetch(url,{
-      cache:"no-store",
-      signal:controller.signal
-    });
-    if (!response.ok) throw new Error("HTTP "+response.status);
-    return await response.json();
-  } catch(e) {
-    if (e.name==="AbortError") throw new Error("Request timeout");
-    throw e;
-  } finally {
-    clearTimeout(timeout);
+
+async function fetchJSON(url, timeoutMs = 10000) {
+  // Primary and fallback public Futures API hosts.
+  const hosts = [
+    "https://fapi.binance.com",
+    "https://fapi1.binance.com",
+    "https://fapi2.binance.com",
+    "https://fapi3.binance.com"
+  ];
+
+  const parsed = new URL(url);
+  const path = parsed.pathname + parsed.search;
+  let lastError = "API unavailable";
+
+  for (const host of hosts) {
+    const controller = new AbortController();
+    const timeout = setTimeout(
+      () => controller.abort(),
+      timeoutMs
+    );
+
+    try {
+      const response = await fetch(host + path, {
+        cache: "no-store",
+        signal: controller.signal
+      });
+
+      if (!response.ok) {
+        throw new Error("HTTP " + response.status);
+      }
+
+      const data = await response.json();
+
+      if (data && !Array.isArray(data) &&
+          typeof data === "object" && data.code < 0) {
+        throw new Error(data.msg || "API error");
+      }
+
+      return data;
+    } catch (e) {
+      lastError = e.name === "AbortError"
+        ? "Request timeout"
+        : (e.message || String(e));
+    } finally {
+      clearTimeout(timeout);
+    }
   }
+
+  throw new Error(
+    "सभी Futures API hosts विफल: " + lastError
+  );
 }
 
 async function loadPrice(s) {
