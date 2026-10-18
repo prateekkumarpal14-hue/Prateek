@@ -1,273 +1,33 @@
 <!DOCTYPE html>
-<html lang="hi">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mudrex Futures Signal Board</title>
+<html lang="hi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mudrex Futures Signal Board</title>
 <style>
-:root{color-scheme:dark;--bg:#0b1020;--card:#151d31;--line:#293650;--muted:#aab6cc;--text:#f4f7ff;--green:#37d99a;--red:#ff6577;--yellow:#ffd166}
-*{box-sizing:border-box}body{margin:0;padding:14px;background:var(--bg);color:var(--text);font:15px/1.5 Arial,sans-serif}
-h1{font-size:23px;margin:0}h2{font-size:18px;margin:0 0 12px}
-.small{font-size:12px;color:var(--muted)}.muted{color:var(--muted)}
-.card{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:14px;margin:12px 0;min-width:0}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:12px}
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
-.stat{background:#0e1627;padding:9px;border-radius:8px;min-width:0;overflow-wrap:anywhere}
-.stat span{display:block;color:var(--muted);font-size:12px}.stat b{display:block;overflow-wrap:anywhere}
-.price{font-size:25px;font-weight:bold;margin:6px 0}.signal{font-size:23px;font-weight:bold;margin:8px 0}
-.LONG,.good{color:var(--green)}.SHORT,.bad{color:var(--red)}.WAIT,.warn{color:var(--yellow)}
-.warning{background:#292317;border:1px solid #755c2a;color:#ffe4a0;padding:12px;border-radius:10px;font-size:13px;margin:12px 0}
-.actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
-button,input,select{font:inherit;padding:10px;border-radius:8px;border:1px solid var(--line);background:#10182a;color:var(--text)}
-button{cursor:pointer}button.primary{background:#244c79}button:disabled{opacity:.5}
-label{display:block;color:var(--muted);font-size:12px;margin:8px 0 4px}input,select{width:100%}
-.settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
-.status{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
-.tablewrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:12px;min-width:600px}
-td,th{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line)}
-a{color:#8fc8ff;overflow-wrap:anywhere}.newsitem{padding:10px 0;border-bottom:1px solid var(--line)}
-.newsitem:last-child{border:0}.pill{display:inline-block;border:1px solid var(--line);border-radius:20px;padding:2px 8px;font-size:12px}
-</style>
-</head>
-<body>
-<h1>₿ Mudrex Futures Signal Board</h1>
-<p class="small">BTCUSDT + ETHUSDT · Scalping / 10–15 min setups · Manual trading only</p>
-
-<div class="warning"><b>Risk:</b> Signal guaranteed nahi hai. Futures mein poora capital lose ho sakta hai. Ye dashboard analysis aur virtual paper trades karta hai; Mudrex par order nahi lagata. Public API, news, slippage aur funding kabhi fail ya differ kar sakte hain. Pehle paper testing karein.</div>
-<div class="actions">
-<button class="primary" id="refresh">Refresh market</button>
-<button id="pause">Pause updates</button>
-<button id="clear">Reset paper history</button>
-</div>
-<div id="status" class="status">Live data load ho raha hai...</div>
-<div id="updated" class="status"></div>
-
-<div class="grid">
-<section class="card">
-<h2>Bitcoin · BTCUSDT</h2><div id="BTC-price" class="price">—</div>
-<div id="BTC-signal" class="signal WAIT">WAIT</div><p id="BTC-reason">Data ka wait...</p>
-<div class="stats">
-<div class="stat"><span>1m trend</span><b id="BTC-t1">—</b></div><div class="stat"><span>5m trend</span><b id="BTC-t5">—</b></div>
-<div class="stat"><span>15m trend</span><b id="BTC-t15">—</b></div><div class="stat"><span>1h trend</span><b id="BTC-t60">—</b></div>
-<div class="stat"><span>RSI 1m</span><b id="BTC-rsi">—</b></div><div class="stat"><span>5-candle momentum</span><b id="BTC-mom">—</b></div>
-<div class="stat"><span>Volume vs average</span><b id="BTC-vol">—</b></div><div class="stat"><span>24h change</span><b id="BTC-change">—</b></div>
-<div class="stat"><span>Funding rate</span><b id="BTC-funding">—</b></div><div class="stat"><span>Signal score</span><b id="BTC-score">—</b></div>
-<div class="stat"><span>Paper entry</span><b id="BTC-entry">—</b></div><div class="stat"><span>Paper SL / Target</span><b id="BTC-levels">—</b></div>
-</div></section>
-<section class="card">
-<h2>Ethereum · ETHUSDT</h2><div id="ETH-price" class="price">—</div>
-<div id="ETH-signal" class="signal WAIT">WAIT</div><p id="ETH-reason">Data ka wait...</p>
-<div class="stats">
-<div class="stat"><span>1m trend</span><b id="ETH-t1">—</b></div><div class="stat"><span>5m trend</span><b id="ETH-t5">—</b></div>
-<div class="stat"><span>15m trend</span><b id="ETH-t15">—</b></div><div class="stat"><span>1h trend</span><b id="ETH-t60">—</b></div>
-<div class="stat"><span>RSI 1m</span><b id="ETH-rsi">—</b></div><div class="stat"><span>5-candle momentum</span><b id="ETH-mom">—</b></div>
-<div class="stat"><span>Volume vs average</span><b id="ETH-vol">—</b></div><div class="stat"><span>24h change</span><b id="ETH-change">—</b></div>
-<div class="stat"><span>Funding rate</span><b id="ETH-funding">—</b></div><div class="stat"><span>Signal score</span><b id="ETH-score">—</b></div>
-<div class="stat"><span>Paper entry</span><b id="ETH-entry">—</b></div><div class="stat"><span>Paper SL / Target</span><b id="ETH-levels">—</b></div>
-</div></section>
-</div>
-
-<section class="card"><h2>Paper trading settings</h2>
-<div class="settings">
-<div><label for="balance">Virtual balance (USDT)</label><input id="balance" type="number" min="1" value="100"></div>
-<div><label for="fee">Fee per side (%)</label><input id="fee" type="number" min="0" max="1" step=".01" value=".05"></div>
-<div><label for="sl">Stop-loss (%)</label><input id="sl" type="number" min=".05" max="5" step=".05" value=".35"></div>
-<div><label for="tp">Target (%)</label><input id="tp" type="number" min=".05" max="10" step=".05" value=".60"></div>
-<div><label for="risk">Balance per trade (%)</label><input id="risk" type="number" min="1" max="100" value="10"></div>
-<div><label for="exitmins">Time exit (minutes)</label><input id="exitmins" type="number" min="1" max="240" value="15"></div>
-</div><p class="small">Approximate virtual simulation only; real fills, slippage, funding, leverage and liquidation are not fully modelled.</p></section>
-
-<section class="card"><h2>Paper performance</h2><div class="stats">
-<div class="stat"><span>Virtual balance + net P&L</span><b id="sum-balance">—</b></div><div class="stat"><span>Closed trades</span><b id="sum-count">0</b></div>
-<div class="stat"><span>Wins / losses</span><b id="sum-wl">0 / 0</b></div><div class="stat"><span>Net P&L after estimated fees</span><b id="sum-pnl">0</b></div>
-<div class="stat"><span>Win rate</span><b id="sum-winrate">—</b></div><div class="stat"><span>Open paper trades</span><b id="sum-open">0</b></div>
-</div><p class="small">History browser ke local storage mein save hoti hai. Private mode/storage clear hone par lost ho sakti hai.</p></section>
-
-<section class="card"><h2>Crypto news & event watch</h2>
-<p id="news-status" class="status">News feed connect ho rahi hai...</p>
-<div id="news-list"><p class="small">Headlines load hone ka wait karein.</p></div>
-<p class="small">Crypto-relevant headlines ko priority di jaati hai. News signal score ko automatically change nahi karti; headline ki date, source aur market impact verify karein.</p></section>
-
-<section class="card"><h2>Paper trade history</h2><div class="tablewrap"><table><thead><tr><th>Time</th><th>Coin</th><th>Side</th><th>Entry</th><th>Exit</th><th>Net P&amp;L</th><th>Result</th></tr></thead><tbody id="history"><tr><td colspan="7">Abhi koi trade nahi.</td></tr></tbody></table></div></section>
-
+:root{color-scheme:dark;--bg:#0b1020;--card:#151d31;--line:#293650;--muted:#aab6cc;--text:#f4f7ff;--green:#37d99a;--red:#ff6577;--yellow:#ffd166}*{box-sizing:border-box}body{margin:0;padding:14px;background:var(--bg);color:var(--text);font:15px/1.5 Arial,sans-serif}h1{font-size:23px;margin:0}h2{font-size:18px;margin:0 0 12px}.small{font-size:12px;color:var(--muted)}.card{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:14px;margin:12px 0;min-width:0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:12px}.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.stat{background:#0e1627;padding:9px;border-radius:8px;min-width:0;overflow-wrap:anywhere}.stat span{display:block;color:var(--muted);font-size:12px}.stat b{display:block;overflow-wrap:anywhere}.price{font-size:25px;font-weight:bold;margin:6px 0}.signal{font-size:23px;font-weight:bold;margin:8px 0}.LONG,.good{color:var(--green)}.SHORT,.bad{color:var(--red)}.WAIT,.warn{color:var(--yellow)}.warning{background:#292317;border:1px solid #755c2a;color:#ffe4a0;padding:12px;border-radius:10px;font-size:13px;margin:12px 0}.actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}button,input{font:inherit;padding:10px;border-radius:8px;border:1px solid var(--line);background:#10182a;color:var(--text)}button{cursor:pointer}button.primary{background:#244c79}button:disabled{opacity:.5}label{display:block;color:var(--muted);font-size:12px;margin:8px 0 4px}input{width:100%}.settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}.status{font-size:13px;color:var(--muted);overflow-wrap:anywhere}.tablewrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:12px;min-width:600px}td,th{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line)}a{color:#8fc8ff;overflow-wrap:anywhere}.newsitem{padding:10px 0;border-bottom:1px solid var(--line)}.pill{display:inline-block;border:1px solid var(--line);border-radius:20px;padding:2px 8px;font-size:12px}
+</style></head><body>
+<h1>₿ Mudrex Futures Signal Board</h1><p class="small">BTCUSDT + ETHUSDT · Scalping / 10–15 min setups · Manual trading only · No API keys</p>
+<div class="warning"><b>Risk warning:</b> Signal guaranteed nahi hai. Futures mein poora capital lose ho sakta hai. Ye dashboard public market data aur virtual paper trades use karta hai; Mudrex par order nahi lagata. Slippage, funding, liquidation aur exchange fees fully simulate nahi hote. Pehle paper testing karein.</div>
+<div class="actions"><button class="primary" id="refresh">Refresh market</button><button id="pause">Pause updates</button><button id="clear">Reset paper history</button></div><div id="status" class="status">Live data load ho raha hai...</div><div id="updated" class="status"></div>
+<div class="grid"><section class="card"><h2>Bitcoin · BTCUSDT</h2><div id="BTC-price" class="price">—</div><div id="BTC-signal" class="signal WAIT">WAIT</div><p id="BTC-reason">Data ka wait...</p><div class="stats"><div class="stat"><span>1m trend</span><b id="BTC-t1">—</b></div><div class="stat"><span>5m trend</span><b id="BTC-t5">—</b></div><div class="stat"><span>15m trend</span><b id="BTC-t15">—</b></div><div class="stat"><span>1h trend</span><b id="BTC-t60">—</b></div><div class="stat"><span>RSI 1m</span><b id="BTC-rsi">—</b></div><div class="stat"><span>5-candle momentum</span><b id="BTC-mom">—</b></div><div class="stat"><span>Volume vs average</span><b id="BTC-vol">—</b></div><div class="stat"><span>24h change</span><b id="BTC-change">—</b></div><div class="stat"><span>Funding rate</span><b id="BTC-funding">—</b></div><div class="stat"><span>Signal score</span><b id="BTC-score">—</b></div><div class="stat"><span>Paper entry</span><b id="BTC-entry">—</b></div><div class="stat"><span>Paper SL / Target</span><b id="BTC-levels">—</b></div></div></section>
+<section class="card"><h2>Ethereum · ETHUSDT</h2><div id="ETH-price" class="price">—</div><div id="ETH-signal" class="signal WAIT">WAIT</div><p id="ETH-reason">Data ka wait...</p><div class="stats"><div class="stat"><span>1m trend</span><b id="ETH-t1">—</b></div><div class="stat"><span>5m trend</span><b id="ETH-t5">—</b></div><div class="stat"><span>15m trend</span><b id="ETH-t15">—</b></div><div class="stat"><span>1h trend</span><b id="ETH-t60">—</b></div><div class="stat"><span>RSI 1m</span><b id="ETH-rsi">—</b></div><div class="stat"><span>5-candle momentum</span><b id="ETH-mom">—</b></div><div class="stat"><span>Volume vs average</span><b id="ETH-vol">—</b></div><div class="stat"><span>24h change</span><b id="ETH-change">—</b></div><div class="stat"><span>Funding rate</span><b id="ETH-funding">—</b></div><div class="stat"><span>Signal score</span><b id="ETH-score">—</b></div><div class="stat"><span>Paper entry</span><b id="ETH-entry">—</b></div><div class="stat"><span>Paper SL / Target</span><b id="ETH-levels">—</b></div></div></section></div>
+<section class="card"><h2>Paper trading settings</h2><div class="settings"><div><label for="balance">Starting virtual balance (USDT)</label><input id="balance" type="number" min="1" value="100"></div><div><label for="fee">Fee per side (%)</label><input id="fee" type="number" min="0" max="1" step=".01" value=".05"></div><div><label for="sl">Stop-loss (%)</label><input id="sl" type="number" min=".05" max="5" step=".05" value=".35"></div><div><label for="tp">Target (%)</label><input id="tp" type="number" min=".05" max="10" step=".05" value=".60"></div><div><label for="risk">Balance per trade (%)</label><input id="risk" type="number" min="1" max="100" value="10"></div><div><label for="exitmins">Time exit (minutes)</label><input id="exitmins" type="number" min="1" max="240" value="15"></div></div><p class="small">Virtual simulation only. Trade notional is a percentage of configured balance; leverage/margin, slippage, funding and liquidation are not modelled.</p></section>
+<section class="card"><h2>Paper performance</h2><div class="stats"><div class="stat"><span>Virtual balance + net P&amp;L</span><b id="sum-balance">—</b></div><div class="stat"><span>Closed trades</span><b id="sum-count">0</b></div><div class="stat"><span>Wins / losses</span><b id="sum-wl">0 / 0</b></div><div class="stat"><span>Net P&amp;L after estimated fees</span><b id="sum-pnl">0</b></div><div class="stat"><span>Win rate</span><b id="sum-winrate">—</b></div><div class="stat"><span>Open paper trades</span><b id="sum-open">0</b></div></div><p class="small">History browser local storage mein save hoti hai; private mode/storage clear hone par lost ho sakti hai.</p></section>
+<section class="card"><h2>Crypto news &amp; event watch</h2><p id="news-status" class="status">News feed connect ho rahi hai...</p><div id="news-list"><p class="small">Headlines load hone ka wait karein.</p></div><p class="small">News sirf context hai, signal score ko automatically change nahi karti. Headline timestamp aur impact verify karein.</p></section>
+<section class="card"><h2>Paper trade history</h2><div class="tablewrap"><table><thead><tr><th>Time</th><th>Coin</th><th>Side</th><th>Entry</th><th>Exit</th><th>Net P&amp;L</th><th>Result</th></tr></thead><tbody id="history"><tr><td colspan="7">Abhi koi closed trade nahi.</td></tr></tbody></table></div></section>
 <script>
-"use strict";
-const SYMBOLS={BTC:"BTCUSDT",ETH:"ETHUSDT"};
-const BASES=["https://fapi.binance.com","https://fapi1.binance.com","https://fapi2.binance.com","https://fapi3.binance.com"];
-const STORE="mudrex_signal_board_paper_v4";
-let paused=false,busy=false,timer=null,newsTimer=null,trades=[],closed=[],lastSignal={};
-const state={BTC:{ticker:null,candles:null,stats:null,funding:null,error:null,a:null},ETH:{ticker:null,candles:null,stats:null,funding:null,error:null,a:null}};
-const $=id=>document.getElementById(id);
-function fmt(n,d=2){return Number.isFinite(n)?n.toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d}):"—";}
-function clock(t=Date.now()){return new Date(t).toLocaleTimeString("en-IN",{hour12:false});}
-function num(id,def){const el=$(id),x=Number(el.value);return el&&el.value.trim()!==""&&Number.isFinite(x)?x:def;}
-function cfg(){return {balance:Math.max(1,num("balance",100)),fee:Math.max(0,Math.min(1,num("fee",.05)))/100,sl:Math.max(.05,Math.min(5,num("sl",.35)))/100,tp:Math.max(.05,Math.min(10,num("tp",.60)))/100,risk:Math.min(100,Math.max(1,num("risk",10)))/100,mins:Math.max(1,Math.min(240,num("exitmins",15)))};}
-function put(id,v){const el=$(id);if(el)el.textContent=v;}
-function save(){try{localStorage.setItem(STORE,JSON.stringify({trades,closed,lastSignal}));}catch(e){console.warn("Storage unavailable",e);}}
-function restore(){try{const x=JSON.parse(localStorage.getItem(STORE)||"{}");if(Array.isArray(x.trades))trades=x.trades;if(Array.isArray(x.closed))closed=x.closed.slice(0,200);if(x.lastSignal&&typeof x.lastSignal==="object")lastSignal=x.lastSignal;}catch(e){console.warn("Could not restore history",e);}}
-async function getJSON(path){
- let lastErr;
- for(const base of BASES){
-  const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),6500);
-  try{const r=await fetch(base+path,{cache:"no-store",signal:ctl.signal});if(!r.ok)throw Error("HTTP "+r.status+" ("+base.replace("https://","")+")");const j=await r.json();if(j&&typeof j==="object"&&!Array.isArray(j)&&j.code&&j.msg)throw Error(j.msg);return j;}
-  catch(e){lastErr=e;}finally{clearTimeout(tm);}
- }
- throw Error(lastErr?.name==="AbortError"?"API timeout; connection slow/blocked":(lastErr?.message||"Public API unavailable"));
-}
-async function ticker(symbol){const x=await getJSON("/fapi/v1/ticker/price?symbol="+symbol);const p=Number(x.price);if(!(p>0))throw Error("Invalid ticker price");return {price:p,time:Date.now()};}
-async function candles(symbol,interval){
- const x=await getJSON("/fapi/v1/klines?symbol="+symbol+"&interval="+interval+"&limit=100");
- if(!Array.isArray(x))throw Error("Invalid "+interval+" candle response");
- const now=Date.now(),out=x.map(k=>({time:+k[0],open:+k[1],high:+k[2],low:+k[3],close:+k[4],volume:+k[5],closeTime:+k[6]})).filter(k=>k.closeTime<now&&Number.isFinite(k.close)&&k.close>0);
- if(out.length<30)throw Error("Not enough closed "+interval+" candles");return out;
-}
-async function marketStats(symbol){const x=await getJSON("/fapi/v1/ticker/24hr?symbol="+symbol);return {change:Number(x.priceChangePercent),volume:Number(x.quoteVolume)};}
-async function funding(symbol){const x=await getJSON("/fapi/v1/premiumIndex?symbol="+symbol);return {rate:Number(x.lastFundingRate),next:Number(x.nextFundingTime),mark:Number(x.markPrice)};}
-function ema(a,p){if(a.length<p)return NaN;let v=a.slice(0,p).reduce((s,n)=>s+n,0)/p,k=2/(p+1);for(let i=p;i<a.length;i++)v=a[i]*k+v*(1-k);return v;}
-function rsi(a,p=14){if(a.length<=p)return NaN;let g=0,l=0;for(let i=1;i<=p;i++){let d=a[i]-a[i-1];if(d>0)g+=d;else l-=d;}let ag=g/p,al=l/p;for(let i=p+1;i<a.length;i++){let d=a[i]-a[i-1];ag=(ag*(p-1)+Math.max(0,d))/p;al=(al*(p-1)+Math.max(0,-d))/p;}if(al===0)return ag===0?50:100;return 100-100/(1+ag/al);}
-function trend(cs,fast,slow){const a=cs.map(c=>c.close),f=ema(a.slice(-60),fast),s=ema(a.slice(-60),slow);return {up:f>s,down:f<s,fast:f,slow:s};}
-function analyze(key){
- const s=state[key];if(s.error||!s.ticker||!s.candles||!s.stats||!s.funding)return {signal:"WAIT",reason:"Live market data incomplete; signal disabled"};
- if(Date.now()-s.ticker.time>45000)return {signal:"WAIT",reason:"Ticker stale hai; fresh data ka wait"};
- const c1=s.candles["1m"],c5=s.candles["5m"],c15=s.candles["15m"],c60=s.candles["1h"];
- const t1=trend(c1,9,21),t5=trend(c5,5,13),t15=trend(c15,5,13),t60=trend(c60,5,13);
- const v=c1.map(c=>c.close),last=c1[c1.length-1],prev=c1[c1.length-2],rv=rsi(v,14),mom=(last.close/v[v.length-6]-1)*100;
- const avgVol=c1.slice(-21,-1).reduce((z,c)=>z+c.volume,0)/20,volRatio=avgVol>0?last.volume/avgVol:NaN;
- const prev5=c1.slice(-6,-1),hi=Math.max(...prev5.map(c=>c.high)),lo=Math.min(...prev5.map(c=>c.low));
- const bull=last.close>last.open,bear=last.close<last.open,breakoutUp=last.close>hi,breakoutDown=last.close<lo;
- const priorEma=ema(v.slice(0,-1).slice(-60),9),reclaimUp=prev.close<=priorEma&&last.close>t1.fast,reclaimDown=prev.close>=priorEma&&last.close<t1.fast;
- const notChasing=Math.abs(last.close/t1.fast-1)*100<=.18,c=cfg(),rewardNet=c.tp-2*c.fee*(1+c.tp),riskNet=c.sl+2*c.fee,rr=riskNet>0?rewardNet/riskNet:0;
- let score=0;if(t1.up)score++;if(t1.down)score--;if(t5.up)score+=2;if(t5.down)score-=2;if(t15.up)score+=2;if(t15.down)score-=2;if(t60.up)score++;if(t60.down)score--;if(mom>.025)score++;if(mom<-.025)score--;if(rv>=52&&rv<=68)score++;if(rv>=32&&rv<=48)score--;if(Number.isFinite(volRatio)&&volRatio>=1.2&&bull)score++;if(Number.isFinite(volRatio)&&volRatio>=1.2&&bear)score--;
- const confirmLong=bull&&(breakoutUp||reclaimUp)&&notChasing,confirmShort=bear&&(breakoutDown||reclaimDown)&&notChasing;
- // Early setups still require 1m + 5m alignment, no 15m opposition,
- // closed-candle confirmation, and at least 0.8x relative volume.
- // If 1h opposes the setup, require a genuine breakout and >=1.5x volume.
- const longBase=t1.up&&t5.up&&!t15.down,shortBase=t1.down&&t5.down&&!t15.up;
- const longHourlyOK=!t60.down||(breakoutUp&&volRatio>=1.5),shortHourlyOK=!t60.up||(breakoutDown&&volRatio>=1.5);
- const longOK=longBase&&longHourlyOK&&mom>=.025&&rv>=52&&rv<=68&&confirmLong&&volRatio>=.8;
- const shortOK=shortBase&&shortHourlyOK&&mom<=-.025&&rv>=32&&rv<=48&&confirmShort&&volRatio>=.8;
- const strongLong=t1.up&&t5.up&&t15.up&&t60.up&&mom>=.025&&rv>=52&&rv<=68&&confirmLong&&volRatio>=1.2;
- const strongShort=t1.down&&t5.down&&t15.down&&t60.down&&mom<=-.025&&rv>=32&&rv<=48&&confirmShort&&volRatio>=1.2;
- let signal="WAIT",reason="Setup confirmation nahi mila";
- if(rr<1.05)reason="Estimated fee ke baad reward/risk kam; WAIT";
- else if(!Number.isFinite(volRatio)||!Number.isFinite(rv))reason="Indicator data invalid; WAIT";
- else if(rv>70)reason="RSI bahut high; chase nahi karni";
- else if(rv<30)reason="RSI bahut low; reversal risk";
- else if(!notChasing)reason="Price EMA se door; late entry avoid";
- else if(volRatio<.8)reason="Volume 0.8x average se kam; confirmation weak";
- else if(!(t1.up&&t5.up)&&!(t1.down&&t5.down))reason="1m aur 5m trend aligned nahi; WAIT";
- else if((t1.up&&t5.up&&t15.down)||(t1.down&&t5.down&&t15.up))reason="15m trend opposite hai; WAIT";
- else if(t1.up&&t5.up&&t15.up&&t60.down&&!(breakoutUp&&volRatio>=1.5))reason="1h bearish hai; LONG ke liye strong breakout + 1.5x volume chahiye";
- else if(t1.down&&t5.down&&t15.down&&t60.up&&!(breakoutDown&&volRatio>=1.5))reason="1h bullish hai; SHORT ke liye strong breakdown + 1.5x volume chahiye";
- else if(strongLong){signal="STRONG LONG";reason="4 timeframe aligned; closed candle, momentum aur volume confirm";}
- else if(strongShort){signal="STRONG SHORT";reason="4 timeframe aligned; closed candle, momentum aur volume confirm";}
- else if(longOK){signal="EARLY LONG";reason="1m/5m aligned; 15m conflict nahi; candle + volume confirmed";}
- else if(shortOK){signal="EARLY SHORT";reason="1m/5m aligned; 15m conflict nahi; candle + volume confirmed";}
- else if(t1.up&&t5.up&&!(rv>=52&&rv<=68))reason="LONG setup ke liye RSI 52–68 confirmation chahiye";
- else if(t1.down&&t5.down&&!(rv>=32&&rv<=48))reason="SHORT setup ke liye RSI 32–48 confirmation chahiye";
- else if(!(confirmLong||confirmShort))reason="Closed candle breakout/reclaim confirmation nahi; WAIT";
- return {signal,reason,score,rsi:rv,momentum:mom,volRatio,t1,t5,t15,t60,candleTime:last.time};
-}
-async function load(key){
- const symbol=SYMBOLS[key];
- try{
-  const r=await Promise.all([ticker(symbol),candles(symbol,"1m"),candles(symbol,"5m"),candles(symbol,"15m"),candles(symbol,"1h"),marketStats(symbol),funding(symbol)]);
-  Object.assign(state[key],{ticker:r[0],candles:{"1m":r[1],"5m":r[2],"15m":r[3],"1h":r[4]},stats:r[5],funding:r[6],error:null});
-  state[key].a=analyze(key);
- }catch(e){state[key].error=e.message||"Market data unavailable";state[key].a={signal:"WAIT",reason:"Live data unavailable: "+state[key].error};}
-}
-function side(signal){if(signal?.includes("LONG"))return "LONG";if(signal?.includes("SHORT"))return "SHORT";return null;}
-function openTrade(key,a){
- const c=cfg(),p=state[key].ticker?.price,sd=side(a.signal);if(!(p>0)||!sd)return;
- const notional=c.balance*c.risk,qty=notional/p;
- trades.push({id:key+"-"+sd+"-"+a.candleTime,key,side:sd,signal:a.signal,entry:p,qty,notional,sl:sd==="LONG"?p*(1-c.sl):p*(1+c.sl),tp:sd==="LONG"?p*(1+c.tp):p*(1-c.tp),fee:c.fee,openedAt:Date.now(),status:"OPEN",exit:null,pnl:null});
-}
-function maybeOpen(){for(const key of Object.keys(SYMBOLS)){const a=state[key].a,sd=side(a?.signal);if(!sd||state[key].error||!a.candleTime)continue;if(trades.some(t=>t.key===key&&t.status==="OPEN"))continue;const id=key+"-"+sd+"-"+a.candleTime;if(lastSignal[key]===id)continue;lastSignal[key]=id;openTrade(key,a);}}
-function closeTrade(t,p,reason){if(t.status!=="OPEN"||!(p>0))return;const gross=t.side==="LONG"?(p-t.entry)*t.qty:(t.entry-p)*t.qty;t.exit=p;t.pnl=gross-t.notional*t.fee-p*t.qty*t.fee;t.status=reason;t.closedAt=Date.now();closed.unshift({...t});closed=closed.slice(0,200);}
-function monitor(){for(const t of trades){if(t.status!=="OPEN")continue;const s=state[t.key];if(!s.ticker||s.error)continue;const p=s.ticker.price,expired=Date.now()-t.openedAt>=cfg().mins*60000;if(t.side==="LONG"&&p<=t.sl)closeTrade(t,t.sl,"STOP LOSS");else if(t.side==="LONG"&&p>=t.tp)closeTrade(t,t.tp,"TARGET");else if(t.side==="SHORT"&&p>=t.sl)closeTrade(t,t.sl,"STOP LOSS");else if(t.side==="SHORT"&&p<=t.tp)closeTrade(t,t.tp,"TARGET");else if(expired)closeTrade(t,p,"TIME EXIT");}}
-function renderCoin(key){
- const s=state[key],a=s.a||{signal:"WAIT",reason:"Data ka wait"};put(key+"-price",s.ticker?fmt(s.ticker.price,2)+" USDT":"Unavailable");
- const se=$(key+"-signal");se.textContent=a.signal||"WAIT";se.className="signal "+(side(a.signal)||"WAIT");put(key+"-reason",a.reason||"WAIT");
- for(const [id,t] of [["t1",a.t1],["t5",a.t5],["t15",a.t15],["t60",a.t60]])put(key+"-"+id,t?(t.up?"Bullish":t.down?"Bearish":"Neutral"):"—");
- put(key+"-rsi",fmt(a.rsi));put(key+"-mom",Number.isFinite(a.momentum)?(a.momentum>0?"+":"")+fmt(a.momentum,3)+"%":"—");put(key+"-vol",Number.isFinite(a.volRatio)?fmt(a.volRatio,2)+"x average":"—");
- put(key+"-change",s.stats&&Number.isFinite(s.stats.change)?((s.stats.change>0?"+":"")+fmt(s.stats.change,2)+"%"):"—");put(key+"-funding",s.funding&&Number.isFinite(s.funding.rate)?fmt(s.funding.rate*100,4)+"%":"—");put(key+"-score",Number.isFinite(a.score)?String(a.score):"—");
- const t=trades.find(x=>x.key===key&&x.status==="OPEN");put(key+"-entry",t?fmt(t.entry,2)+" · "+t.side:"No open trade");put(key+"-levels",t?fmt(t.sl,2)+" / "+fmt(t.tp,2):"—");
-}
-function render(){
- renderCoin("BTC");renderCoin("ETH");const c=cfg(),pnl=closed.reduce((z,t)=>z+(Number(t.pnl)||0),0),wins=closed.filter(t=>t.pnl>0).length,losses=closed.filter(t=>t.pnl<=0).length;
- put("sum-balance",fmt(c.balance+pnl,2)+" USDT");put("sum-count",String(closed.length));put("sum-wl",wins+" / "+losses);put("sum-pnl",(pnl>=0?"+":"")+fmt(pnl,3)+" USDT");$("sum-pnl").className=pnl>=0?"good":"bad";put("sum-winrate",closed.length?fmt(wins/closed.length*100,1)+"%":"—");put("sum-open",String(trades.filter(t=>t.status==="OPEN").length));
- const body=$("history");body.innerHTML="";if(!closed.length){body.innerHTML="<tr><td colspan='7'>Abhi koi closed trade nahi.</td></tr>";return;}
- for(const t of closed){const tr=document.createElement("tr");[clock(t.closedAt),t.key,t.side,fmt(t.entry,2),fmt(t.exit,2),(t.pnl>=0?"+":"")+fmt(t.pnl,3),t.status].forEach((v,i)=>{const td=document.createElement("td");td.textContent=v;if(i===5)td.className=t.pnl>=0?"good":"bad";tr.appendChild(td);});body.appendChild(tr);}
-}
-async function refresh(){
- if(busy)return;busy=true;$("refresh").disabled=true;put("status","Public futures market data refresh ho raha hai...");
- try{
-  await Promise.all([load("BTC"),load("ETH")]);monitor();maybeOpen();render();save();
-  const errors=Object.keys(SYMBOLS).filter(k=>state[k].error).map(k=>k+": "+state[k].error);
-  put("status",errors.length?"Data error — "+errors.join(" | "):"Market data received. Rule-based signals; guarantee nahi.");$("status").className="status "+(errors.length?"bad":"good");put("updated","Last update: "+clock());
- }catch(e){put("status","Refresh error: "+(e.message||e));$("status").className="status bad";}
- finally{busy=false;$("refresh").disabled=false;}
-}
-function showNewsLinks(message){
- const box=$("news-list");box.innerHTML="";
- const p=document.createElement("p");p.className="small";p.textContent=message;box.appendChild(p);
- const sources=[
-  ["CoinDesk","https://www.coindesk.com/"],
-  ["Cointelegraph","https://cointelegraph.com/"],
-  ["Binance announcements","https://www.binance.com/en/support/announcement"],
-  ["Federal Reserve news","https://www.federalreserve.gov/newsevents.htm"]
- ];
- const row=document.createElement("p");row.className="small";
- sources.forEach((item,i)=>{if(i)row.appendChild(document.createTextNode(" · "));const a=document.createElement("a");a.href=item[1];a.target="_blank";a.rel="noopener noreferrer";a.textContent=item[0];row.appendChild(a);});box.appendChild(row);
-}
-function newsCategory(title){
- const t=String(title||"").toLowerCase();
- if(/bitcoin|\bbtc\b|ethereum|\beth\b|ether\b/.test(t))return "BTC / ETH";
- if(/stablecoin|\busdc\b|\busdt\b|tether|circle\b/.test(t))return "Stablecoins";
- if(/sec\b|regulat|lawsuit|court|etf|legislation|policy|ban\b|approval/.test(t))return "Regulation / ETF";
- if(/federal reserve|\bfed\b|\bfomc\b|inflation|interest rate|treasury|\bcpi\b|\bpce\b|jobs report|tariff/.test(t))return "Macro / rates";
- if(/binance|coinbase|kraken|exchange|liquidation|funding rate|on-chain|wallet|hack|exploit|defi|blockchain|crypto|cryptocurrency|digital asset|tokeni[sz]ation|solana|\bxrp\b|ripple|altcoin/.test(t))return "Crypto market";
- return "Other";
-}
-function isCryptoRelevant(item){
- const t=String(item.title||"").toLowerCase();
- return /bitcoin|\bbtc\b|ethereum|\beth\b|ether\b|crypto|cryptocurrency|digital asset|blockchain|defi|stablecoin|\busdc\b|\busdt\b|tether|binance|coinbase|kraken|\bsec\b|\betf\b|solana|\bxrp\b|ripple|altcoin|liquidation|funding rate|on-chain|tokeni[sz]ation|federal reserve|\bfed\b|\bfomc\b|inflation|interest rate|treasury|\bcpi\b|\bpce\b|jobs report|tariff|risk assets/.test(t);
-}
-async function loadNews(){
- put("news-status","Crypto-relevant news filter refresh ho raha hai...");
- let errors=[];
- const providers=[
-  async()=>{const r=await fetch("https://min-api.cryptocompare.com/data/v2/news/?lang=EN",{cache:"no-store"});if(!r.ok)throw Error("CryptoCompare HTTP "+r.status);const j=await r.json();return (Array.isArray(j.Data)?j.Data:[]).map(x=>({title:x.title,url:x.url,source:x.source,time:x.published_on}));},
-  async()=>{const rss="https://www.coindesk.com/arc/outboundfeeds/rss/";const u="https://api.rss2json.com/v1/api.json?rss_url="+encodeURIComponent(rss);const r=await fetch(u,{cache:"no-store"});if(!r.ok)throw Error("RSS fallback HTTP "+r.status);const j=await r.json();return (Array.isArray(j.items)?j.items:[]).map(x=>({title:x.title,url:x.link,source:"CoinDesk RSS",time:x.pubDate?Math.floor(new Date(x.pubDate).getTime()/1000):0}));}
- ];
- for(const provider of providers){
-  try{
-   const raw=await provider(),seen=new Set();
-   const items=raw.filter(x=>x.title&&x.url&&isCryptoRelevant(x)).filter(x=>{const k=String(x.title).toLowerCase().trim();if(seen.has(k))return false;seen.add(k);return true;}).slice(0,8);
-   if(!items.length)throw Error("Feed mein abhi clear crypto-relevant headlines nahi mili");
-   const box=$("news-list");box.innerHTML="";
-   for(const item of items){
-    const div=document.createElement("div");div.className="newsitem";
-    const tag=document.createElement("span");tag.className="pill";tag.textContent=newsCategory(item.title);div.appendChild(tag);
-    const a=document.createElement("a");a.href=item.url;a.target="_blank";a.rel="noopener noreferrer";a.textContent=item.title;a.style.display="block";a.style.marginTop="5px";
-    const meta=document.createElement("p");meta.className="small";meta.textContent=(item.source||"Source")+(item.time?" · "+new Date(item.time*1000).toLocaleString():"");
-    div.appendChild(a);div.appendChild(meta);box.appendChild(div);
-   }
-   put("news-status","Crypto-relevant headlines filtered · "+items.length+" shown · news signal score ko automatically change nahi karti.");return;
-  }catch(e){errors.push(e.message||"feed unavailable");}
- }
- put("news-status","Automatic relevant news unavailable; market signals news ke bina calculate honge.");
- showNewsLinks("Crypto-relevant feed phone/browser se load nahi hui. Direct sources par latest headlines verify karein. News signal score mein include nahi hai.");
-}
-function schedule(){
- if(timer)clearInterval(timer);timer=setInterval(()=>{if(!paused)refresh();},20000);
- if(newsTimer)clearInterval(newsTimer);newsTimer=setInterval(()=>{if(!paused)loadNews();},300000);
-}
-$("refresh").addEventListener("click",refresh);
-$("pause").addEventListener("click",()=>{paused=!paused;$("pause").textContent=paused?"Resume updates":"Pause updates";put("status",paused?"Auto updates paused. Refresh market manually kar sakte ho.":"Auto updates resumed.");if(!paused)refresh();});
-$("clear").addEventListener("click",()=>{if(!confirm("Paper history aur open virtual trades reset karne hain?"))return;trades=[];closed=[];lastSignal={};save();render();put("status","Paper history reset ho gayi.");});
-["balance","fee","sl","tp","risk","exitmins"].forEach(id=>$(id).addEventListener("change",()=>{render();save();}));
-restore();render();refresh();loadNews();schedule();
-</script>
-</body>
-</html>
+'use strict';
+const SYMBOLS={BTC:'BTCUSDT',ETH:'ETHUSDT'},BASES=['https://fapi.binance.com','https://fapi1.binance.com','https://fapi2.binance.com','https://fapi3.binance.com'],STORE='mudrex_signal_board_paper_v6';let paused=false,busy=false,trades=[],closed=[],lastSignal={};const state={BTC:{},ETH:{}},$=id=>document.getElementById(id);
+function fmt(n,d=2){return Number.isFinite(n)?n.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d}):'—'}function clock(t=Date.now()){return new Date(t).toLocaleTimeString('en-IN',{hour12:false})}function put(id,v){const e=$(id);if(e)e.textContent=v}
+function cfg(){const n=(id,d)=>{const e=$(id),v=e?Number(e.value):d;return e&&e.value.trim()!==''&&Number.isFinite(v)?v:d};return{balance:Math.max(1,n('balance',100)),fee:Math.max(0,Math.min(1,n('fee',.05)))/100,sl:Math.max(.05,Math.min(5,n('sl',.35)))/100,tp:Math.max(.05,Math.min(10,n('tp',.60)))/100,risk:Math.max(1,Math.min(100,n('risk',10)))/100,mins:Math.max(1,Math.min(240,n('exitmins',15)))}}
+function save(){try{localStorage.setItem(STORE,JSON.stringify({trades,closed,lastSignal}))}catch(e){console.warn('Local storage unavailable',e)}}function restore(){try{const x=JSON.parse(localStorage.getItem(STORE)||'{}');if(Array.isArray(x.trades))trades=x.trades;if(Array.isArray(x.closed))closed=x.closed.slice(0,200);if(x.lastSignal&&typeof x.lastSignal==='object')lastSignal=x.lastSignal}catch(e){console.warn(e)}}
+async function getJSON(path){let err;for(const base of BASES){const c=new AbortController(),tm=setTimeout(()=>c.abort(),6500);try{const r=await fetch(base+path,{cache:'no-store',signal:c.signal});if(!r.ok)throw Error('HTTP '+r.status);const x=await r.json();if(x&&x.code&&x.msg)throw Error(x.msg);return x}catch(e){err=e}finally{clearTimeout(tm)}}throw Error(err?.name==='AbortError'?'API timeout; connection slow/blocked':err?.message||'Public API unavailable')}
+async function ticker(sym){const x=await getJSON('/fapi/v1/ticker/price?symbol='+sym),p=Number(x.price);if(!(p>0))throw Error('Invalid ticker');return{price:p,time:Date.now()}}async function candles(sym,iv){if(!['1m','5m','15m','1h'].includes(iv))throw Error('Invalid candle interval');const x=await getJSON('/fapi/v1/klines?symbol='+sym+'&interval='+iv+'&limit=100');if(!Array.isArray(x))throw Error('Invalid candle response');const now=Date.now(),a=x.map(k=>({time:+k[0],open:+k[1],high:+k[2],low:+k[3],close:+k[4],volume:+k[5],end:+k[6]})).filter(k=>k.end<now&&k.close>0&&Number.isFinite(k.volume));if(a.length<30)throw Error('Not enough closed '+iv+' candles');return a}async function extras(sym){const [d,f]=await Promise.all([getJSON('/fapi/v1/ticker/24hr?symbol='+sym),getJSON('/fapi/v1/premiumIndex?symbol='+sym)]);return{change:Number(d.priceChangePercent),funding:Number(f.lastFundingRate)}}
+function ema(a,p){if(a.length<p)return NaN;let v=a.slice(0,p).reduce((s,n)=>s+n,0)/p,k=2/(p+1);for(let i=p;i<a.length;i++)v=a[i]*k+v*(1-k);return v}function rsi(a,p=14){if(a.length<=p)return NaN;let g=0,l=0;for(let i=1;i<=p;i++){let d=a[i]-a[i-1];g+=Math.max(0,d);l+=Math.max(0,-d)}let ag=g/p,al=l/p;for(let i=p+1;i<a.length;i++){let d=a[i]-a[i-1];ag=(ag*(p-1)+Math.max(0,d))/p;al=(al*(p-1)+Math.max(0,-d))/p}return al===0?(ag===0?50:100):100-100/(1+ag/al)}function trend(cs,f,s){const a=cs.map(x=>x.close),fast=ema(a.slice(-60),f),slow=ema(a.slice(-60),s);return{up:fast>slow,down:fast<slow,fast,slow}}
+function analyze(k){const s=state[k];if(s.error||!s.ticker||Date.now()-s.ticker.time>45000||!s.cs||!s.extra)return{signal:'WAIT',reason:'Live data incomplete/stale; signal disabled'};const c=s.cs,c1=c['1m'],t1=trend(c1,9,21),t5=trend(c['5m'],5,13),t15=trend(c['15m'],5,13),t60=trend(c['1h'],5,13),v=c1.map(x=>x.close),last=c1.at(-1),rv=rsi(v),mom=(last.close/v[v.length-6]-1)*100,avg=c1.slice(-21,-1).reduce((z,x)=>z+x.volume,0)/20,vr=avg>0?last.volume/avg:NaN,prior=c1.slice(-6,-1),hi=Math.max(...prior.map(x=>x.high)),lo=Math.min(...prior.map(x=>x.low)),bull=last.close>last.open,bear=last.close<last.open,breakUp=last.close>hi,breakDn=last.close<lo,notChase=Math.abs(last.close/t1.fast-1)*100<=.18;let score=0;[[t1,1],[t5,2],[t15,2],[t60,1]].forEach(([t,w])=>{if(t.up)score+=w;if(t.down)score-=w});if(mom>.025)score++;if(mom<-.025)score--;if(rv>=52&&rv<=68)score++;if(rv>=32&&rv<=48)score--;if(vr>=1.2&&bull)score++;if(vr>=1.2&&bear)score--;const long=t1.up&&t5.up&&!t15.down&&(!t60.down||(breakUp&&vr>=1.5))&&mom>=.025&&rv>=52&&rv<=68&&bull&&breakUp&&notChase&&vr>=.8,short=t1.down&&t5.down&&!t15.up&&(!t60.up||(breakDn&&vr>=1.5))&&mom<=-.025&&rv>=32&&rv<=48&&bear&&breakDn&&notChase&&vr>=.8,cfig=cfg(),reward=cfig.tp-2*cfig.fee*(1+cfig.tp),risk=cfig.sl+2*cfig.fee,rr=reward/risk;let signal='WAIT',reason='Full setup confirmation nahi mila; WAIT';if(rr<1.05)reason='Estimated fee ke baad reward/risk kam hai';else if(rv>70)reason='RSI high hai; chase avoid';else if(rv<30)reason='RSI low hai; reversal risk';else if(!notChase)reason='Price EMA se door hai; late entry avoid';else if(vr<.8)reason='Volume average se kam hai';else if(!(t1.up&&t5.up)&&!(t1.down&&t5.down))reason='1m aur 5m trend aligned nahi';else if((t1.up&&t5.up&&t15.down)||(t1.down&&t5.down&&t15.up))reason='15m trend opposite hai';else if(long&&t15.up&&t60.up&&vr>=1.2){signal='STRONG LONG';reason='4 timeframe alignment + breakout + volume confirmation'}else if(short&&t15.down&&t60.down&&vr>=1.2){signal='STRONG SHORT';reason='4 timeframe alignment + breakdown + volume confirmation'}else if(long){signal='EARLY LONG';reason='1m/5m alignment + closed-candle breakout confirmed'}else if(short){signal='EARLY SHORT';reason='1m/5m alignment + closed-candle breakdown confirmed'}else if(t1.up&&t5.up&&!(rv>=52&&rv<=68))reason='LONG ke liye RSI 52–68 chahiye';else if(t1.down&&t5.down&&!(rv>=32&&rv<=48))reason='SHORT ke liye RSI 32–48 chahiye';else reason='Breakout, momentum ya volume confirmation missing';return{signal,reason,score,rsi:rv,momentum:mom,volRatio:vr,t1,t5,t15,t60,candleTime:last.time}}
+async function load(k){try{const sym=SYMBOLS[k],[tk,c1,c5,c15,c60,ex]=await Promise.all([ticker(sym),candles(sym,'1m'),candles(sym,'5m'),candles(sym,'15m'),candles(sym,'1h'),extras(sym)]);state[k]={ticker:tk,cs:{'1m':c1,'5m':c5,'15m':c15,'1h':c60},extra:ex,error:null};state[k].a=analyze(k)}catch(e){state[k].error=e.message||'Market data unavailable';state[k].a={signal:'WAIT',reason:'Live data unavailable: '+state[k].error}}}function side(s){return s?.includes('LONG')?'LONG':s?.includes('SHORT')?'SHORT':null}
+function openTrade(k,a){const c=cfg(),p=state[k].ticker?.price,sd=side(a.signal);if(!(p>0)||!sd)return;const notional=c.balance*c.risk;trades.push({id:k+'-'+sd+'-'+a.candleTime,key:k,side:sd,entry:p,qty:notional/p,notional,sl:sd==='LONG'?p*(1-c.sl):p*(1+c.sl),tp:sd==='LONG'?p*(1+c.tp):p*(1-c.tp),fee:c.fee,openedAt:Date.now(),status:'OPEN'})}function maybeOpen(){for(const k of Object.keys(SYMBOLS)){const a=state[k].a,sd=side(a?.signal);if(!sd||state[k].error||!a.candleTime||trades.some(t=>t.key===k&&t.status==='OPEN'))continue;const id=k+'-'+sd+'-'+a.candleTime;if(lastSignal[k]===id)continue;lastSignal[k]=id;openTrade(k,a)}}function closeTrade(t,p,reason){if(t.status!=='OPEN'||!(p>0))return;const gross=t.side==='LONG'?(p-t.entry)*t.qty:(t.entry-p)*t.qty;t.exit=p;t.pnl=gross-t.notional*t.fee-p*t.qty*t.fee;t.status=reason;t.closedAt=Date.now();closed.unshift({...t});closed=closed.slice(0,200)}function monitor(){for(const t of trades){if(t.status!=='OPEN')continue;const s=state[t.key];if(!s.ticker||s.error)continue;const p=s.ticker.price,expired=Date.now()-t.openedAt>=cfg().mins*60000;if(t.side==='LONG'&&p<=t.sl)closeTrade(t,t.sl,'STOP LOSS');else if(t.side==='LONG'&&p>=t.tp)closeTrade(t,t.tp,'TARGET');else if(t.side==='SHORT'&&p>=t.sl)closeTrade(t,t.sl,'STOP LOSS');else if(t.side==='SHORT'&&p<=t.tp)closeTrade(t,t.tp,'TARGET');else if(expired)closeTrade(t,p,'TIME EXIT')}}
+function renderCoin(k){const s=state[k],a=s.a||{signal:'WAIT',reason:'Waiting for data'};put(k+'-price',s.ticker?fmt(s.ticker.price,2)+' USDT':'Unavailable');const el=$(k+'-signal');el.textContent=a.signal;el.className='signal '+(side(a.signal)||'WAIT');put(k+'-reason',a.reason);[['t1',a.t1],['t5',a.t5],['t15',a.t15],['t60',a.t60]].forEach(([id,t])=>put(k+'-'+id,t?(t.up?'Bullish':t.down?'Bearish':'Neutral'):'—'));put(k+'-rsi',fmt(a.rsi));put(k+'-mom',Number.isFinite(a.momentum)?(a.momentum>0?'+':'')+fmt(a.momentum,3)+'%':'—');put(k+'-vol',Number.isFinite(a.volRatio)?fmt(a.volRatio,2)+'x average':'—');put(k+'-change',s.extra&&Number.isFinite(s.extra.change)?(s.extra.change>0?'+':'')+fmt(s.extra.change,2)+'%':'—');put(k+'-funding',s.extra&&Number.isFinite(s.extra.funding)?fmt(s.extra.funding*100,4)+'%':'—');put(k+'-score',Number.isFinite(a.score)?a.score:'—');const t=trades.find(x=>x.key===k&&x.status==='OPEN');put(k+'-entry',t?fmt(t.entry,2)+' · '+t.side:'No open trade');put(k+'-levels',t?fmt(t.sl,2)+' / '+fmt(t.tp,2):'—')}
+function render(){renderCoin('BTC');renderCoin('ETH');const c=cfg(),pnl=closed.reduce((s,t)=>s+(Number(t.pnl)||0),0),wins=closed.filter(t=>t.pnl>0).length,loss=closed.length-wins;put('sum-balance',fmt(c.balance+pnl,2)+' USDT');put('sum-count',closed.length);put('sum-wl',wins+' / '+loss);put('sum-pnl',(pnl>=0?'+':'')+fmt(pnl,3)+' USDT');$('sum-pnl').className=pnl>=0?'good':'bad';put('sum-winrate',closed.length?fmt(wins/closed.length*100,1)+'%':'—');put('sum-open',trades.filter(t=>t.status==='OPEN').length);const b=$('history');b.replaceChildren();if(!closed.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=7;td.textContent='Abhi koi closed trade nahi.';tr.append(td);b.append(tr);return}closed.forEach(t=>{const tr=document.createElement('tr');[clock(t.closedAt),t.key,t.side,fmt(t.entry,2),fmt(t.exit,2),(t.pnl>=0?'+':'')+fmt(t.pnl,3),t.status].forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.append(td)});b.append(tr)})}
+async function refreshMarket(){if(busy)return;busy=true;$('refresh').disabled=true;put('status','Public market data refresh ho raha hai...');await Promise.all(Object.keys(SYMBOLS).map(load));monitor();maybeOpen();render();save();const e=Object.keys(SYMBOLS).filter(k=>state[k].error).map(k=>k+': '+state[k].error);put('status',e.length?'Data unavailable — '+e.join(' | '):'Live public data received. Signals rule-based hain, guaranteed nahi.');put('updated','Last update: '+clock());busy=false;$('refresh').disabled=false}
+function pauseToggle(){paused=!paused;put('pause',paused?'Resume updates':'Pause updates');put('status',paused?'Auto updates paused. Manual refresh available.':'Auto updates resumed.');if(!paused)refreshMarket()}function reset(){if(!confirm('Open paper trades aur history reset karni hai?'))return;trades=[];closed=[];lastSignal={};save();render();put('status','Paper history reset ho gayi.')}
+function relevant(s){return /(bitcoin|\bbtc\b|ethereum|\beth\b|crypto|cryptocurrency|digital asset|stablecoin|tokeniz|blockchain|binance|coinbase|\betf\b|\bsec\b|regulation|federal reserve|interest rate|inflation|cpi|treasury yield|risk-off|risk off|hack|exploit|liquidation|funding rate)/i.test(s)}async function loadNews(){const list=$('news-list');try{const u='https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent('https://www.coindesk.com/arc/outboundfeeds/rss/'),c=new AbortController(),tm=setTimeout(()=>c.abort(),9000);let d;try{const r=await fetch(u,{cache:'no-store',signal:c.signal});if(!r.ok)throw Error('HTTP '+r.status);d=await r.json()}finally{clearTimeout(tm)}if(d.status!=='ok'||!Array.isArray(d.items))throw Error('Invalid feed');const items=d.items.filter(x=>relevant((x.title||'')+' '+(x.description||''))).slice(0,8);list.replaceChildren();if(!items.length){put('news-status','Feed loaded, no matching headlines found.');return}items.forEach(x=>{const div=document.createElement('div');div.className='newsitem';const pill=document.createElement('span');pill.className='pill';pill.textContent=/stablecoin|usdc|usdt|circle/i.test(x.title)?'Stablecoins':/etf|sec|regulation/i.test(x.title)?'Regulation / ETF':/federal reserve|interest rate|inflation|cpi/i.test(x.title)?'Macro events':'Crypto market';const br=document.createElement('br'),a=document.createElement('a');a.href=x.link||'https://www.coindesk.com/';a.target='_blank';a.rel='noopener noreferrer';a.textContent=x.title||'Untitled headline';const meta=document.createElement('div');meta.className='small';const dt=x.pubDate?new Date(x.pubDate):null;meta.textContent='CoinDesk RSS · '+(dt&&!Number.isNaN(dt.getTime())?dt.toLocaleString('en-IN'):'date unavailable');div.append(pill,br,a,meta);list.append(div)});put('news-status','Filtered crypto-related headlines · '+items.length+' shown. News signal ko auto-change nahi karti.')}catch(e){put('news-status','News feed unavailable ('+(e.name==='AbortError'?'timeout':e.message||'network error')+'). Neeche source links use karein.');list.replaceChildren();[['CoinDesk','https://www.coindesk.com/'],['Cointelegraph','https://cointelegraph.com/'],['Binance announcements','https://www.binance.com/en/support/announcement'],['Federal Reserve','https://www.federalreserve.gov/newsevents.htm']].forEach(([n,u])=>{const p=document.createElement('p'),a=document.createElement('a');a.href=u;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Open '+n;p.className='newsitem';p.append(a);list.append(p)})}}
+$('refresh').addEventListener('click',refreshMarket);$('pause').addEventListener('click',pauseToggle);$('clear').addEventListener('click',reset);['balance','fee','sl','tp','risk','exitmins'].forEach(id=>$(id).addEventListener('change',()=>{render();save()}));restore();render();refreshMarket();loadNews();setInterval(()=>{if(!paused)refreshMarket()},15000);setInterval(()=>{if(!paused)loadNews()},15*60*1000);
+</script></body></html>
