@@ -139,8 +139,10 @@ function analyze(key){
  const notChasing=Math.abs(last.close/t1.fast-1)*100<=.18,c=cfg(),rewardNet=c.tp-2*c.fee*(1+c.tp),riskNet=c.sl+2*c.fee,rr=riskNet>0?rewardNet/riskNet:0;
  let score=0;if(t1.up)score++;if(t1.down)score--;if(t5.up)score+=2;if(t5.down)score-=2;if(t15.up)score+=2;if(t15.down)score-=2;if(t60.up)score++;if(t60.down)score--;if(mom>.025)score++;if(mom<-.025)score--;if(rv>=52&&rv<=68)score++;if(rv>=32&&rv<=48)score--;if(Number.isFinite(volRatio)&&volRatio>=1.2&&bull)score++;if(Number.isFinite(volRatio)&&volRatio>=1.2&&bear)score--;
  const confirmLong=bull&&(breakoutUp||reclaimUp)&&notChasing,confirmShort=bear&&(breakoutDown||reclaimDown)&&notChasing;
- const longOK=t1.up&&t5.up&&!t15.down&&t60.up&&mom>=.025&&rv>=50&&rv<=67&&confirmLong&&volRatio>=.8;
- const shortOK=t1.down&&t5.down&&!t15.up&&t60.down&&mom<=-.025&&rv>=33&&rv<=50&&confirmShort&&volRatio>=.8;
+ // EARLY signals are less restrictive than STRONG, but still require closed-candle
+ // confirmation, 1m+5m alignment, non-conflicting 15m trend, and minimum volume.
+ const longOK=t1.up&&t5.up&&!t15.down&&mom>=.025&&rv>=48&&rv<=68&&confirmLong&&volRatio>=.55;
+ const shortOK=t1.down&&t5.down&&!t15.up&&mom<=-.025&&rv>=32&&rv<=52&&confirmShort&&volRatio>=.55;
  const strongLong=t1.up&&t5.up&&t15.up&&t60.up&&mom>=.025&&rv>=52&&rv<=68&&confirmLong&&volRatio>=1;
  const strongShort=t1.down&&t5.down&&t15.down&&t60.down&&mom<=-.025&&rv>=32&&rv<=48&&confirmShort&&volRatio>=1;
  let signal="WAIT",reason="Setup confirmation nahi mila";
@@ -198,21 +200,37 @@ async function refresh(){
  }catch(e){put("status","Refresh error: "+(e.message||e));$("status").className="status bad";}
  finally{busy=false;$("refresh").disabled=false;}
 }
+function showNewsLinks(message){
+ const box=$("news-list");box.innerHTML="";
+ const p=document.createElement("p");p.className="small";p.textContent=message;box.appendChild(p);
+ const sources=[
+  ["CoinDesk","https://www.coindesk.com/"],
+  ["Cointelegraph","https://cointelegraph.com/"],
+  ["Binance announcements","https://www.binance.com/en/support/announcement"],
+  ["Federal Reserve news","https://www.federalreserve.gov/newsevents.htm"]
+ ];
+ const row=document.createElement("p");row.className="small";
+ sources.forEach((item,i)=>{if(i)row.appendChild(document.createTextNode(" · "));const a=document.createElement("a");a.href=item[1];a.target="_blank";a.rel="noopener noreferrer";a.textContent=item[0];row.appendChild(a);});box.appendChild(row);
+}
 async function loadNews(){
  put("news-status","News feed connect karne ki koshish...");
- try{
-  const url="https://min-api.cryptocompare.com/data/v2/news/?lang=EN";
-  const r=await fetch(url,{cache:"no-store"});if(!r.ok)throw Error("News HTTP "+r.status);
-  const j=await r.json(),items=Array.isArray(j.Data)?j.Data.slice(0,8):[];if(!items.length)throw Error("News feed mein headlines nahi mili");
-  const box=$("news-list");box.innerHTML="";
-  for(const item of items){
-   const div=document.createElement("div");div.className="newsitem";
-   const a=document.createElement("a");a.href=item.url||"#";a.target="_blank";a.rel="noopener noreferrer";a.textContent=item.title||"Untitled headline";
-   const p=document.createElement("p");p.className="small";p.textContent=(item.source||"Source")+(item.published_on?" · "+new Date(item.published_on*1000).toLocaleString():"");
-   div.appendChild(a);div.appendChild(p);box.appendChild(div);
-  }
-  put("news-status","News headlines loaded · latest fetched headlines; trading signal mein include nahi hain.");
- }catch(e){put("news-status","News feed unavailable: "+(e.message||"connection/API issue")+". Market signals news ke bina calculate honge.");$("news-list").innerHTML="<p class='small'>News abhi load nahi hui. Headlines ko trusted source se manually verify karein.</p>";}
+ let errors=[];
+ // Try two public sources. Some mobile browsers/network settings block cross-origin feeds.
+ const providers=[
+  async()=>{const r=await fetch("https://min-api.cryptocompare.com/data/v2/news/?lang=EN",{cache:"no-store"});if(!r.ok)throw Error("CryptoCompare HTTP "+r.status);const j=await r.json();return (Array.isArray(j.Data)?j.Data:[]).map(x=>({title:x.title,url:x.url,source:x.source,time:x.published_on}));},
+  async()=>{const rss="https://www.coindesk.com/arc/outboundfeeds/rss/";const u="https://api.rss2json.com/v1/api.json?rss_url="+encodeURIComponent(rss);const r=await fetch(u,{cache:"no-store"});if(!r.ok)throw Error("RSS fallback HTTP "+r.status);const j=await r.json();return (Array.isArray(j.items)?j.items:[]).map(x=>({title:x.title,url:x.link,source:"CoinDesk RSS",time:x.pubDate?Math.floor(new Date(x.pubDate).getTime()/1000):0}));}
+ ];
+ for(const provider of providers){
+  try{
+   const items=(await provider()).filter(x=>x.title&&x.url).slice(0,8);
+   if(!items.length)throw Error("No headlines returned");
+   const box=$("news-list");box.innerHTML="";
+   for(const item of items){const div=document.createElement("div");div.className="newsitem";const a=document.createElement("a");a.href=item.url;a.target="_blank";a.rel="noopener noreferrer";a.textContent=item.title;const meta=document.createElement("p");meta.className="small";meta.textContent=(item.source||"Source")+(item.time?" · "+new Date(item.time*1000).toLocaleString():"");div.appendChild(a);div.appendChild(meta);box.appendChild(div);}
+   put("news-status","News headlines fetched · signal score mein include nahi hain; har headline ki date/source verify karein.");return;
+  }catch(e){errors.push(e.message||"feed unavailable");}
+ }
+ put("news-status","Automatic news unavailable; market signals news ke bina calculate honge.");
+ showNewsLinks("Feed phone/browser se load nahi hui ("+errors.join("; ")+"). Neeche direct trusted sources kholkar headlines verify karo. News signal score mein include nahi hai.");
 }
 function schedule(){
  if(timer)clearInterval(timer);timer=setInterval(()=>{if(!paused)refresh();},20000);
