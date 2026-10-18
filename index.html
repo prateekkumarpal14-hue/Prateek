@@ -86,7 +86,7 @@ a{color:#8fc8ff;overflow-wrap:anywhere}.newsitem{padding:10px 0;border-bottom:1p
 <section class="card"><h2>Crypto news & event watch</h2>
 <p id="news-status" class="status">News feed connect ho rahi hai...</p>
 <div id="news-list"><p class="small">Headlines load hone ka wait karein.</p></div>
-<p class="small">News signal score mein include nahi hai. Headline ko khud trusted source par verify karein.</p></section>
+<p class="small">Crypto-relevant headlines ko priority di jaati hai. News signal score ko automatically change nahi karti; headline ki date, source aur market impact verify karein.</p></section>
 
 <section class="card"><h2>Paper trade history</h2><div class="tablewrap"><table><thead><tr><th>Time</th><th>Coin</th><th>Side</th><th>Entry</th><th>Exit</th><th>Net P&amp;L</th><th>Result</th></tr></thead><tbody id="history"><tr><td colspan="7">Abhi koi trade nahi.</td></tr></tbody></table></div></section>
 
@@ -139,25 +139,33 @@ function analyze(key){
  const notChasing=Math.abs(last.close/t1.fast-1)*100<=.18,c=cfg(),rewardNet=c.tp-2*c.fee*(1+c.tp),riskNet=c.sl+2*c.fee,rr=riskNet>0?rewardNet/riskNet:0;
  let score=0;if(t1.up)score++;if(t1.down)score--;if(t5.up)score+=2;if(t5.down)score-=2;if(t15.up)score+=2;if(t15.down)score-=2;if(t60.up)score++;if(t60.down)score--;if(mom>.025)score++;if(mom<-.025)score--;if(rv>=52&&rv<=68)score++;if(rv>=32&&rv<=48)score--;if(Number.isFinite(volRatio)&&volRatio>=1.2&&bull)score++;if(Number.isFinite(volRatio)&&volRatio>=1.2&&bear)score--;
  const confirmLong=bull&&(breakoutUp||reclaimUp)&&notChasing,confirmShort=bear&&(breakoutDown||reclaimDown)&&notChasing;
- // EARLY signals are less restrictive than STRONG, but still require closed-candle
- // confirmation, 1m+5m alignment, non-conflicting 15m trend, and minimum volume.
- const longOK=t1.up&&t5.up&&!t15.down&&mom>=.025&&rv>=48&&rv<=68&&confirmLong&&volRatio>=.55;
- const shortOK=t1.down&&t5.down&&!t15.up&&mom<=-.025&&rv>=32&&rv<=52&&confirmShort&&volRatio>=.55;
- const strongLong=t1.up&&t5.up&&t15.up&&t60.up&&mom>=.025&&rv>=52&&rv<=68&&confirmLong&&volRatio>=1;
- const strongShort=t1.down&&t5.down&&t15.down&&t60.down&&mom<=-.025&&rv>=32&&rv<=48&&confirmShort&&volRatio>=1;
+ // Early setups still require 1m + 5m alignment, no 15m opposition,
+ // closed-candle confirmation, and at least 0.8x relative volume.
+ // If 1h opposes the setup, require a genuine breakout and >=1.5x volume.
+ const longBase=t1.up&&t5.up&&!t15.down,shortBase=t1.down&&t5.down&&!t15.up;
+ const longHourlyOK=!t60.down||(breakoutUp&&volRatio>=1.5),shortHourlyOK=!t60.up||(breakoutDown&&volRatio>=1.5);
+ const longOK=longBase&&longHourlyOK&&mom>=.025&&rv>=52&&rv<=68&&confirmLong&&volRatio>=.8;
+ const shortOK=shortBase&&shortHourlyOK&&mom<=-.025&&rv>=32&&rv<=48&&confirmShort&&volRatio>=.8;
+ const strongLong=t1.up&&t5.up&&t15.up&&t60.up&&mom>=.025&&rv>=52&&rv<=68&&confirmLong&&volRatio>=1.2;
+ const strongShort=t1.down&&t5.down&&t15.down&&t60.down&&mom<=-.025&&rv>=32&&rv<=48&&confirmShort&&volRatio>=1.2;
  let signal="WAIT",reason="Setup confirmation nahi mila";
  if(rr<1.05)reason="Estimated fee ke baad reward/risk kam; WAIT";
  else if(!Number.isFinite(volRatio)||!Number.isFinite(rv))reason="Indicator data invalid; WAIT";
  else if(rv>70)reason="RSI bahut high; chase nahi karni";
  else if(rv<30)reason="RSI bahut low; reversal risk";
  else if(!notChasing)reason="Price EMA se door; late entry avoid";
- else if(strongLong){signal="STRONG LONG";reason="4 timeframe trend aligned; candle + volume confirmation";}
- else if(strongShort){signal="STRONG SHORT";reason="4 timeframe trend aligned; candle + volume confirmation";}
- else if(longOK){signal="EARLY LONG";reason="Trend aligned; closed-candle confirmation";}
- else if(shortOK){signal="EARLY SHORT";reason="Trend aligned; closed-candle confirmation";}
- else if((t1.up&&t5.up&&t15.down)||(t1.down&&t5.down&&t15.up))reason="Timeframes conflict; WAIT";
- else if(volRatio<.8)reason="Volume weak; confirmation ka wait";
- else if(!(confirmLong||confirmShort))reason="Breakout/reclaim candle confirm nahi hua";
+ else if(volRatio<.8)reason="Volume 0.8x average se kam; confirmation weak";
+ else if(!(t1.up&&t5.up)&&!(t1.down&&t5.down))reason="1m aur 5m trend aligned nahi; WAIT";
+ else if((t1.up&&t5.up&&t15.down)||(t1.down&&t5.down&&t15.up))reason="15m trend opposite hai; WAIT";
+ else if(t1.up&&t5.up&&t15.up&&t60.down&&!(breakoutUp&&volRatio>=1.5))reason="1h bearish hai; LONG ke liye strong breakout + 1.5x volume chahiye";
+ else if(t1.down&&t5.down&&t15.down&&t60.up&&!(breakoutDown&&volRatio>=1.5))reason="1h bullish hai; SHORT ke liye strong breakdown + 1.5x volume chahiye";
+ else if(strongLong){signal="STRONG LONG";reason="4 timeframe aligned; closed candle, momentum aur volume confirm";}
+ else if(strongShort){signal="STRONG SHORT";reason="4 timeframe aligned; closed candle, momentum aur volume confirm";}
+ else if(longOK){signal="EARLY LONG";reason="1m/5m aligned; 15m conflict nahi; candle + volume confirmed";}
+ else if(shortOK){signal="EARLY SHORT";reason="1m/5m aligned; 15m conflict nahi; candle + volume confirmed";}
+ else if(t1.up&&t5.up&&!(rv>=52&&rv<=68))reason="LONG setup ke liye RSI 52–68 confirmation chahiye";
+ else if(t1.down&&t5.down&&!(rv>=32&&rv<=48))reason="SHORT setup ke liye RSI 32–48 confirmation chahiye";
+ else if(!(confirmLong||confirmShort))reason="Closed candle breakout/reclaim confirmation nahi; WAIT";
  return {signal,reason,score,rsi:rv,momentum:mom,volRatio,t1,t5,t15,t60,candleTime:last.time};
 }
 async function load(key){
@@ -212,25 +220,44 @@ function showNewsLinks(message){
  const row=document.createElement("p");row.className="small";
  sources.forEach((item,i)=>{if(i)row.appendChild(document.createTextNode(" · "));const a=document.createElement("a");a.href=item[1];a.target="_blank";a.rel="noopener noreferrer";a.textContent=item[0];row.appendChild(a);});box.appendChild(row);
 }
+function newsCategory(title){
+ const t=String(title||"").toLowerCase();
+ if(/bitcoin|\bbtc\b|ethereum|\beth\b|ether\b/.test(t))return "BTC / ETH";
+ if(/stablecoin|\busdc\b|\busdt\b|tether|circle\b/.test(t))return "Stablecoins";
+ if(/sec\b|regulat|lawsuit|court|etf|legislation|policy|ban\b|approval/.test(t))return "Regulation / ETF";
+ if(/federal reserve|\bfed\b|\bfomc\b|inflation|interest rate|treasury|\bcpi\b|\bpce\b|jobs report|tariff/.test(t))return "Macro / rates";
+ if(/binance|coinbase|kraken|exchange|liquidation|funding rate|on-chain|wallet|hack|exploit|defi|blockchain|crypto|cryptocurrency|digital asset|tokeni[sz]ation|solana|\bxrp\b|ripple|altcoin/.test(t))return "Crypto market";
+ return "Other";
+}
+function isCryptoRelevant(item){
+ const t=String(item.title||"").toLowerCase();
+ return /bitcoin|\bbtc\b|ethereum|\beth\b|ether\b|crypto|cryptocurrency|digital asset|blockchain|defi|stablecoin|\busdc\b|\busdt\b|tether|binance|coinbase|kraken|\bsec\b|\betf\b|solana|\bxrp\b|ripple|altcoin|liquidation|funding rate|on-chain|tokeni[sz]ation|federal reserve|\bfed\b|\bfomc\b|inflation|interest rate|treasury|\bcpi\b|\bpce\b|jobs report|tariff|risk assets/.test(t);
+}
 async function loadNews(){
- put("news-status","News feed connect karne ki koshish...");
+ put("news-status","Crypto-relevant news filter refresh ho raha hai...");
  let errors=[];
- // Try two public sources. Some mobile browsers/network settings block cross-origin feeds.
  const providers=[
   async()=>{const r=await fetch("https://min-api.cryptocompare.com/data/v2/news/?lang=EN",{cache:"no-store"});if(!r.ok)throw Error("CryptoCompare HTTP "+r.status);const j=await r.json();return (Array.isArray(j.Data)?j.Data:[]).map(x=>({title:x.title,url:x.url,source:x.source,time:x.published_on}));},
   async()=>{const rss="https://www.coindesk.com/arc/outboundfeeds/rss/";const u="https://api.rss2json.com/v1/api.json?rss_url="+encodeURIComponent(rss);const r=await fetch(u,{cache:"no-store"});if(!r.ok)throw Error("RSS fallback HTTP "+r.status);const j=await r.json();return (Array.isArray(j.items)?j.items:[]).map(x=>({title:x.title,url:x.link,source:"CoinDesk RSS",time:x.pubDate?Math.floor(new Date(x.pubDate).getTime()/1000):0}));}
  ];
  for(const provider of providers){
   try{
-   const items=(await provider()).filter(x=>x.title&&x.url).slice(0,8);
-   if(!items.length)throw Error("No headlines returned");
+   const raw=await provider(),seen=new Set();
+   const items=raw.filter(x=>x.title&&x.url&&isCryptoRelevant(x)).filter(x=>{const k=String(x.title).toLowerCase().trim();if(seen.has(k))return false;seen.add(k);return true;}).slice(0,8);
+   if(!items.length)throw Error("Feed mein abhi clear crypto-relevant headlines nahi mili");
    const box=$("news-list");box.innerHTML="";
-   for(const item of items){const div=document.createElement("div");div.className="newsitem";const a=document.createElement("a");a.href=item.url;a.target="_blank";a.rel="noopener noreferrer";a.textContent=item.title;const meta=document.createElement("p");meta.className="small";meta.textContent=(item.source||"Source")+(item.time?" · "+new Date(item.time*1000).toLocaleString():"");div.appendChild(a);div.appendChild(meta);box.appendChild(div);}
-   put("news-status","News headlines fetched · signal score mein include nahi hain; har headline ki date/source verify karein.");return;
+   for(const item of items){
+    const div=document.createElement("div");div.className="newsitem";
+    const tag=document.createElement("span");tag.className="pill";tag.textContent=newsCategory(item.title);div.appendChild(tag);
+    const a=document.createElement("a");a.href=item.url;a.target="_blank";a.rel="noopener noreferrer";a.textContent=item.title;a.style.display="block";a.style.marginTop="5px";
+    const meta=document.createElement("p");meta.className="small";meta.textContent=(item.source||"Source")+(item.time?" · "+new Date(item.time*1000).toLocaleString():"");
+    div.appendChild(a);div.appendChild(meta);box.appendChild(div);
+   }
+   put("news-status","Crypto-relevant headlines filtered · "+items.length+" shown · news signal score ko automatically change nahi karti.");return;
   }catch(e){errors.push(e.message||"feed unavailable");}
  }
- put("news-status","Automatic news unavailable; market signals news ke bina calculate honge.");
- showNewsLinks("Feed phone/browser se load nahi hui ("+errors.join("; ")+"). Neeche direct trusted sources kholkar headlines verify karo. News signal score mein include nahi hai.");
+ put("news-status","Automatic relevant news unavailable; market signals news ke bina calculate honge.");
+ showNewsLinks("Crypto-relevant feed phone/browser se load nahi hui. Direct sources par latest headlines verify karein. News signal score mein include nahi hai.");
 }
 function schedule(){
  if(timer)clearInterval(timer);timer=setInterval(()=>{if(!paused)refresh();},20000);
