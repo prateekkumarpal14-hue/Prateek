@@ -3,484 +3,743 @@
 <html lang="hi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mudrex Futures Signal Board</title>
 <style>
-:root{color-scheme:dark;--bg:#0b1020;--card:#151d31;--line:#293650;--muted:#9eacc5;--green:#37d99a;--red:#ff6577;--yellow:#f5c451;--blue:#75a7ff}
-*{box-sizing:border-box}
-body{margin:0;padding:12px;background:var(--bg);color:#edf2ff;font:15px Arial,sans-serif}
-main{max-width:850px;margin:auto}
-h1{font-size:23px;margin:8px 0}
-h2{font-size:18px;margin:0 0 12px}
-p{line-height:1.5}
-.muted{color:var(--muted);font-size:13px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:14px;margin:12px 0}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.metric{background:#0e1629;border-radius:9px;padding:10px;min-width:0}
-.metric small{display:block;color:var(--muted);margin-bottom:7px}
-.metric strong{font-size:16px;overflow-wrap:anywhere}
-.signal{font-size:23px;font-weight:bold;margin:8px 0;overflow-wrap:anywhere}
-.long{color:var(--green)}.short{color:var(--red)}.wait{color:var(--yellow)}.early{color:var(--blue)}
-button{background:#365fe8;color:white;border:0;border-radius:9px;padding:12px;font-weight:bold;font-size:14px}
-button:disabled{opacity:.5}
-.row{display:flex;gap:8px;flex-wrap:wrap}
-.row button{flex:1}
-label{display:block;color:var(--muted);font-size:13px;margin:10px 0 5px}
-input{width:100%;background:#0e1629;color:white;border:1px solid var(--line);border-radius:8px;padding:10px}
-.notice{background:#332918;border:1px solid #65502a;border-radius:9px;padding:11px;font-size:13px;line-height:1.5}
-.good{color:var(--green)}.bad{color:var(--red)}
-hr{border:0;border-top:1px solid var(--line);margin:13px 0}
-.tablewrap{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:12px}
-td,th{text-align:left;padding:8px 5px;border-bottom:1px solid var(--line)}
-@media(max-width:400px){body{padding:8px}.card{padding:10px}.metric{padding:8px}.metric strong{font-size:14px}}
+:root {
+  color-scheme: dark;
+  --bg:#0b1020; --card:#151d31; --line:#293650;
+  --muted:#aab6cc; --text:#f4f7ff;
+  --green:#37d99a; --red:#ff6577; --yellow:#ffd166;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; padding:14px; background:var(--bg); color:var(--text);
+  font-family:Arial,sans-serif; line-height:1.5;
+}
+h1 { font-size:23px; margin:0 0 5px; }
+h2 { font-size:18px; margin:0 0 12px; }
+p { margin:7px 0; }
+.small { color:var(--muted); font-size:13px; }
+.warning {
+  border:1px solid #755c2a; background:#282316; color:#ffe4a0;
+  padding:12px; border-radius:10px; margin:12px 0;
+  font-size:13px;
+}
+button, input, select {
+  font-size:15px; border-radius:8px; padding:10px;
+  border:1px solid var(--line); background:#10182a; color:var(--text);
+}
+button { cursor:pointer; }
+button.primary { background:#244c79; }
+button:disabled { opacity:.5; }
+.actions { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:12px; }
+.card {
+  background:var(--card); border:1px solid var(--line);
+  border-radius:13px; padding:14px; margin-bottom:12px; min-width:0;
+}
+.price { font-size:26px; font-weight:bold; margin:8px 0; overflow-wrap:anywhere; }
+.signal { font-size:22px; font-weight:bold; margin:8px 0; }
+.LONG { color:var(--green); }
+.SHORT { color:var(--red); }
+.WAIT { color:var(--yellow); }
+.stats { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
+.stat { padding:9px; border-radius:8px; background:#0e1627; min-width:0; }
+.stat b { display:block; overflow-wrap:anywhere; }
+label { display:block; font-size:13px; color:var(--muted); margin:10px 0 4px; }
+input,select { width:100%; }
+.settings { display:grid; grid-template-columns:repeat(auto-fit,minmax(135px,1fr)); gap:10px; }
+.status { margin:10px 0; color:var(--muted); font-size:13px; }
+.good { color:var(--green); }
+.bad { color:var(--red); }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th,td { text-align:left; padding:9px 6px; border-bottom:1px solid var(--line); }
+.tablewrap { overflow-x:auto; }
+.reason { overflow-wrap:anywhere; }
 </style>
 </head>
 <body>
-<main>
+
 <h1>₿ Mudrex Futures Signal Board</h1>
-<p class="muted">BTCUSDT + ETHUSDT · 10–15 min setup · Manual trading only · No API keys</p>
+<p class="small">BTCUSDT + ETHUSDT · 1m / 5m / 15m · Manual trading only</p>
 
-<div class="notice">
-<strong>Risk warning:</strong> Signal guaranteed nahi hai. Futures mein poora capital lose ho sakta hai. Pehle paper testing karein. Ye page Mudrex par order nahi lagata. News feed connected nahi hai. STRONG/EARLY labels validated accuracy ka proof nahi hain.
+<div class="warning">
+  <b>Risk warning:</b> Ye signal guaranteed nahi hai. Futures mein poora capital lose ho sakta hai.
+  Pehle paper trading karein. Ye page Mudrex par order nahi lagata aur API keys nahi maangta.
+  News feed connected nahi hai. STRONG/EARLY labels accuracy ki guarantee nahi hain.
 </div>
 
-<div class="card">
-<div class="row">
-<button id="refresh">Refresh market</button>
-<button id="pause" style="background:#39445b">Pause updates</button>
-</div>
-<p id="status" class="muted">Market data connect ho raha hai…</p>
-<p class="muted">Last successful update: <span id="updated">—</span></p>
+<div class="actions">
+  <button class="primary" id="refreshBtn">Refresh market</button>
+  <button id="pauseBtn">Pause updates</button>
+  <button id="resetBtn">Reset paper history</button>
 </div>
 
-<div class="card">
-<h2>Paper-trading settings</h2>
+<div id="status" class="status">Market data load ho raha hai...</div>
+<div id="updated" class="status"></div>
+
 <div class="grid">
-<div><label>Virtual balance (USDT)</label><input id="balance" type="number" value="100" min="10"></div>
-<div><label>Per-side fee (%)</label><input id="fee" type="number" value="0.05" min="0" max="1" step="0.01"></div>
-<div><label>Stop-loss (%)</label><input id="sl" type="number" value="0.35" min="0.1" max="3" step="0.05"></div>
-<div><label>Target (%)</label><input id="tp" type="number" value="0.60" min="0.1" max="5" step="0.05"></div>
-<div><label>Balance used per paper trade (%)</label><input id="size" type="number" value="10" min="1" max="100"></div>
-</div>
-<p class="muted">Settings naye paper trades par apply hongi. Har paper trade 15 minute baad available ticker price par time-exit hogi, ya pehle SL/target hit hone par close hogi. Actual fills, slippage aur funding simulate nahi hote.</p>
+  <section class="card" id="BTC-card">
+    <h2>Bitcoin · BTCUSDT</h2>
+    <div class="price" id="BTC-price">Loading...</div>
+    <div class="signal WAIT" id="BTC-signal">WAIT</div>
+    <p class="reason" id="BTC-reason">Live data ka wait karein.</p>
+    <div class="stats">
+      <div class="stat"><span class="small">1m trend</span><b id="BTC-t1">—</b></div>
+      <div class="stat"><span class="small">5m trend</span><b id="BTC-t5">—</b></div>
+      <div class="stat"><span class="small">15m trend</span><b id="BTC-t15">—</b></div>
+      <div class="stat"><span class="small">RSI (1m)</span><b id="BTC-rsi">—</b></div>
+      <div class="stat"><span class="small">Momentum (5 candles)</span><b id="BTC-mom">—</b></div>
+      <div class="stat"><span class="small">Closed candle</span><b id="BTC-candle">—</b></div>
+      <div class="stat"><span class="small">Paper entry</span><b id="BTC-entry">—</b></div>
+      <div class="stat"><span class="small">Paper SL / Target</span><b id="BTC-levels">—</b></div>
+    </div>
+  </section>
+
+  <section class="card" id="ETH-card">
+    <h2>Ethereum · ETHUSDT</h2>
+    <div class="price" id="ETH-price">Loading...</div>
+    <div class="signal WAIT" id="ETH-signal">WAIT</div>
+    <p class="reason" id="ETH-reason">Live data ka wait karein.</p>
+    <div class="stats">
+      <div class="stat"><span class="small">1m trend</span><b id="ETH-t1">—</b></div>
+      <div class="stat"><span class="small">5m trend</span><b id="ETH-t5">—</b></div>
+      <div class="stat"><span class="small">15m trend</span><b id="ETH-t15">—</b></div>
+      <div class="stat"><span class="small">RSI (1m)</span><b id="ETH-rsi">—</b></div>
+      <div class="stat"><span class="small">Momentum (5 candles)</span><b id="ETH-mom">—</b></div>
+      <div class="stat"><span class="small">Closed candle</span><b id="ETH-candle">—</b></div>
+      <div class="stat"><span class="small">Paper entry</span><b id="ETH-entry">—</b></div>
+      <div class="stat"><span class="small">Paper SL / Target</span><b id="ETH-levels">—</b></div>
+    </div>
+  </section>
 </div>
 
-<div id="markets"></div>
+<section class="card">
+  <h2>Paper trading settings</h2>
+  <p class="small">Ye sirf virtual simulation hai. Isse real profit ya future accuracy prove nahi hoti.</p>
+  <div class="settings">
+    <div>
+      <label for="balance">Virtual balance (USDT)</label>
+      <input id="balance" type="number" min="1" step="1" value="100">
+    </div>
+    <div>
+      <label for="fee">Fee per side (%)</label>
+      <input id="fee" type="number" min="0" max="1" step="0.01" value="0.05">
+    </div>
+    <div>
+      <label for="sl">Stop-loss (%)</label>
+      <input id="sl" type="number" min="0.05" max="5" step="0.05" value="0.35">
+    </div>
+    <div>
+      <label for="tp">Target (%)</label>
+      <input id="tp" type="number" min="0.05" max="10" step="0.05" value="0.60">
+    </div>
+    <div>
+      <label for="risk">Balance per paper trade (%)</label>
+      <input id="risk" type="number" min="1" max="100" step="1" value="10">
+    </div>
+    <div>
+      <label for="exitmins">Time exit (minutes)</label>
+      <input id="exitmins" type="number" min="1" max="240" step="1" value="15">
+    </div>
+  </div>
+  <p class="small">Settings badalne ke baad agli paper entry par naye values apply honge. Ek symbol par ek waqt mein sirf ek paper trade hoga.</p>
+</section>
 
-<div class="card">
-<h2>Paper-trading results</h2>
-<div class="grid">
-<div class="metric"><small>Closed trades</small><strong id="closed">0</strong></div>
-<div class="metric"><small>Wins / losses</small><strong id="wl">0 / 0</strong></div>
-<div class="metric"><small>Net simulated P/L</small><strong id="pnl">0.00 USDT</strong></div>
-<div class="metric"><small>Win rate</small><strong id="winrate">—</strong></div>
-</div>
-<hr>
-<button id="reset" style="background:#8b3544;width:100%">Reset paper history</button>
-<div class="tablewrap">
-<table>
-<thead><tr><th>Pair</th><th>Side</th><th>Entry</th><th>Exit</th><th>Net P/L</th></tr></thead>
-<tbody id="history"><tr><td colspan="5">Abhi koi closed trade nahi.</td></tr></tbody>
-</table>
-</div>
-</div>
+<section class="card">
+  <h2>Paper trading summary</h2>
+  <div class="stats">
+    <div class="stat"><span class="small">Virtual balance</span><b id="sum-balance">100.00 USDT</b></div>
+    <div class="stat"><span class="small">Closed trades</span><b id="sum-count">0</b></div>
+    <div class="stat"><span class="small">Wins / Losses</span><b id="sum-wl">0 / 0</b></div>
+    <div class="stat"><span class="small">Net paper P&L</span><b id="sum-pnl">0.00 USDT</b></div>
+    <div class="stat"><span class="small">Win rate</span><b id="sum-winrate">—</b></div>
+    <div class="stat"><span class="small">Open paper trades</span><b id="sum-open">0</b></div>
+  </div>
+</section>
 
-<div class="card">
-<h2>Signal rules</h2>
-<p><span class="long"><strong>STRONG LONG / SHORT</strong></span> — 1m, 5m aur 15m trend ek direction mein, momentum aur RSI bhi confirm karein.</p>
-<p><span class="early"><strong>EARLY LONG / SHORT</strong></span> — 1m aur 5m trend align hon, 15m opposite na ho, aur momentum/RSI initial move ko support karein.</p>
-<p><span class="wait"><strong>WAIT</strong></span> — trend conflict, momentum confirmation nahi, RSI unsuitable ya data unavailable.</p>
-<p class="muted">EARLY signals comparatively kam confirmed hain. WAIT ko zabardasti trade mein nahi badla gaya. Ye experimental rules hain; historical win rate validate nahi hua. Signal label accuracy ki guarantee nahi hai.</p>
-</div>
-</main>
+<section class="card">
+  <h2>Paper trading history</h2>
+  <p class="small">Page reload karne par history reset ho jaati hai. Ye browser mein permanently save nahi hoti.</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr>
+        <th>Time</th><th>Coin</th><th>Side</th><th>Entry</th><th>Exit</th><th>Result USDT</th><th>Status</th>
+      </tr></thead>
+      <tbody id="history">
+        <tr><td colspan="7">Abhi koi paper trade nahi.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
 
 <script>
 "use strict";
 
-const $ = id => document.getElementById(id);
-const symbols = ["BTCUSDT","ETHUSDT"];
-const state = {};
-let history = [];
+const SYMBOLS = {
+  BTC: "BTCUSDT",
+  ETH: "ETHUSDT"
+};
+
+const BASES = [
+  "https://fapi.binance.com",
+  "https://fapi1.binance.com",
+  "https://fapi2.binance.com",
+  "https://fapi3.binance.com"
+];
+
+const state = {
+  BTC: { ticker:null, candles:null, error:null, analysis:null },
+  ETH: { ticker:null, candles:null, error:null, analysis:null }
+};
+
+let paused = false;
 let busy = false;
-let running = true;
 let timer = null;
+let paperTrades = [];
+let closedTrades = [];
+let startingBalance = 100;
+let lastSignalKey = {};
 
-const TRADE_MAX_AGE = 15 * 60 * 1000;
+function el(id) {
+  return document.getElementById(id);
+}
 
-for (const symbol of symbols) {
-  state[symbol] = {
-    ticker:null,
-    candles:null,
-    error:"Data load ho raha hai.",
-    trade:null,
-    lastSignalKey:""
+function num(id, fallback) {
+  const n = Number(el(id).value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function cfg() {
+  return {
+    balance: Math.max(1, num("balance", 100)),
+    fee: Math.max(0, num("fee", 0.05)) / 100,
+    sl: Math.max(0.05, num("sl", 0.35)) / 100,
+    tp: Math.max(0.05, num("tp", 0.60)) / 100,
+    risk: Math.min(100, Math.max(1, num("risk", 10))) / 100,
+    exitMins: Math.max(1, num("exitmins", 15))
   };
 }
 
-function fmt(n,d=2) {
-  if (!Number.isFinite(n)) return "—";
-  return n.toLocaleString("en-US",{
-    minimumFractionDigits:d,
-    maximumFractionDigits:d
-  });
+function fmt(n, digits=2) {
+  return Number.isFinite(n)
+    ? n.toLocaleString("en-US", {
+        minimumFractionDigits:digits,
+        maximumFractionDigits:digits
+      })
+    : "—";
 }
-function px(n) {
-  return Number.isFinite(n) ? fmt(n,n<1?6:2) : "—";
+
+function timeFmt(t) {
+  if (!t) return "—";
+  return new Date(t).toLocaleTimeString("en-IN", {hour12:false});
 }
-function cls(s) {
-  if (String(s).includes("LONG")) return "long";
-  if (String(s).includes("SHORT")) return "short";
-  return "wait";
+
+async function fetchJSON(path) {
+  let lastError = null;
+
+  for (const base of BASES) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 7000);
+
+      try {
+        const res = await fetch(base + path, {
+          cache:"no-store",
+          signal:controller.signal
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return await res.json();
+      } finally {
+        clearTimeout(timeout);
+      }
+    } catch (e) {
+      lastError = e;
+    }
+  }
+
+  throw new Error(lastError ? lastError.message : "API unavailable");
 }
-function esc(s) {
-  return String(s).replace(/[&<>"']/g,c=>({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-  }[c]));
+
+async function getTicker(symbol) {
+  const d = await fetchJSON(
+    "/fapi/v1/ticker/price?symbol=" + encodeURIComponent(symbol)
+  );
+  const price = Number(d.price);
+
+  if (!Number.isFinite(price) || price <= 0) {
+    throw new Error("Ticker price invalid");
+  }
+
+  return { price, time:Date.now() };
 }
-function tradeSide(signal) {
-  if (String(signal).includes("LONG")) return "LONG";
-  if (String(signal).includes("SHORT")) return "SHORT";
+
+async function getCandles(symbol, interval) {
+  const d = await fetchJSON(
+    "/fapi/v1/klines?symbol=" + encodeURIComponent(symbol) +
+    "&interval=" + interval + "&limit=100"
+  );
+
+  if (!Array.isArray(d)) throw new Error("Candle data invalid");
+
+  const now = Date.now();
+  const rows = d.map(k => ({
+    time:Number(k[0]),
+    open:Number(k[1]),
+    high:Number(k[2]),
+    low:Number(k[3]),
+    close:Number(k[4]),
+    volume:Number(k[5]),
+    closeTime:Number(k[6])
+  })).filter(c =>
+    Number.isFinite(c.close) &&
+    Number.isFinite(c.open) &&
+    Number.isFinite(c.high) &&
+    Number.isFinite(c.low) &&
+    c.closeTime < now
+  );
+
+  if (rows.length < 30) {
+    throw new Error(interval + " candles insufficient");
+  }
+
+  return rows;
+}
+
+async function loadMarket(key) {
+  const symbol = SYMBOLS[key];
+
+  try {
+    const results = await Promise.all([
+      getTicker(symbol),
+      getCandles(symbol, "1m"),
+      getCandles(symbol, "5m"),
+      getCandles(symbol, "15m")
+    ]);
+
+    state[key].ticker = results[0];
+    state[key].candles = {
+      "1m":results[1],
+      "5m":results[2],
+      "15m":results[3]
+    };
+    state[key].error = null;
+    state[key].analysis = analyze(key);
+  } catch (e) {
+    state[key].error = e.message || "Live data unavailable";
+    state[key].analysis = {
+      signal:"WAIT",
+      reason:"Live data unavailable: " + state[key].error
+    };
+  }
+}
+
+function ema(values, period) {
+  if (!Array.isArray(values) || values.length < period) return NaN;
+
+  const k = 2 / (period + 1);
+  let result = values.slice(0, period).reduce((a,b)=>a+b,0) / period;
+
+  for (let i=period; i<values.length; i++) {
+    result = values[i] * k + result * (1-k);
+  }
+  return result;
+}
+
+function calcRSI(values, period=14) {
+  if (values.length <= period) return NaN;
+
+  let gain = 0, loss = 0;
+
+  for (let i=1; i<=period; i++) {
+    const diff = values[i] - values[i-1];
+    if (diff > 0) gain += diff;
+    else loss -= diff;
+  }
+
+  let avgGain = gain / period;
+  let avgLoss = loss / period;
+
+  for (let i=period+1; i<values.length; i++) {
+    const diff = values[i] - values[i-1];
+    avgGain = (avgGain * (period-1) + Math.max(0,diff)) / period;
+    avgLoss = (avgLoss * (period-1) + Math.max(0,-diff)) / period;
+  }
+
+  if (avgLoss === 0) return avgGain === 0 ? 50 : 100;
+  return 100 - 100 / (1 + avgGain / avgLoss);
+}
+
+function analyze(key) {
+  const s = state[key];
+
+  if (s.error || !s.ticker || !s.candles) {
+    return {signal:"WAIT", reason:s.error || "Live data ka wait"};
+  }
+
+  if (Date.now() - s.ticker.time > 45000) {
+    return {signal:"WAIT", reason:"Ticker purana hai; fresh data ka wait"};
+  }
+
+  const c1 = s.candles["1m"];
+  const c5 = s.candles["5m"];
+  const c15 = s.candles["15m"];
+
+  if (c1.length < 30 || c5.length < 30 || c15.length < 30) {
+    return {signal:"WAIT", reason:"Candles incomplete hain"};
+  }
+
+  const values = candles => candles.map(c=>c.close);
+  const v1 = values(c1), v5 = values(c5), v15 = values(c15);
+
+  const e1f = ema(v1.slice(-60), 9);
+  const e1s = ema(v1.slice(-60), 21);
+  const e5f = ema(v5.slice(-60), 5);
+  const e5s = ema(v5.slice(-60), 13);
+  const e15f = ema(v15.slice(-60), 5);
+  const e15s = ema(v15.slice(-60), 13);
+  const rsi = calcRSI(v1, 14);
+
+  const last = c1[c1.length-1];
+  const prev = c1[c1.length-2];
+  const momentum = (last.close / v1[v1.length-6] - 1) * 100;
+
+  if (![e1f,e1s,e5f,e5s,e15f,e15s,rsi,momentum].every(Number.isFinite)) {
+    return {signal:"WAIT", reason:"Indicator calculation incomplete"};
+  }
+
+  const up1 = e1f > e1s;
+  const down1 = e1f < e1s;
+  const up5 = e5f > e5s;
+  const down5 = e5f < e5s;
+  const up15 = e15f > e15s;
+  const down15 = e15f < e15s;
+
+  const priorCandles = c1.slice(-6,-1);
+  const priorHigh = Math.max(...priorCandles.map(c=>c.high));
+  const priorLow = Math.min(...priorCandles.map(c=>c.low));
+
+  const bullishCandle = last.close > last.open;
+  const bearishCandle = last.close < last.open;
+  const breakoutUp = last.close > priorHigh;
+  const breakoutDown = last.close < priorLow;
+
+  const priorEMA9 = ema(v1.slice(0,-1).slice(-60), 9);
+  const reclaimUp = prev.close <= priorEMA9 && last.close > e1f;
+  const reclaimDown = prev.close >= priorEMA9 && last.close < e1f;
+
+  const distanceEMA = Math.abs(last.close / e1f - 1) * 100;
+  const notChasing = distanceEMA <= 0.18;
+
+  const longConfirm = bullishCandle && (breakoutUp || reclaimUp) && notChasing;
+  const shortConfirm = bearishCandle && (breakoutDown || reclaimDown) && notChasing;
+
+  const c = cfg();
+  const rewardNet = c.tp - 2*c.fee*(1+c.tp);
+  const riskNet = c.sl + 2*c.fee;
+  const acceptableRR = riskNet > 0 && rewardNet/riskNet >= 1.05;
+
+  let signal = "WAIT";
+  let reason = "Closed candle breakout/pullback confirmation ka wait";
+
+  const strongLong = up1 && up5 && up15 &&
+    momentum >= 0.025 && rsi >= 52 && rsi <= 68 && longConfirm;
+
+  const strongShort = down1 && down5 && down15 &&
+    momentum <= -0.025 && rsi >= 32 && rsi <= 48 && shortConfirm;
+
+  const earlyLong = up1 && up5 && !down15 &&
+    momentum >= 0.025 && rsi >= 50 && rsi <= 67 && longConfirm;
+
+  const earlyShort = down1 && down5 && !up15 &&
+    momentum <= -0.025 && rsi >= 33 && rsi <= 50 && shortConfirm;
+
+  if (!acceptableRR) {
+    reason = "Fee ke baad reward/risk kam hai; WAIT";
+  } else if (strongLong) {
+    signal = "STRONG LONG";
+    reason = "3 timeframes bullish aur closed-candle confirmation";
+  } else if (strongShort) {
+    signal = "STRONG SHORT";
+    reason = "3 timeframes bearish aur closed-candle confirmation";
+  } else if (earlyLong) {
+    signal = "EARLY LONG";
+    reason = "1m/5m bullish; 15m opposite nahi; confirmation mila";
+  } else if (earlyShort) {
+    signal = "EARLY SHORT";
+    reason = "1m/5m bearish; 15m opposite nahi; confirmation mila";
+  } else if ((up1 && up5 && down15) || (down1 && down5 && up15)) {
+    reason = "1m/5m aur 15m opposite; WAIT";
+  } else if (rsi > 68) {
+    reason = "RSI high; late entry se bachein";
+  } else if (rsi < 32) {
+    reason = "RSI low; bounce/breakdown confirmation ka wait";
+  } else if (!notChasing) {
+    reason = "Price EMA se door; entry chase nahi karni";
+  } else if (!(longConfirm || shortConfirm)) {
+    reason = "Closed candle breakout/reclaim confirm nahi hua";
+  }
+
+  return {
+    signal, reason, rsi, momentum,
+    up1,down1,up5,down5,up15,down15,
+    candleTime:last.time
+  };
+}
+
+function getSide(signal) {
+  if (signal && signal.includes("LONG")) return "LONG";
+  if (signal && signal.includes("SHORT")) return "SHORT";
   return null;
 }
-function cfg() {
-  function val(id,def,min,max) {
-    const n=Number($(id).value);
-    return Number.isFinite(n)?Math.max(min,Math.min(max,n)):def;
-  }
-  return {
-    balance:val("balance",100,10,100000000),
-    fee:val("fee",0.05,0,1)/100,
-    sl:val("sl",0.35,0.1,3)/100,
-    tp:val("tp",0.60,0.1,5)/100,
-    size:val("size",10,1,100)/100
-  };
-}
 
-async function fetchJSON(url) {
-  const controller=new AbortController();
-  const timeout=setTimeout(()=>controller.abort(),6500);
-  try {
-    const res=await fetch(url,{cache:"no-store",signal:controller.signal});
-    if(!res.ok) throw new Error("HTTP "+res.status);
-    return await res.json();
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-async function getPublic(path) {
-  const hosts=[
-    "https://fapi.binance.com",
-    "https://fapi1.binance.com",
-    "https://fapi2.binance.com",
-    "https://fapi3.binance.com"
-  ];
-  let last;
-  for(const host of hosts) {
-    try { return await fetchJSON(host+path); }
-    catch(e) { last=e; }
-  }
-  throw last || new Error("Market data unavailable");
-}
-function parseCandles(rows) {
-  if(!Array.isArray(rows)) throw new Error("Invalid candle response");
-  const now=Date.now();
-  return rows.map(r=>({
-    time:Number(r[0]),open:Number(r[1]),high:Number(r[2]),
-    low:Number(r[3]),close:Number(r[4]),volume:Number(r[5]),
-    closeTime:Number(r[6])
-  })).filter(c=>c.closeTime<now && c.close>0 &&
-    Number.isFinite(c.close) && Number.isFinite(c.closeTime));
-}
-async function loadMarket(symbol) {
-  const results=await Promise.all([
-    getPublic("/fapi/v1/ticker/price?symbol="+symbol),
-    getPublic("/fapi/v1/klines?symbol="+symbol+"&interval=1m&limit=100"),
-    getPublic("/fapi/v1/klines?symbol="+symbol+"&interval=5m&limit=100"),
-    getPublic("/fapi/v1/klines?symbol="+symbol+"&interval=15m&limit=100")
-  ]);
-  const ticker=results[0];
-  const candles={
-    "1m":parseCandles(results[1]),
-    "5m":parseCandles(results[2]),
-    "15m":parseCandles(results[3])
-  };
-  if(!Number.isFinite(Number(ticker.price))) throw new Error("Invalid ticker");
-  if(Object.values(candles).some(a=>a.length<30))
-    throw new Error("Candles incomplete");
+function makeTrade(key, side, a) {
+  const c = cfg();
+  const s = state[key];
+  if (!s.ticker || !a || !a.candleTime) return;
 
-  state[symbol].ticker={
-    price:Number(ticker.price),
-    time:Date.now()
-  };
-  state[symbol].candles=candles;
-  state[symbol].error="";
-}
-function ema(values,period) {
-  if(values.length<period) return NaN;
-  const k=2/(period+1);
-  let e=values.slice(0,period).reduce((a,b)=>a+b,0)/period;
-  for(let i=period;i<values.length;i++) e=values[i]*k+e*(1-k);
-  return e;
-}
-function calcRSI(values,period=14) {
-  if(values.length<period+1) return NaN;
-  let gain=0,loss=0;
-  for(let i=values.length-period;i<values.length;i++) {
-    const d=values[i]-values[i-1];
-    if(d>0) gain+=d;
-    else loss-=d;
-  }
-  if(loss===0) return gain===0?50:100;
-  return 100-100/(1+gain/loss);
-}
-function analyze(symbol) {
-  const s=state[symbol];
-  if(s.error || !s.ticker || !s.candles)
-    return {signal:"WAIT",reason:s.error||"Live data unavailable"};
-  if(Date.now()-s.ticker.time>45000)
-    return {signal:"WAIT",reason:"Ticker stale hai; fresh data ka wait karein"};
+  const price = s.ticker.price;
+  const margin = c.balance * c.risk;
+  const notional = margin;
+  const qty = notional / price;
 
-  const c1=s.candles["1m"],c5=s.candles["5m"],c15=s.candles["15m"];
-  if(c1.length<30||c5.length<30||c15.length<30)
-    return {signal:"WAIT",reason:"Candles adhuri hain"};
+  if (!(qty > 0) || !(price > 0)) return;
 
-  const closes=a=>a.map(c=>c.close);
-  const v1=closes(c1),v5=closes(c5),v15=closes(c15);
-  const e1fast=ema(v1.slice(-60),9),e1slow=ema(v1.slice(-60),21);
-  const e5fast=ema(v5.slice(-60),5),e5slow=ema(v5.slice(-60),13);
-  const e15fast=ema(v15.slice(-60),5),e15slow=ema(v15.slice(-60),13);
-  const rsi=calcRSI(v1,14);
-  const momentum=(v1[v1.length-1]/v1[v1.length-6]-1)*100;
+  const slPrice = side === "LONG"
+    ? price * (1-c.sl) : price * (1+c.sl);
+  const tpPrice = side === "LONG"
+    ? price * (1+c.tp) : price * (1-c.tp);
 
-  if(![e1fast,e1slow,e5fast,e5slow,e15fast,e15slow,rsi,momentum].every(Number.isFinite))
-    return {signal:"WAIT",reason:"Indicator calculation incomplete"};
-
-  const up1=e1fast>e1slow,down1=e1fast<e1slow;
-  const up5=e5fast>e5slow,down5=e5fast<e5slow;
-  const up15=e15fast>e15slow,down15=e15fast<e15slow;
-
-  let signal="WAIT";
-  let reason="Trend ya momentum fully confirm nahi";
-
-  const strongLong=up1&&up5&&up15&&momentum>0.025&&rsi>=52&&rsi<=68;
-  const strongShort=down1&&down5&&down15&&momentum < -0.025&&rsi>=32&&rsi<=48;
-
-  // Early signals need 1m and 5m agreement.
-  // The 15m trend may be neutral but must not oppose the signal.
-  const earlyLong=up1&&up5&&!down15&&momentum>0.025&&rsi>=50&&rsi<=68;
-  const earlyShort=down1&&down5&&!up15&&momentum < -0.025&&rsi>=32&&rsi<=50;
-
-  if(strongLong) {
-    signal="STRONG LONG";
-    reason="All 3 timeframes bullish; momentum aur RSI confirm";
-  } else if(strongShort) {
-    signal="STRONG SHORT";
-    reason="All 3 timeframes bearish; momentum aur RSI confirm";
-  } else if(earlyLong) {
-    signal="EARLY LONG";
-    reason="1m aur 5m bullish; 15m opposite nahi; early setup, extra risk";
-  } else if(earlyShort) {
-    signal="EARLY SHORT";
-    reason="1m aur 5m bearish; 15m opposite nahi; early setup, extra risk";
-  } else if((up1&&up5&&down15)||(down1&&down5&&up15)) {
-    reason="1m/5m aur 15m trend opposite; WAIT";
-  } else if(momentum>0.025&&down1&&down5) {
-    reason="Bearish trend ke against upward momentum; SHORT confirm nahi";
-  } else if(momentum < -0.025&&up1&&up5) {
-    reason="Bullish trend ke against downward momentum; LONG confirm nahi";
-  } else if(rsi<32) {
-    reason="RSI bahut low; breakdown ya bounce dono possible";
-  } else if(rsi>68) {
-    reason="RSI bahut high; continuation ya pullback dono possible";
-  }
-
-  return {
-    signal,reason,rsi,momentum,
-    up1,down1,up5,down5,up15,down15,
-    candleTime:c1[c1.length-1].time
-  };
-}
-
-function makeTrade(symbol,side,signalType) {
-  const s=state[symbol],c=cfg(),entry=s.ticker.price;
-  const dir=side==="LONG"?1:-1;
-  const now=Date.now();
-  return {
-    symbol,side,signalType,entry,
-    stop:entry*(1-dir*c.sl),
-    target:entry*(1+dir*c.tp),
-    notional:c.balance*c.size,
-    feeRate:c.fee,
-    openedAt:now,
-    expiresAt:now+TRADE_MAX_AGE
-  };
-}
-function closeTrade(symbol,trade,exit,why) {
-  const dir=trade.side==="LONG"?1:-1;
-  const qty=trade.notional/trade.entry;
-  const gross=(exit-trade.entry)*qty*dir;
-  const fees=(trade.notional+qty*exit)*trade.feeRate;
-  history.unshift({
-    symbol,side:trade.side,entry:trade.entry,exit,
-    pnl:gross-fees,reason:why,time:Date.now()
+  paperTrades.push({
+    id:key + "-" + side + "-" + a.candleTime,
+    key, side, signal:a.signal,
+    entry:price, sl:slPrice, tp:tpPrice,
+    qty, notional, margin,
+    fee:c.fee, openedAt:Date.now(),
+    candleTime:a.candleTime,
+    exit:null, pnl:null, status:"OPEN"
   });
-  history=history.slice(0,100);
-  state[symbol].trade=null;
 }
-function monitorTrade(symbol) {
-  const s=state[symbol],t=s.trade,p=s.ticker?.price;
-  if(!t||!Number.isFinite(p)) return;
 
-  let exit=null,why="";
-  if(t.side==="LONG") {
-    if(p<=t.stop){exit=t.stop;why="SL";}
-    else if(p>=t.target){exit=t.target;why="TP";}
-  } else {
-    if(p>=t.stop){exit=t.stop;why="SL";}
-    else if(p<=t.target){exit=t.target;why="TP";}
+function closeTrade(t, price, reason) {
+  if (t.status !== "OPEN" || !Number.isFinite(price)) return;
+
+  const gross = t.side === "LONG"
+    ? (price-t.entry)*t.qty
+    : (t.entry-price)*t.qty;
+
+  const entryFee = t.notional*t.fee;
+  const exitFee = price*t.qty*t.fee;
+  const pnl = gross-entryFee-exitFee;
+
+  t.exit = price;
+  t.pnl = pnl;
+  t.status = reason;
+  t.closedAt = Date.now();
+
+  closedTrades.unshift({...t});
+  if (closedTrades.length > 100) closedTrades.pop();
+}
+
+function monitorTrades() {
+  for (const t of paperTrades) {
+    if (t.status !== "OPEN") continue;
+
+    const s = state[t.key];
+    if (!s.ticker || s.error) continue;
+
+    const p = s.ticker.price;
+    const expired = Date.now()-t.openedAt >= cfg().exitMins*60000;
+
+    if (t.side === "LONG" && p <= t.sl) {
+      closeTrade(t, t.sl, "STOP LOSS");
+    } else if (t.side === "LONG" && p >= t.tp) {
+      closeTrade(t, t.tp, "TARGET");
+    } else if (t.side === "SHORT" && p >= t.sl) {
+      closeTrade(t, t.sl, "STOP LOSS");
+    } else if (t.side === "SHORT" && p <= t.tp) {
+      closeTrade(t, t.tp, "TARGET");
+    } else if (expired) {
+      closeTrade(t, p, "TIME EXIT");
+    }
   }
+}
 
-  // If neither SL nor target was hit, close after 15 minutes
-  // using the latest available ticker price.
-  if(exit===null&&Date.now()>=t.expiresAt) {
-    exit=p;
-    why="TIME";
+function maybeOpenTrades() {
+  for (const key of Object.keys(SYMBOLS)) {
+    const a = state[key].analysis;
+    if (!a || state[key].error) continue;
+
+    const side = getSide(a.signal);
+    if (!side || !a.candleTime) continue;
+
+    const open = paperTrades.some(t=>t.key===key && t.status==="OPEN");
+    const signalKey = key + "-" + side + "-" + a.candleTime;
+
+    if (!open && lastSignalKey[key] !== signalKey) {
+      lastSignalKey[key] = signalKey;
+      makeTrade(key, side, a);
+    }
   }
-  if(exit!==null) closeTrade(symbol,t,exit,why);
-}
-function updatePaper(symbol,a) {
-  const s=state[symbol];
-
-  // Manage an existing position first, regardless of the new signal.
-  monitorTrade(symbol);
-
-  if(s.trade||!s.ticker) return;
-  const side=tradeSide(a.signal);
-  if(!side) return;
-
-  // One new paper entry per direction per closed 1m candle.
-  const key=side+":"+a.candleTime;
-  if(key===s.lastSignalKey) return;
-
-  s.lastSignalKey=key;
-  s.trade=makeTrade(symbol,side,a.signal);
 }
 
-function renderMarket(symbol) {
-  const s=state[symbol],a=analyze(symbol),t=s.trade;
-  const trend=(up,down)=>up?"Bullish":down?"Bearish":"Neutral";
-  let body="";
+function renderMarket(key) {
+  const s = state[key];
+  const a = s.analysis || {signal:"WAIT",reason:"Data ka wait"};
 
-  if(s.error) {
-    body='<p class="bad">'+esc(s.error)+'</p>';
-  } else if(!s.ticker) {
-    body='<p class="muted">Market data ka wait hai.</p>';
-  } else {
-    body=`
-      <div class="grid">
-       <div class="metric"><small>1m trend</small><strong>${trend(a.up1,a.down1)}</strong></div>
-       <div class="metric"><small>5m trend</small><strong>${trend(a.up5,a.down5)}</strong></div>
-       <div class="metric"><small>15m trend</small><strong>${trend(a.up15,a.down15)}</strong></div>
-       <div class="metric"><small>RSI (1m)</small><strong>${fmt(a.rsi)}</strong></div>
-       <div class="metric"><small>5-candle momentum</small><strong>${fmt(a.momentum,3)}%</strong></div>
-       <div class="metric"><small>Setup horizon</small><strong>Up to 15 min</strong></div>
-      </div>
-      <p class="muted">${esc(a.reason||"")}</p>`;
-  }
+  el(key+"-price").textContent = s.ticker
+    ? fmt(s.ticker.price, 2) + " USDT"
+    : "Unavailable";
 
-  const levels=t?`
-    <hr>
-    <div class="grid">
-      <div class="metric"><small>Paper position</small><strong class="${cls(t.side)}">${t.side} · ${esc(t.signalType)}</strong></div>
-      <div class="metric"><small>Paper entry</small><strong>${px(t.entry)}</strong></div>
-      <div class="metric"><small>Stop-loss</small><strong class="bad">${px(t.stop)}</strong></div>
-      <div class="metric"><small>Target</small><strong class="good">${px(t.target)}</strong></div>
-      <div class="metric"><small>Virtual notional</small><strong>${fmt(t.notional)} USDT</strong></div>
-      <div class="metric"><small>Time remaining</small><strong>${Math.max(0,Math.ceil((t.expiresAt-Date.now())/60000))} min</strong></div>
-    </div>
-    <p class="muted">Open paper trade: SL/target pe ya 15-minute expiry par close hoga. TIME exit latest available ticker price use karta hai. Real execution simulate nahi hota.</p>`:"";
+  const signalEl = el(key+"-signal");
+  signalEl.textContent = a.signal || "WAIT";
+  signalEl.className = "signal " +
+    (getSide(a.signal)==="LONG" ? "LONG" :
+     getSide(a.signal)==="SHORT" ? "SHORT" : "WAIT");
 
-  return `<div class="card">
-    <h2>${symbol==="BTCUSDT"?"Bitcoin · BTC/USDT":"Ethereum · ETH/USDT"}</h2>
-    <div class="signal ${cls(a.signal)}">${esc(a.signal)}</div>
-    <div class="metric"><small>Live futures price (USDT)</small><strong>${s.ticker?px(s.ticker.price):"—"}</strong></div>
-    ${body}${levels}
-  </div>`;
+  el(key+"-reason").textContent = a.reason || "WAIT";
+  el(key+"-t1").textContent = a.up1 ? "Bullish" : a.down1 ? "Bearish" : "—";
+  el(key+"-t5").textContent = a.up5 ? "Bullish" : a.down5 ? "Bearish" : "—";
+  el(key+"-t15").textContent = a.up15 ? "Bullish" : a.down15 ? "Bearish" : "—";
+  el(key+"-rsi").textContent = Number.isFinite(a.rsi) ? fmt(a.rsi,2) : "—";
+  el(key+"-mom").textContent = Number.isFinite(a.momentum)
+    ? (a.momentum>0?"+":"") + fmt(a.momentum,3) + "%"
+    : "—";
+  el(key+"-candle").textContent = timeFmt(a.candleTime);
+
+  const trade = paperTrades.find(t=>t.key===key && t.status==="OPEN");
+  el(key+"-entry").textContent = trade ? fmt(trade.entry,2) : "No open trade";
+  el(key+"-levels").textContent = trade
+    ? fmt(trade.sl,2) + " / " + fmt(trade.tp,2)
+    : "—";
 }
+
+function renderSummary() {
+  const c = cfg();
+  const net = closedTrades.reduce((sum,t)=>sum+(t.pnl||0),0);
+  const wins = closedTrades.filter(t=>t.pnl>0).length;
+  const losses = closedTrades.filter(t=>t.pnl<=0).length;
+  const open = paperTrades.filter(t=>t.status==="OPEN").length;
+  const balance = c.balance + net;
+
+  el("sum-balance").textContent = fmt(balance,2) + " USDT";
+  el("sum-count").textContent = String(closedTrades.length);
+  el("sum-wl").textContent = wins + " / " + losses;
+  el("sum-pnl").textContent = (net>=0?"+":"") + fmt(net,2) + " USDT";
+  el("sum-pnl").className = net>=0 ? "good" : "bad";
+  el("sum-winrate").textContent = closedTrades.length
+    ? fmt(wins/closedTrades.length*100,1) + "%"
+    : "—";
+  el("sum-open").textContent = String(open);
+}
+
 function renderHistory() {
-  const n=history.length;
-  const wins=history.filter(t=>t.pnl>0).length;
-  const losses=history.filter(t=>t.pnl<=0).length;
-  const total=history.reduce((sum,t)=>sum+t.pnl,0);
+  const body = el("history");
+  body.innerHTML = "";
 
-  $("closed").textContent=n;
-  $("wl").textContent=wins+" / "+losses;
-  $("pnl").textContent=fmt(total)+" USDT";
-  $("pnl").className=total>0?"good":total<0?"bad":"";
-  $("winrate").textContent=n?fmt(wins/n*100,1)+"%":"—";
+  if (!closedTrades.length) {
+    body.innerHTML = '<tr><td colspan="7">Abhi koi closed paper trade nahi.</td></tr>';
+    return;
+  }
 
-  $("history").innerHTML=n?history.slice(0,30).map(t=>
-    `<tr><td>${esc(t.symbol)}</td><td class="${cls(t.side)}">${esc(t.side)}</td><td>${px(t.entry)}</td><td>${px(t.exit)}</td><td class="${t.pnl>0?"good":"bad"}">${fmt(t.pnl,3)} (${esc(t.reason)})</td></tr>`
-  ).join(""):'<tr><td colspan="5">Abhi koi closed trade nahi.</td></tr>';
+  for (const t of closedTrades) {
+    const tr = document.createElement("tr");
+    const values = [
+      timeFmt(t.closedAt),
+      t.key,
+      t.side,
+      fmt(t.entry,2),
+      fmt(t.exit,2),
+      (t.pnl>=0?"+":"")+fmt(t.pnl,3),
+      t.status
+    ];
+
+    for (let i=0; i<values.length; i++) {
+      const td = document.createElement("td");
+      td.textContent = values[i];
+      if (i===5) td.className = t.pnl>=0 ? "good" : "bad";
+      tr.appendChild(td);
+    }
+    body.appendChild(tr);
+  }
 }
+
 function renderAll() {
-  $("markets").innerHTML=symbols.map(renderMarket).join("");
+  renderMarket("BTC");
+  renderMarket("ETH");
+  renderSummary();
   renderHistory();
 }
+
 async function refreshAll() {
-  if(busy) return;
-  busy=true;
-  $("refresh").disabled=true;
-  $("status").textContent="Fresh market data fetch ho raha hai…";
+  if (busy) return;
+  busy = true;
+  el("refreshBtn").disabled = true;
+  el("status").textContent = "Live public futures data load ho raha hai...";
 
-  const results=await Promise.allSettled(symbols.map(loadMarket));
-  results.forEach((r,i)=>{
-    const symbol=symbols[i],s=state[symbol];
-    if(r.status==="rejected") {
-      s.error="Data load failed: "+(r.reason?.message||"unknown error");
-      s.ticker=null;
-      s.candles=null;
+  try {
+    await Promise.all([loadMarket("BTC"), loadMarket("ETH")]);
+    monitorTrades();
+    maybeOpenTrades();
+    renderAll();
+
+    const errors = Object.keys(SYMBOLS)
+      .filter(k=>state[k].error)
+      .map(k=>k + ": " + state[k].error);
+
+    if (errors.length) {
+      el("status").innerHTML = "";
+      el("status").textContent = "Kuch data load nahi hua: " + errors.join(" | ");
+      el("status").className = "status bad";
     } else {
-      const a=analyze(symbol);
-      updatePaper(symbol,a);
+      el("status").textContent = "BTC aur ETH ka live public data mila. Signals closed candles par based hain.";
+      el("status").className = "status good";
     }
-  });
 
-  const failed=symbols.filter(sym=>state[sym].error);
-  $("status").textContent=failed.length
-    ?"Data unavailable for "+failed.join(", ")+". Data wapas aane tak naye signals par bharosa na karein."
-    :"BTC aur ETH ka live public data mil gaya. Experimental signals; accuracy validated nahi hai.";
-  $("status").className=failed.length?"bad":"muted";
-  $("updated").textContent=new Date().toLocaleTimeString();
-
-  renderAll();
-  busy=false;
-  $("refresh").disabled=false;
-}
-$("refresh").addEventListener("click",refreshAll);
-$("pause").addEventListener("click",()=>{
-  running=!running;
-  $("pause").textContent=running?"Pause updates":"Resume updates";
-  if(running) refreshAll();
-});
-$("reset").addEventListener("click",()=>{
-  if(!confirm("Paper history aur open paper trades reset karein?")) return;
-  history=[];
-  for(const symbol of symbols) {
-    state[symbol].trade=null;
-    state[symbol].lastSignalKey="";
+    el("updated").textContent = "Last refresh: " + timeFmt(Date.now());
+  } catch (e) {
+    el("status").textContent = "Refresh error: " + (e.message || "Unknown error");
+    el("status").className = "status bad";
+  } finally {
+    busy = false;
+    el("refreshBtn").disabled = false;
   }
+}
+
+function schedule() {
+  if (timer) clearInterval(timer);
+  timer = setInterval(() => {
+    if (!paused) refreshAll();
+  }, 15000);
+}
+
+el("refreshBtn").addEventListener("click", refreshAll);
+
+el("pauseBtn").addEventListener("click", () => {
+  paused = !paused;
+  el("pauseBtn").textContent = paused ? "Resume updates" : "Pause updates";
+  el("status").textContent = paused
+    ? "Auto updates paused. Refresh market se manually update kar sakte ho."
+    : "Auto updates resumed.";
+  if (!paused) refreshAll();
+});
+
+el("resetBtn").addEventListener("click", () => {
+  if (!confirm("Paper history aur open paper trades reset karne hain?")) return;
+  paperTrades = [];
+  closedTrades = [];
+  lastSignalKey = {};
   renderAll();
 });
-for(const id of ["balance","fee","sl","tp","size"]) {
-  $(id).addEventListener("change",renderAll);
+
+for (const id of ["balance","fee","sl","tp","risk","exitmins"]) {
+  el(id).addEventListener("change", renderSummary);
 }
+
 renderAll();
 refreshAll();
-timer=setInterval(()=>{
-  if(running) refreshAll();
-},15000);
+schedule();
 </script>
 </body>
 </html>
