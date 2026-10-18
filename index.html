@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Mudrex Futures Signal Board</title>
 <style>
-:root{color-scheme:dark;--bg:#0b1020;--card:#151d31;--line:#293650;--muted:#9eacc5;--green:#37d99a;--red:#ff6577;--yellow:#f5c451}
+:root{color-scheme:dark;--bg:#0b1020;--card:#151d31;--line:#293650;--muted:#9eacc5;--green:#37d99a;--red:#ff6577;--yellow:#f5c451;--blue:#75a7ff}
 *{box-sizing:border-box}
 body{margin:0;padding:12px;background:var(--bg);color:#edf2ff;font:15px Arial,sans-serif}
 main{max-width:850px;margin:auto}
@@ -19,8 +19,8 @@ p{line-height:1.5}
 .metric{background:#0e1629;border-radius:9px;padding:10px;min-width:0}
 .metric small{display:block;color:var(--muted);margin-bottom:7px}
 .metric strong{font-size:16px;overflow-wrap:anywhere}
-.signal{font-size:24px;font-weight:bold;margin:8px 0}
-.long{color:var(--green)}.short{color:var(--red)}.wait{color:var(--yellow)}
+.signal{font-size:23px;font-weight:bold;margin:8px 0;overflow-wrap:anywhere}
+.long{color:var(--green)}.short{color:var(--red)}.wait{color:var(--yellow)}.early{color:var(--blue)}
 button{background:#365fe8;color:white;border:0;border-radius:9px;padding:12px;font-weight:bold;font-size:14px}
 button:disabled{opacity:.5}
 .row{display:flex;gap:8px;flex-wrap:wrap}
@@ -42,7 +42,7 @@ td,th{text-align:left;padding:8px 5px;border-bottom:1px solid var(--line)}
 <p class="muted">BTCUSDT + ETHUSDT · 10–15 min setup · Manual trading only · No API keys</p>
 
 <div class="notice">
-<strong>Risk:</strong> Signal prediction guarantee nahi hai. Futures mein poora capital lose ho sakta hai. Pehle paper testing karein. Ye page Mudrex par order nahi lagata. News feed connected nahi hai.
+<strong>Risk warning:</strong> Signal guaranteed nahi hai. Futures mein poora capital lose ho sakta hai. Pehle paper testing karein. Ye page Mudrex par order nahi lagata. News feed connected nahi hai. STRONG/EARLY labels validated accuracy ka proof nahi hain.
 </div>
 
 <div class="card">
@@ -63,7 +63,7 @@ td,th{text-align:left;padding:8px 5px;border-bottom:1px solid var(--line)}
 <div><label>Target (%)</label><input id="tp" type="number" value="0.60" min="0.1" max="5" step="0.05"></div>
 <div><label>Balance used per paper trade (%)</label><input id="size" type="number" value="10" min="1" max="100"></div>
 </div>
-<p class="muted">Settings sirf naye paper trades par apply hongi. Actual fees, slippage aur execution alag ho sakte hain.</p>
+<p class="muted">Settings naye paper trades par apply hongi. Har paper trade 15 minute baad available ticker price par time-exit hogi, ya pehle SL/target hit hone par close hogi. Actual fills, slippage aur funding simulate nahi hote.</p>
 </div>
 
 <div id="markets"></div>
@@ -88,10 +88,10 @@ td,th{text-align:left;padding:8px 5px;border-bottom:1px solid var(--line)}
 
 <div class="card">
 <h2>Signal rules</h2>
-<p><span class="long"><strong>LONG</strong></span> — 1m, 5m aur 15m trend bullish, momentum positive aur RSI confirm kare.</p>
-<p><span class="short"><strong>SHORT</strong></span> — 1m, 5m aur 15m trend bearish, momentum negative aur RSI confirm kare.</p>
-<p><span class="wait"><strong>WAIT</strong></span> — trend mismatch, RSI condition fail, momentum weak, ya data unavailable.</p>
-<p class="muted">Ye experimental rule-based setup hai. 10–15 minute ka outcome guaranteed nahi aur historical win rate abhi validate nahi hua. News analysis included nahi hai.</p>
+<p><span class="long"><strong>STRONG LONG / SHORT</strong></span> — 1m, 5m aur 15m trend ek direction mein, momentum aur RSI bhi confirm karein.</p>
+<p><span class="early"><strong>EARLY LONG / SHORT</strong></span> — 1m aur 5m trend align hon, 15m opposite na ho, aur momentum/RSI initial move ko support karein.</p>
+<p><span class="wait"><strong>WAIT</strong></span> — trend conflict, momentum confirmation nahi, RSI unsuitable ya data unavailable.</p>
+<p class="muted">EARLY signals comparatively kam confirmed hain. WAIT ko zabardasti trade mein nahi badla gaya. Ye experimental rules hain; historical win rate validate nahi hua. Signal label accuracy ki guarantee nahi hai.</p>
 </div>
 </main>
 
@@ -106,29 +106,42 @@ let busy = false;
 let running = true;
 let timer = null;
 
+const TRADE_MAX_AGE = 15 * 60 * 1000;
+
 for (const symbol of symbols) {
   state[symbol] = {
-    ticker:null, candles:null, error:"Data load ho raha hai.",
-    trade:null, lastSignalKey:""
+    ticker:null,
+    candles:null,
+    error:"Data load ho raha hai.",
+    trade:null,
+    lastSignalKey:""
   };
 }
 
 function fmt(n,d=2) {
   if (!Number.isFinite(n)) return "—";
   return n.toLocaleString("en-US",{
-    minimumFractionDigits:d,maximumFractionDigits:d
+    minimumFractionDigits:d,
+    maximumFractionDigits:d
   });
 }
 function px(n) {
   return Number.isFinite(n) ? fmt(n,n<1?6:2) : "—";
 }
 function cls(s) {
-  return s==="LONG"?"long":s==="SHORT"?"short":"wait";
+  if (String(s).includes("LONG")) return "long";
+  if (String(s).includes("SHORT")) return "short";
+  return "wait";
 }
 function esc(s) {
   return String(s).replace(/[&<>"']/g,c=>({
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
   }[c]));
+}
+function tradeSide(signal) {
+  if (String(signal).includes("LONG")) return "LONG";
+  if (String(signal).includes("SHORT")) return "SHORT";
+  return null;
 }
 function cfg() {
   function val(id,def,min,max) {
@@ -197,7 +210,8 @@ async function loadMarket(symbol) {
     throw new Error("Candles incomplete");
 
   state[symbol].ticker={
-    price:Number(ticker.price),time:Date.now()
+    price:Number(ticker.price),
+    time:Date.now()
   };
   state[symbol].candles=candles;
   state[symbol].error="";
@@ -246,37 +260,60 @@ function analyze(symbol) {
   const up5=e5fast>e5slow,down5=e5fast<e5slow;
   const up15=e15fast>e15slow,down15=e15fast<e15slow;
 
-  let signal="WAIT",reason="Trend ya momentum fully confirm nahi";
-  if(up1&&up5&&up15&&momentum>0.025&&rsi>=52&&rsi<=68) {
-    signal="LONG";
-    reason="1m, 5m, 15m bullish; momentum positive; RSI confirm";
-  } else if(down1&&down5&&down15&&momentum < -0.025&&rsi>=32&&rsi<=48) {
-    signal="SHORT";
-    reason="1m, 5m, 15m bearish; momentum negative; RSI confirm";
+  let signal="WAIT";
+  let reason="Trend ya momentum fully confirm nahi";
+
+  const strongLong=up1&&up5&&up15&&momentum>0.025&&rsi>=52&&rsi<=68;
+  const strongShort=down1&&down5&&down15&&momentum < -0.025&&rsi>=32&&rsi<=48;
+
+  // Early signals need 1m and 5m agreement.
+  // The 15m trend may be neutral but must not oppose the signal.
+  const earlyLong=up1&&up5&&!down15&&momentum>0.025&&rsi>=50&&rsi<=68;
+  const earlyShort=down1&&down5&&!up15&&momentum < -0.025&&rsi>=32&&rsi<=50;
+
+  if(strongLong) {
+    signal="STRONG LONG";
+    reason="All 3 timeframes bullish; momentum aur RSI confirm";
+  } else if(strongShort) {
+    signal="STRONG SHORT";
+    reason="All 3 timeframes bearish; momentum aur RSI confirm";
+  } else if(earlyLong) {
+    signal="EARLY LONG";
+    reason="1m aur 5m bullish; 15m opposite nahi; early setup, extra risk";
+  } else if(earlyShort) {
+    signal="EARLY SHORT";
+    reason="1m aur 5m bearish; 15m opposite nahi; early setup, extra risk";
   } else if((up1&&up5&&down15)||(down1&&down5&&up15)) {
-    reason="Short-term aur 15m trend opposite; WAIT";
-  } else if(signal==="WAIT"&&rsi<32) {
+    reason="1m/5m aur 15m trend opposite; WAIT";
+  } else if(momentum>0.025&&down1&&down5) {
+    reason="Bearish trend ke against upward momentum; SHORT confirm nahi";
+  } else if(momentum < -0.025&&up1&&up5) {
+    reason="Bullish trend ke against downward momentum; LONG confirm nahi";
+  } else if(rsi<32) {
     reason="RSI bahut low; breakdown ya bounce dono possible";
-  } else if(signal==="WAIT"&&rsi>68) {
+  } else if(rsi>68) {
     reason="RSI bahut high; continuation ya pullback dono possible";
   }
 
   return {
-    signal,reason,rsi,momentum,up1,down1,up5,down5,up15,down15,
+    signal,reason,rsi,momentum,
+    up1,down1,up5,down5,up15,down15,
     candleTime:c1[c1.length-1].time
   };
 }
 
-function makeTrade(symbol,signal) {
+function makeTrade(symbol,side,signalType) {
   const s=state[symbol],c=cfg(),entry=s.ticker.price;
-  const dir=signal==="LONG"?1:-1;
+  const dir=side==="LONG"?1:-1;
+  const now=Date.now();
   return {
-    symbol,side:signal,entry,
+    symbol,side,signalType,entry,
     stop:entry*(1-dir*c.sl),
     target:entry*(1+dir*c.tp),
     notional:c.balance*c.size,
     feeRate:c.fee,
-    openedAt:Date.now()
+    openedAt:now,
+    expiresAt:now+TRADE_MAX_AGE
   };
 }
 function closeTrade(symbol,trade,exit,why) {
@@ -294,6 +331,7 @@ function closeTrade(symbol,trade,exit,why) {
 function monitorTrade(symbol) {
   const s=state[symbol],t=s.trade,p=s.ticker?.price;
   if(!t||!Number.isFinite(p)) return;
+
   let exit=null,why="";
   if(t.side==="LONG") {
     if(p<=t.stop){exit=t.stop;why="SL";}
@@ -302,22 +340,38 @@ function monitorTrade(symbol) {
     if(p>=t.stop){exit=t.stop;why="SL";}
     else if(p<=t.target){exit=t.target;why="TP";}
   }
+
+  // If neither SL nor target was hit, close after 15 minutes
+  // using the latest available ticker price.
+  if(exit===null&&Date.now()>=t.expiresAt) {
+    exit=p;
+    why="TIME";
+  }
   if(exit!==null) closeTrade(symbol,t,exit,why);
 }
 function updatePaper(symbol,a) {
   const s=state[symbol];
+
+  // Manage an existing position first, regardless of the new signal.
   monitorTrade(symbol);
-  if(s.trade || a.signal==="WAIT" || !s.ticker) return;
-  const key=a.signal+":"+a.candleTime;
+
+  if(s.trade||!s.ticker) return;
+  const side=tradeSide(a.signal);
+  if(!side) return;
+
+  // One new paper entry per direction per closed 1m candle.
+  const key=side+":"+a.candleTime;
   if(key===s.lastSignalKey) return;
+
   s.lastSignalKey=key;
-  s.trade=makeTrade(symbol,a.signal);
+  s.trade=makeTrade(symbol,side,a.signal);
 }
 
 function renderMarket(symbol) {
   const s=state[symbol],a=analyze(symbol),t=s.trade;
   const trend=(up,down)=>up?"Bullish":down?"Bearish":"Neutral";
   let body="";
+
   if(s.error) {
     body='<p class="bad">'+esc(s.error)+'</p>';
   } else if(!s.ticker) {
@@ -330,21 +384,26 @@ function renderMarket(symbol) {
        <div class="metric"><small>15m trend</small><strong>${trend(a.up15,a.down15)}</strong></div>
        <div class="metric"><small>RSI (1m)</small><strong>${fmt(a.rsi)}</strong></div>
        <div class="metric"><small>5-candle momentum</small><strong>${fmt(a.momentum,3)}%</strong></div>
-       <div class="metric"><small>Signal horizon</small><strong>10–15 min setup</strong></div>
+       <div class="metric"><small>Setup horizon</small><strong>Up to 15 min</strong></div>
       </div>
       <p class="muted">${esc(a.reason||"")}</p>`;
   }
+
   const levels=t?`
-    <hr><div class="grid">
+    <hr>
+    <div class="grid">
+      <div class="metric"><small>Paper position</small><strong class="${cls(t.side)}">${t.side} · ${esc(t.signalType)}</strong></div>
       <div class="metric"><small>Paper entry</small><strong>${px(t.entry)}</strong></div>
       <div class="metric"><small>Stop-loss</small><strong class="bad">${px(t.stop)}</strong></div>
       <div class="metric"><small>Target</small><strong class="good">${px(t.target)}</strong></div>
       <div class="metric"><small>Virtual notional</small><strong>${fmt(t.notional)} USDT</strong></div>
+      <div class="metric"><small>Time remaining</small><strong>${Math.max(0,Math.ceil((t.expiresAt-Date.now())/60000))} min</strong></div>
     </div>
-    <p class="muted">Paper position open hai. Stop/target ticker polling se monitor hote hain; actual fills aur slippage fully simulate nahi hote.</p>`:"";
+    <p class="muted">Open paper trade: SL/target pe ya 15-minute expiry par close hoga. TIME exit latest available ticker price use karta hai. Real execution simulate nahi hota.</p>`:"";
+
   return `<div class="card">
     <h2>${symbol==="BTCUSDT"?"Bitcoin · BTC/USDT":"Ethereum · ETH/USDT"}</h2>
-    <div class="signal ${cls(a.signal)}">${a.signal}</div>
+    <div class="signal ${cls(a.signal)}">${esc(a.signal)}</div>
     <div class="metric"><small>Live futures price (USDT)</small><strong>${s.ticker?px(s.ticker.price):"—"}</strong></div>
     ${body}${levels}
   </div>`;
@@ -352,15 +411,17 @@ function renderMarket(symbol) {
 function renderHistory() {
   const n=history.length;
   const wins=history.filter(t=>t.pnl>0).length;
-  const losses=n-wins;
+  const losses=history.filter(t=>t.pnl<=0).length;
   const total=history.reduce((sum,t)=>sum+t.pnl,0);
+
   $("closed").textContent=n;
   $("wl").textContent=wins+" / "+losses;
   $("pnl").textContent=fmt(total)+" USDT";
   $("pnl").className=total>0?"good":total<0?"bad":"";
   $("winrate").textContent=n?fmt(wins/n*100,1)+"%":"—";
+
   $("history").innerHTML=n?history.slice(0,30).map(t=>
-    `<tr><td>${esc(t.symbol)}</td><td class="${cls(t.side)}">${t.side}</td><td>${px(t.entry)}</td><td>${px(t.exit)}</td><td class="${t.pnl>=0?"good":"bad"}">${fmt(t.pnl,3)} (${t.reason})</td></tr>`
+    `<tr><td>${esc(t.symbol)}</td><td class="${cls(t.side)}">${esc(t.side)}</td><td>${px(t.entry)}</td><td>${px(t.exit)}</td><td class="${t.pnl>0?"good":"bad"}">${fmt(t.pnl,3)} (${esc(t.reason)})</td></tr>`
   ).join(""):'<tr><td colspan="5">Abhi koi closed trade nahi.</td></tr>';
 }
 function renderAll() {
@@ -372,6 +433,7 @@ async function refreshAll() {
   busy=true;
   $("refresh").disabled=true;
   $("status").textContent="Fresh market data fetch ho raha hai…";
+
   const results=await Promise.allSettled(symbols.map(loadMarket));
   results.forEach((r,i)=>{
     const symbol=symbols[i],s=state[symbol];
@@ -384,12 +446,14 @@ async function refreshAll() {
       updatePaper(symbol,a);
     }
   });
+
   const failed=symbols.filter(sym=>state[sym].error);
   $("status").textContent=failed.length
-    ?"Data unavailable for "+failed.join(", ")+". Signal par trade na karein."
-    :"BTC aur ETH ka live public data mil gaya. Signal experimental hai.";
+    ?"Data unavailable for "+failed.join(", ")+". Data wapas aane tak naye signals par bharosa na karein."
+    :"BTC aur ETH ka live public data mil gaya. Experimental signals; accuracy validated nahi hai.";
   $("status").className=failed.length?"bad":"muted";
   $("updated").textContent=new Date().toLocaleTimeString();
+
   renderAll();
   busy=false;
   $("refresh").disabled=false;
@@ -414,7 +478,9 @@ for(const id of ["balance","fee","sl","tp","size"]) {
 }
 renderAll();
 refreshAll();
-timer=setInterval(()=>{if(running)refreshAll();},15000);
+timer=setInterval(()=>{
+  if(running) refreshAll();
+},15000);
 </script>
 </body>
 </html>
