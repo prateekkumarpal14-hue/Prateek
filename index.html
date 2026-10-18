@@ -291,69 +291,107 @@ async function loadCandles(s,interval) {
 }
 
 function analyze(s) {
-  s.entry=s.sl=s.tp=null;
+
+function analyze(s) {
+  s.entry = s.sl = s.tp = null;
 
   if (s.error) {
-    s.signal="WAIT";
-    s.reason="API error — अभी ट्रेड न करें";
+    s.signal = "WAIT";
+    s.reason = "API error — अभी ट्रेड न करें";
     return;
   }
 
-  if (s.candles1.length<30 || s.candles5.length<30 || s.candles15.length<30) {
-    s.signal="WAIT";
-    s.reason="तीनों timeframe का पर्याप्त डेटा नहीं";
+  if (
+    s.candles1.length < 30 ||
+    s.candles5.length < 30 ||
+    s.candles15.length < 30
+  ) {
+    s.signal = "WAIT";
+    s.reason = "पर्याप्त candle data नहीं";
     return;
   }
 
-  const c1=s.candles1.map(c=>c.close);
-  const c5=s.candles5.map(c=>c.close);
-  const c15=s.candles15.map(c=>c.close);
+  const c1 = s.candles1.map(c => c.close);
+  const c5 = s.candles5.map(c => c.close);
+  const c15 = s.candles15.map(c => c.close);
 
-  const t1=trend(c1,9,21);
-  const t5=trend(c5,5,13);
-  const t15=trend(c15,5,13);
-  const r=rsi(c1);
-  const momentum=c1[c1.length-1]>c1[c1.length-4] ? 1 :
-    c1[c1.length-1]<c1[c1.length-4] ? -1 : 0;
+  const t1 = trend(c1, 9, 21);
+  const t5 = trend(c5, 5, 13);
+  const t15 = trend(c15, 5, 13);
+  const r = rsi(c1);
 
-  s.trend1=trendName(t1);
-  s.trend5=trendName(t5);
-  s.trend15=trendName(t15);
-  s.rsi=r;
-  s.score=t1*2+t5*2+t15*2+momentum;
-  s.signal="WAIT";
-  s.reason="तीनों timeframe की एक दिशा में पुष्टि नहीं";
+  // 5 closed 1-minute candles की price momentum
+  const oldPrice = c1[c1.length - 6];
+  const newPrice = c1[c1.length - 1];
+  const momentumPct = ((newPrice - oldPrice) / oldPrice) * 100;
 
-  if (t1===1 && t5===1 && t15===1 && momentum===1 &&
-      r!==null && r>=50 && r<=68) {
-    s.signal="LONG";
-    s.reason="तीनों timeframe bullish; momentum confirmation";
-  } else if (t1===-1 && t5===-1 && t15===-1 && momentum===-1 &&
-      r!==null && r>=32 && r<=50) {
-    s.signal="SHORT";
-    s.reason="तीनों timeframe bearish; momentum confirmation";
-  } else if (r!==null && (r<32 || r>68)) {
-    s.reason="RSI सीमा से बाहर; WAIT";
+  const mom = momentumPct > 0.025 ? 1 :
+              momentumPct < -0.025 ? -1 : 0;
+
+  s.trend1 = trendName(t1);
+  s.trend5 = trendName(t5);
+  s.trend15 = trendName(t15);
+  s.rsi = r;
+
+  // 1m trigger + 5m confirmation; 15m is a bias, not a veto.
+  s.score = t1 * 2 + t5 * 3 + t15 + mom * 2;
+  s.signal = "WAIT";
+  s.reason = "अगले 10–15 मिनट के लिए पर्याप्त पुष्टि नहीं";
+
+  if (r === null || !Number.isFinite(r)) {
+    s.reason = "RSI उपलब्ध नहीं — WAIT";
+  } else if (
+    t1 === 1 &&
+    t5 === 1 &&
+    mom === 1 &&
+    s.score >= 5 &&
+    r >= 52 && r <= 68
+  ) {
+    s.signal = "LONG";
+    s.reason = "Bullish momentum + 1m/5m trend confirmation";
+    if (t15 === -1) {
+      s.reason += "; 15m trend विरोध में है — अतिरिक्त जोखिम";
+    }
+  } else if (
+    t1 === -1 &&
+    t5 === -1 &&
+    mom === -1 &&
+    s.score <= -5 &&
+    r >= 32 && r <= 48
+  ) {
+    s.signal = "SHORT";
+    s.reason = "Bearish momentum + 1m/5m trend confirmation";
+    if (t15 === 1) {
+      s.reason += "; 15m trend विरोध में है — अतिरिक्त जोखिम";
+    }
+  } else if (r > 68 || r < 32) {
+    s.reason = "RSI extreme zone — WAIT";
   }
 
+  // Never publish a trade signal using stale market data.
   if (!marketFresh(s)) {
-    s.signal="WAIT";
-    s.reason="डेटा पुराना या अधूरा है";
+    s.signal = "WAIT";
+    s.reason = "डेटा पुराना या अधूरा है — WAIT";
     return;
   }
 
-  if (s.signal==="LONG" || s.signal==="SHORT") {
-    const entry=s.price;
-    const sp=Math.max(.05,Number($("stop").value)||.35)/100;
-    const tp=Math.max(.05,Number($("target").value)||.70)/100;
-    s.entry=entry;
+  if (s.signal === "LONG" || s.signal === "SHORT") {
+    const entry = s.price;
+    const stopPct = Math.max(
+      0.05, Number($("stop").value) || 0.35
+    ) / 100;
+    const targetPct = Math.max(
+      0.05, Number($("target").value) || 0.70
+    ) / 100;
 
-    if (s.signal==="LONG") {
-      s.sl=entry*(1-sp);
-      s.tp=entry*(1+tp);
+    s.entry = entry;
+
+    if (s.signal === "LONG") {
+      s.sl = entry * (1 - stopPct);
+      s.tp = entry * (1 + targetPct);
     } else {
-      s.sl=entry*(1+sp);
-      s.tp=entry*(1-tp);
+      s.sl = entry * (1 + stopPct);
+      s.tp = entry * (1 - targetPct);
     }
   }
 }
