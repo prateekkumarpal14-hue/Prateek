@@ -18,7 +18,7 @@
   <div class="banner">
     <div id="dataStatus" class="status warn">Mudrex public market data connect ho raha hai…</div>
     <div id="lastUpdate" class="note">Abhi verified live price available nahi hai.</div>
-    <div id="sourceLine" class="note">Source: Mudrex Futures public feed · candles are built from live 1m data when available.</div>
+    <div id="sourceLine" class="note">Source: Mudrex Futures public feed · REST historical candles + live 1m kline stream.</div>
   </div>
   <div class="actions">
     <button class="btn primary" id="refreshBtn">Refresh market</button>
@@ -122,20 +122,22 @@ function parseEnvelope(raw){let x=raw;for(let i=0;i<3;i++){if(typeof x==='string
 function symbolFrom(o){let s=pick(o,['symbol','asset','s','instrument','pair']);if(s&&typeof s==='object')s=pick(s,['symbol','name','asset']);if(!s)return null;s=String(s).toUpperCase().replace('/','').replace('-','');return SYMBOLS.includes(s)?s:null}
 function parseCandle(o,symbol){if(Array.isArray(o)&&o.length>=5){const t=Number(o[0]);return {t:t<1e12?t*1000:t,o:+o[1],h:+o[2],l:+o[3],c:+o[4],v:+(o[5]||0)}}if(!o||typeof o!=='object')return null;const t=parseNum(pick(o,['open_time','openTime','timestamp','time','t','startTime','start_time']));const candle={t:t<1e12?t*1000:t,o:parseNum(pick(o,['open','o'])),h:parseNum(pick(o,['high','h'])),l:parseNum(pick(o,['low','l'])),c:parseNum(pick(o,['close','c','price','lastPrice'])),v:parseNum(pick(o,['volume','v','base_volume']))||0};return Number.isFinite(candle.t)&&Number.isFinite(candle.o)&&Number.isFinite(candle.h)&&Number.isFinite(candle.l)&&Number.isFinite(candle.c)?candle:null}
 function storeCandle(sym,c){if(!c||!Number.isFinite(c.c)||c.c<=0)return;let a=state.candles[sym];let i=a.findIndex(x=>x.t===c.t);if(i>=0)a[i]=c;else a.push(c);a.sort((x,y)=>x.t-y.t);if(a.length>600)a.splice(0,a.length-600);state.lastKline[sym]=Date.now();state.prices[sym]=c.c;renderAll()}
-function handleMessage(raw){const data=parseEnvelope(raw);if(!data)return;
- const items=Array.isArray(data)?data:(Array.isArray(data.data)?data.data:(Array.isArray(data.result)?data.result:[data.data||data]));
- for(const o of items){if(!o||typeof o!=='object')continue;const s=symbolFrom(o);const type=String(pick(o,['e','event','type','stream','channel'])||'').toLowerCase();
-  const c=parseCandle(o,s);if(s&&c&&(type.includes('kline')||o.open!==undefined||Array.isArray(o.kline))){storeCandle(s,c);continue}
-  let nested=o.kline||o.data;if(nested&&typeof nested==='object'){const ss=s||symbolFrom(nested);const cc=parseCandle(nested,ss);if(ss&&cc){storeCandle(ss,cc);continue}}
-  let price=parseNum(pick(o,['price','lastPrice','last_price','p','markPrice','mark_price','close']));if(!s&&o.data&&typeof o.data==='object'){const ss=symbolFrom(o.data);const pp=parseNum(pick(o.data,['price','lastPrice','p','markPrice']));if(ss&&pp>0){state.prices[ss]=pp;state.lastTick[ss]=Date.now();renderAll();continue}}
-  if(s&&Number.isFinite(price)&&price>0){state.prices[s]=price;state.lastTick[s]=Date.now();const t=Date.now();let a=state.ticks[s];a.push({t,p:price});while(a.length&&a[0].t<t-60*60*1000)a.shift();if(!state.candles[s].length||t-state.candles[s][state.candles[s].length-1].t>=60000){const minute=Math.floor(t/60000)*60000;storeCandle(s,{t:minute,o:price,h:price,l:price,c:price,v:0})}else{const a2=state.candles[s],last=a2[a2.length-1];last.h=Math.max(last.h,price);last.l=Math.min(last.l,price);last.c=price}renderAll()}
+function handleMessage(raw){
+ const msg=parseEnvelope(raw);if(!msg)return;
+ // Mudrex documented push envelope: {stream:"kline@1m@btcusdt",data:{s,t,o,h,l,c,v}}
+ if(msg.stream && msg.data){
+  const stream=String(msg.stream).toLowerCase(), payload=msg.data;
+  if(stream.includes('kline')){const sym=symbolFrom(payload)||symbolFrom({s:stream.split('@').pop()});const c=parseCandle(payload,sym);if(sym&&c)storeCandle(sym,c);return;}
+  if(stream.includes('ticker')){const arr=Array.isArray(payload)?payload:[payload];for(const o of arr){const sym=symbolFrom(o);const price=parseNum(pick(o,['p','price','lastPrice','last_price']));if(sym&&price>0){state.prices[sym]=price;state.lastTick[sym]=Date.now();}}renderAll();return;}
  }
+ if(msg.id!==undefined && (msg.result!==undefined || msg.error)){if(msg.error){state.errors=state.errors||{};state.errors.WS=msg.error.msg||JSON.stringify(msg.error);setStatus('Mudrex subscription error: '+state.errors.WS,'bad')}return;}
+ const items=Array.isArray(msg)?msg:(Array.isArray(msg.data)?msg.data:[msg.data||msg]);
+ for(const o of items){if(!o||typeof o!=='object')continue;const sym=symbolFrom(o);const c=parseCandle(o,sym);if(sym&&c&&(o.o!==undefined||o.open!==undefined)){storeCandle(sym,c);continue;}const price=parseNum(pick(o,['p','price','lastPrice','last_price','markPrice','mark_price']));if(sym&&price>0){state.prices[sym]=price;state.lastTick[sym]=Date.now();renderAll();}}
 }
 function connectWS(){if(state.paused)return;try{if(state.ws){state.ws.onclose=null;state.ws.close()}const ws=new WebSocket(WS_URL);state.ws=ws;
- ws.onopen=()=>{state.wsConnected=true;state.retry=0;setStatus('WebSocket connected (connection only) · waiting for parsed ticker/candles','warn');
-  // Mudrex documented stream envelope. Ticker is subscribed for both contracts; kline subscription is attempted as a separate stream.
-  ws.send(JSON.stringify({method:'SUBSCRIBE',params:['btcusdt@ticker@1s','ethusdt@ticker@1s','btcusdt@kline@1m','ethusdt@kline@1m'],id:1}));
-  ws.send(JSON.stringify({method:'SUBSCRIBE',params:['ticker@1s','kline@1m'],assets:['btcusdt','ethusdt'],id:2}));
+ ws.onopen=()=>{state.wsConnected=true;state.retry=0;setStatus('WebSocket connected · subscribing to Mudrex ticker and 1m candles','warn');
+  ws.send(JSON.stringify({id:1,method:'SUBSCRIBE',params:['ticker@1s'],assets:['btcusdt','ethusdt']}));
+  ws.send(JSON.stringify({id:2,method:'SUBSCRIBE',params:['kline@1m@btcusdt','kline@1m@ethusdt']}));
  };
  ws.onmessage=e=>handleMessage(e.data);
  ws.onerror=()=>{state.wsConnected=false;setStatus('WebSocket error — REST candle fallback try hoga','bad')};
@@ -143,29 +145,22 @@ function connectWS(){if(state.paused)return;try{if(state.ws){state.ws.onclose=nu
  }catch(e){setStatus('WebSocket start nahi hua: '+e.message,'bad')}
 }
 async function fetchCandles(sym){
- const asset=sym.slice(0,-4)+'/USDT';
- const urls=[
-  BASE+'/kline?assets='+encodeURIComponent(asset)+'&interval=1m&limit=300',
-  BASE+'/kline?asset='+encodeURIComponent(asset)+'&interval=1m&limit=300',
-  BASE+'/kline?symbol='+encodeURIComponent(asset)+'&interval=1m&limit=300'
- ];
- let lastErr='No response';
- for(const url of urls){
-  try{
-   const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);
-   const json=await r.json();let data=json.data??json.result??json;
-   if(data&&typeof data==='object'&&!Array.isArray(data)){
-    data=data[asset]??data[sym]??data[asset.toLowerCase()]??data[sym.toLowerCase()]??data.klines??data.list??data.rows??data.data??data;
-   }
-   if(!Array.isArray(data))throw Error('Response has no candle array');
-   const cs=data.map(x=>parseCandle(x,sym)).filter(Boolean);
-   if(!cs.length)throw Error('Candle response format did not match OHLCV');
-   state.candles[sym]=cs.slice(-600);state.lastKline[sym]=Date.now();
-   const last=state.candles[sym].at(-1);if(last&&!state.prices[sym])state.prices[sym]=last.c;
-   renderAll();return true;
-  }catch(e){lastErr=e.message||String(e);console.warn('Mudrex REST kline failed',url,e)}
- }
- state.errors=state.errors||{};state.errors[sym]=lastErr;return false
+ const asset=sym.slice(0,-4).toLowerCase()+'/usdt';
+ const end=Math.floor(Date.now()/1000), start=end-1440*60;
+ const url=BASE+'/kline?assets='+encodeURIComponent(asset)+'&aggregation=1m&start_time='+start+'&end_time='+end;
+ try{
+  const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);
+  const json=await r.json();if(json.success===false)throw Error((json.errors||[]).map(x=>x.text||x.code).join(', ')||'Mudrex API returned success=false');
+  const ticks=json?.data?.asset_ticks;
+  if(!ticks||typeof ticks!=='object')throw Error('Mudrex response missing data.asset_ticks');
+  const rows=ticks[asset]||ticks[asset.toUpperCase()]||ticks[asset.replace('/','')]||[];
+  if(!Array.isArray(rows)||!rows.length)throw Error('No candles returned for '+asset);
+  const cs=rows.map(x=>parseCandle(x,sym)).filter(Boolean);
+  if(!cs.length)throw Error('Mudrex candle array could not be parsed');
+  state.candles[sym]=cs.slice(-600);state.lastKline[sym]=Date.now();
+  const last=state.candles[sym].at(-1);if(last&&!state.prices[sym])state.prices[sym]=last.c;
+  renderAll();return true;
+ }catch(e){const msg=e.message||String(e);state.errors=state.errors||{};state.errors[sym]=msg;console.warn('Mudrex REST kline failed',url,e);return false}
 }
 async function refresh(){if(state.paused)return;setText('lastUpdate','Refresh check: '+new Date().toLocaleTimeString());const results=await Promise.all(SYMBOLS.map(fetchCandles));if(results.every(Boolean))setStatus('Mudrex Futures REST candles received · indicator history available','good');else if(Object.values(state.prices).some(x=>x>0))setStatus('Ticker price aa rahi hai, lekin Mudrex candles fail hain. '+((state.errors&&state.errors.BTCUSDT)||'endpoint/format/CORS issue')+'. Signals WAIT rahenge.','warn');else setStatus('Mudrex feed se candle data nahi mila. '+((state.errors&&state.errors.BTCUSDT)||'API/CORS/response format issue')+'; prices invent nahi kiye jayenge.','bad');renderAll()}
 function ema(arr,period){if(arr.length<period)return NaN;const k=2/(period+1);let v=arr.slice(0,period).reduce((a,b)=>a+b,0)/period;for(let i=period;i<arr.length;i++)v=arr[i]*k+v*(1-k);return v}
