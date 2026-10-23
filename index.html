@@ -1,207 +1,195 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="hi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<meta name="theme-color" content="#0b1020">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Mudrex Futures Signal Board</title>
 <style>
-:root{color-scheme:dark;--bg:#0b1020;--card:#151d31;--line:#293650;--muted:#9eacc5;--text:#eef4ff;--green:#37d99a;--red:#ff6577;--yellow:#ffd166;--blue:#7bb5ff}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}main{max-width:1050px;margin:auto;padding:16px}h1{font-size:24px;margin:0 0 4px}h2{font-size:17px;margin:0 0 12px}.muted,small{color:var(--muted)}.sub{margin-bottom:14px;color:var(--muted);font-size:13px}.banner{border:1px solid var(--line);background:#10182a;padding:12px;border-radius:12px;margin:12px 0}.status{font-weight:700}.status.good{color:var(--green)}.status.bad{color:var(--red)}.status.warn{color:var(--yellow)}.actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.btn,a.btn{display:inline-block;text-decoration:none;background:#24334e;color:var(--text);border:1px solid #3a4c6d;padding:10px 13px;border-radius:9px;font-weight:650;cursor:pointer}.btn.primary{background:#1a624e;border-color:#2c9d79}.btn.danger{background:#602b38;border-color:#9a4255}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;min-width:0}.price{font-size:27px;font-weight:800;letter-spacing:-.5px;overflow-wrap:anywhere}.symbol{font-weight:800;font-size:17px}.signal{display:inline-block;padding:5px 11px;border-radius:8px;font-weight:900;letter-spacing:.5px;margin:9px 0}.LONG{background:#123f32;color:var(--green)}.SHORT{background:#4b202b;color:var(--red)}.WAIT{background:#4b3b1d;color:var(--yellow)}.metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}.metric{background:#10182a;border-radius:9px;padding:9px;min-width:0}.metric .label{font-size:12px;color:var(--muted)}.metric .val{font-size:15px;font-weight:750;overflow-wrap:anywhere}.reason{font-size:13px;color:#d1dcf0;margin-top:10px}.section{margin-top:14px}.settings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.field label{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}.field input,.field select{width:100%;background:#0c1425;color:var(--text);border:1px solid #3a4965;border-radius:8px;padding:10px;font-size:15px}.tablewrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:9px 7px;border-bottom:1px solid var(--line);white-space:nowrap}th{color:var(--muted);font-weight:650}.positive{color:var(--green)}.negative{color:var(--red)}.note{font-size:12px;color:var(--muted)}.pill{font-size:11px;border:1px solid var(--line);border-radius:20px;padding:3px 7px;color:var(--muted)}.smallbtn{padding:5px 8px;font-size:12px}.empty{padding:15px;color:var(--muted);text-align:center}
-@media(max-width:650px){main{padding:11px}.grid{grid-template-columns:1fr}.settings{grid-template-columns:repeat(2,minmax(0,1fr))}.price{font-size:25px}h1{font-size:21px}.card{padding:12px}}
+:root{color-scheme:dark;--bg:#0b1020;--card:#151d31;--line:#293650;--muted:#9eacc5;--green:#37d99a;--red:#ff6577;--yellow:#ffd166;--text:#edf3ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,-apple-system,Segoe UI,Roboto,sans-serif}header{padding:18px 14px 12px;background:#10182b;border-bottom:1px solid var(--line)}h1{font-size:22px;margin:0 0 5px}p{margin:7px 0;color:var(--muted);line-height:1.45}.wrap{max-width:1100px;margin:auto;padding:12px}.toolbar,.stats,.grid{display:grid;gap:10px}.toolbar{grid-template-columns:repeat(2,minmax(0,1fr));margin:10px 0}.stats{grid-template-columns:repeat(2,minmax(0,1fr));margin:12px 0}.grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));margin-top:12px}.card,.stat{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:13px;min-width:0}.stat b{display:block;font-size:19px;margin-top:4px}.muted,.small{color:var(--muted)}.small{font-size:12px}button,input,select{font:inherit;border-radius:9px;border:1px solid var(--line);padding:10px;background:#0f1729;color:var(--text);min-width:0}button{cursor:pointer;font-weight:650}button.primary{background:#243b61}button:disabled{opacity:.5}.row{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}.price{font-size:23px;font-weight:750;overflow-wrap:anywhere;margin:9px 0}.pill{display:inline-block;border-radius:7px;padding:5px 9px;font-weight:800;font-size:12px}.long{background:#123d33;color:#67f0bd}.short{background:#4a202d;color:#ff9eaa}.wait{background:#44391b;color:#ffe09a}.metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.metric{background:#0f1729;border-radius:8px;padding:8px}.metric span{display:block;font-size:12px;color:var(--muted)}.metric b{display:block;margin-top:3px;overflow-wrap:anywhere}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}.longbtn{border-color:#26785f;color:#70f0c0}.shortbtn{border-color:#85384b;color:#ff9eaa}.notice{border-left:3px solid var(--yellow);padding:9px 11px;background:#211e18;border-radius:7px;margin:10px 0}.sectiontitle{font-size:17px;margin:18px 0 8px}.tablewrap{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:13px}th,td{text-align:left;padding:9px;border-bottom:1px solid var(--line);white-space:nowrap}footer{padding:18px 4px;color:var(--muted);font-size:12px}.hidden{display:none!important}@media(min-width:700px){.toolbar{grid-template-columns:2fr 1fr 1fr 1fr}.stats{grid-template-columns:repeat(4,minmax(0,1fr))}}
 </style>
 </head>
 <body>
-<main>
-  <h1>₿ Mudrex Futures Signal Board</h1>
-  <div class="sub">BTCUSDT + ETHUSDT · 5–15 min setups · Manual trading only · No API keys</div>
-  <div class="banner">
-    <div id="dataStatus" class="status warn">Mudrex public market data connect ho raha hai…</div>
-    <div id="lastUpdate" class="note">Abhi verified live price available nahi hai.</div>
-    <div id="sourceLine" class="note">Source: Mudrex Futures public feed · REST historical candles + live 1m kline stream.</div>
-  </div>
-  <div class="actions">
-    <button class="btn primary" id="refreshBtn">Refresh market</button>
-    <button class="btn" id="pauseBtn">Pause updates</button>
-    <button class="btn danger" id="resetBtn">Reset paper history</button>
-  </div>
-  <div class="grid">
-    <section class="card" id="BTCUSDT">
-      <div class="symbol">Bitcoin · BTCUSDT</div><div class="price" id="price-BTCUSDT">— USDT</div>
-      <span class="signal WAIT" id="signal-BTCUSDT">WAIT</span>
-      <span class="pill" id="quality-BTCUSDT">DATA WAIT</span>
-      <div class="metrics">
-        <div class="metric"><div class="label">Entry reference</div><div class="val" id="entry-BTCUSDT">—</div></div>
-        <div class="metric"><div class="label">Stop-loss</div><div class="val" id="sl-BTCUSDT">—</div></div>
-        <div class="metric"><div class="label">Target</div><div class="val" id="tp-BTCUSDT">—</div></div>
-        <div class="metric"><div class="label">Estimated net at target</div><div class="val" id="net-BTCUSDT">—</div></div>
-        <div class="metric"><div class="label">1m / 5m / 15m</div><div class="val" id="trend-BTCUSDT">—</div></div>
-        <div class="metric"><div class="label">1h trend</div><div class="val" id="trend1h-BTCUSDT">—</div></div><div class="metric"><div class="label">RSI (1m)</div><div class="val" id="rsi-BTCUSDT">—</div></div>
-        <div class="metric"><div class="label">5-candle momentum</div><div class="val" id="momentum-BTCUSDT">—</div></div><div class="metric"><div class="label">Volume vs average</div><div class="val" id="volume-BTCUSDT">—</div></div><div class="metric"><div class="label">Score</div><div class="val" id="score-BTCUSDT">—</div></div>
-        <div class="metric"><div class="label">Round-trip fee estimate</div><div class="val" id="fee-BTCUSDT">—</div></div>
-      </div>
-      <div class="reason" id="reason-BTCUSDT">Signal calculate karne ke liye data ka intezar.</div>
-      <div class="actions"><button class="btn smallbtn primary" onclick="paperOpen('BTCUSDT')">Paper LONG</button><button class="btn smallbtn danger" onclick="paperShort('BTCUSDT')">Paper SHORT</button></div>
-    </section>
-    <section class="card" id="ETHUSDT">
-      <div class="symbol">Ethereum · ETHUSDT</div><div class="price" id="price-ETHUSDT">— USDT</div>
-      <span class="signal WAIT" id="signal-ETHUSDT">WAIT</span>
-      <span class="pill" id="quality-ETHUSDT">DATA WAIT</span>
-      <div class="metrics">
-        <div class="metric"><div class="label">Entry reference</div><div class="val" id="entry-ETHUSDT">—</div></div>
-        <div class="metric"><div class="label">Stop-loss</div><div class="val" id="sl-ETHUSDT">—</div></div>
-        <div class="metric"><div class="label">Target</div><div class="val" id="tp-ETHUSDT">—</div></div>
-        <div class="metric"><div class="label">Estimated net at target</div><div class="val" id="net-ETHUSDT">—</div></div>
-        <div class="metric"><div class="label">1m / 5m / 15m</div><div class="val" id="trend-ETHUSDT">—</div></div>
-        <div class="metric"><div class="label">1h trend</div><div class="val" id="trend1h-ETHUSDT">—</div></div><div class="metric"><div class="label">RSI (1m)</div><div class="val" id="rsi-ETHUSDT">—</div></div>
-        <div class="metric"><div class="label">5-candle momentum</div><div class="val" id="momentum-ETHUSDT">—</div></div><div class="metric"><div class="label">Volume vs average</div><div class="val" id="volume-ETHUSDT">—</div></div><div class="metric"><div class="label">Score</div><div class="val" id="score-ETHUSDT">—</div></div>
-        <div class="metric"><div class="label">Round-trip fee estimate</div><div class="val" id="fee-ETHUSDT">—</div></div>
-      </div>
-      <div class="reason" id="reason-ETHUSDT">Signal calculate karne ke liye data ka intezar.</div>
-      <div class="actions"><button class="btn smallbtn primary" onclick="paperOpen('ETHUSDT')">Paper LONG</button><button class="btn smallbtn danger" onclick="paperShort('ETHUSDT')">Paper SHORT</button></div>
-    </section>
-  </div>
-  <section class="card section">
-    <h2>Trading & paper settings</h2>
-    <div class="settings">
-      <div class="field"><label>One-side fee (%)</label><input id="feeRate" type="number" min="0" max="1" step="0.01" value="0.05"></div>
-      <div class="field"><label>Stop-loss (%)</label><input id="slRate" type="number" min="0.1" max="5" step="0.05" value="0.35"></div>
-      <div class="field"><label>Target (%)</label><input id="tpRate" type="number" min="0.1" max="10" step="0.05" value="0.70"></div>
-      <div class="field"><label>Virtual position (USDT)</label><input id="notional" type="number" min="5" max="100000" step="5" value="100"></div>
-      <div class="field"><label>Signal threshold</label><select id="threshold"><option value="2">Balanced (2)</option><option value="3" selected>Careful (3)</option><option value="4">Strict (4)</option></select></div>
-      <div class="field"><label>Paper time exit</label><select id="timeExit"><option value="15">15 minutes</option><option value="10">10 minutes</option><option value="0">No time exit</option></select></div>
-    </div>
-    <p class="note">Fees are estimates, not Mudrex-confirmed account fees. Slippage, funding and liquidation are not included. Strategy is a heuristic, not a validated profitable system.</p>
-  </section>
-  <section class="card section">
-    <h2>Open paper trades <span class="pill" id="openCount">0</span></h2>
-    <div class="tablewrap"><table><thead><tr><th>Symbol</th><th>Side</th><th>Entry</th><th>SL</th><th>Target</th><th>Live P/L</th><th>Age</th><th>Action</th></tr></thead><tbody id="openTrades"></tbody></table></div>
-    <div id="openEmpty" class="empty">Abhi koi open paper trade nahi hai.</div>
-  </section>
-  <section class="card section">
-    <h2>Crypto news &amp; event watch</h2>
-    <div id="newsStatus" class="note">News links open official/public sources. Headlines are not automatically scored.</div>
-    <div class="actions">
-      <a class="btn" href="https://www.coindesk.com/" target="_blank" rel="noopener">Open CoinDesk</a>
-      <a class="btn" href="https://cointelegraph.com/" target="_blank" rel="noopener">Open Cointelegraph</a>
-      <a class="btn" href="https://www.binance.com/en/support/announcement" target="_blank" rel="noopener">Binance announcements</a>
-      <a class="btn" href="https://www.federalreserve.gov/newsevents.htm" target="_blank" rel="noopener">Federal Reserve</a>
-    </div>
-    <p class="note">News feeds may fail because of browser CORS or provider limits. These are source links, not a verified live news feed; verify timestamps and impact yourself.</p>
-  </section>
-  <section class="card section">
-    <h2>Closed paper history</h2>
-    <div class="metrics">
-      <div class="metric"><div class="label">Closed trades</div><div class="val" id="closedCount">0</div></div>
-      <div class="metric"><div class="label">Net P/L after estimated fees</div><div class="val" id="totalPnl">0.00 USDT</div></div>
-      <div class="metric"><div class="label">Win rate</div><div class="val" id="winRate">—</div></div>
-      <div class="metric"><div class="label">Wins / Losses</div><div class="val" id="winsLosses">0 / 0</div></div>
-    </div>
-    <div class="tablewrap"><table><thead><tr><th>Closed</th><th>Symbol</th><th>Side</th><th>Entry → Exit</th><th>Reason</th><th>Net P/L</th></tr></thead><tbody id="closedTrades"></tbody></table></div>
-    <div id="closedEmpty" class="empty">Trade close hone par history yahan dikhegi.</div>
-  </section>
-  <section class="banner note">
-    <b>Important:</b> Ye sirf analysis aur virtual paper trading hai. Mudrex par order place nahi karta, login/API secret nahi maangta. Agar Mudrex feed ya browser connection fail ho, prices/signals ko live na samjhein. Futures mein poora margin lose ho sakta hai; pehle paper-test karein.
-  </section>
+<header><div class="wrap" style="padding:0 12px">
+<h1>₿ Mudrex Futures Signal Board</h1>
+<p>5–15 min setup · Manual trading only · No API keys · No real orders</p>
+<div id="status" class="small">Mudrex public market data connect karne ki koshish…</div>
+</div></header>
+<main class="wrap">
+<div class="notice"><b>Important:</b> LONG/SHORT signal guarantee nahi hai. Pehle paper test karein. Yeh page Mudrex par order nahi lagata. Agar Mudrex public market list browser se accessible nahi hui, page clearly status dikhayega—fake prices/signals nahi banayega.</div>
+<div class="toolbar">
+<input id="search" placeholder="Coin search: BTC, ETH…" aria-label="Coin search">
+<select id="filter"><option value="ALL">All signals</option><option value="LONG">LONG only</option><option value="SHORT">SHORT only</option><option value="WAIT">WAIT only</option></select>
+<button id="refresh" class="primary">Refresh market</button>
+<button id="pause">Pause updates</button>
+</div>
+<div class="stats">
+<div class="stat"><span class="small">Markets discovered</span><b id="marketCount">0</b></div>
+<div class="stat"><span class="small">Live prices</span><b id="liveCount">0</b></div>
+<div class="stat"><span class="small">Open paper trades</span><b id="openCount">0</b></div>
+<div class="stat"><span class="small">Closed paper P/L (USDT)</span><b id="pnl">0.00</b></div>
+</div>
+<div id="explain" class="small">Data status loading…</div>
+<h2 class="sectiontitle">Market signals</h2>
+<div id="markets" class="grid"><div class="card">Market list load ho rahi hai…</div></div>
+<h2 class="sectiontitle">Open paper trades</h2><div id="openTrades" class="card">Abhi koi open paper trade nahi.</div>
+<h2 class="sectiontitle">Paper trade history</h2><div id="history" class="card">Abhi history nahi hai.</div>
+<footer>Data source target: Mudrex Futures public feed. Candle intervals: 1m/5m/15m. Fee default 0.05% per side (editable). Price/fees/slippage actual fills se alag ho sakte hain. Local paper history is browser/device par save hoti hai.</footer>
 </main>
 <script>
 'use strict';
-const BASE='https://trade.mudrex.com/fapi/v1/price';
-const WS_URL='wss://trade.mudrex.com/fapi/v1/price/ws/linear';
-const SYMBOLS=['BTCUSDT','ETHUSDT'];
-const state={prices:{},ticks:{BTCUSDT:[],ETHUSDT:[]},candles:{BTCUSDT:[],ETHUSDT:[]},lastTick:{},lastKline:{},ws:null,paused:false,wsConnected:false,retry:0,open:[],closed:[],lastSignals:{},bootTime:Date.now()};
-try{const saved=JSON.parse(localStorage.getItem('mudrexSignalBoardPaperV2')||'{}');if(Array.isArray(saved.open))state.open=saved.open;if(Array.isArray(saved.closed))state.closed=saved.closed;if(saved.settings)for(const [k,v] of Object.entries(saved.settings)){const el=document.getElementById(k);if(el)el.value=v}}catch(e){console.warn('Paper history storage unavailable',e)}
+const API='https://trade.mudrex.com/fapi/v1/price';
+const WS='wss://trade.mudrex.com/fapi/v1/price/ws/linear';
 const $=id=>document.getElementById(id);
-const fmt=(n,d=2)=>Number.isFinite(n)?n.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
-const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
-function setStatus(msg,kind='warn'){const el=$('dataStatus');el.textContent=msg;el.className='status '+kind}
-function setText(id,v){$(id).textContent=v}
-function parseNum(v){if(typeof v==='number')return v;if(typeof v==='string')return Number(v);return NaN}
-function pick(o,keys){for(const k of keys){if(o&&o[k]!==undefined&&o[k]!==null)return o[k]}return undefined}
-function parseEnvelope(raw){let x=raw;for(let i=0;i<3;i++){if(typeof x==='string'){try{x=JSON.parse(x)}catch{return null}}else break}return x}
-function symbolFrom(o){let s=pick(o,['symbol','asset','s','instrument','pair']);if(s&&typeof s==='object')s=pick(s,['symbol','name','asset']);if(!s)return null;s=String(s).toUpperCase().replace('/','').replace('-','');return SYMBOLS.includes(s)?s:null}
-function parseCandle(o,symbol){if(Array.isArray(o)&&o.length>=5){const t=Number(o[0]);return {t:t<1e12?t*1000:t,o:+o[1],h:+o[2],l:+o[3],c:+o[4],v:+(o[5]||0)}}if(!o||typeof o!=='object')return null;const t=parseNum(pick(o,['open_time','openTime','timestamp','time','t','startTime','start_time']));const candle={t:t<1e12?t*1000:t,o:parseNum(pick(o,['open','o'])),h:parseNum(pick(o,['high','h'])),l:parseNum(pick(o,['low','l'])),c:parseNum(pick(o,['close','c','price','lastPrice'])),v:parseNum(pick(o,['volume','v','base_volume']))||0};return Number.isFinite(candle.t)&&Number.isFinite(candle.o)&&Number.isFinite(candle.h)&&Number.isFinite(candle.l)&&Number.isFinite(candle.c)?candle:null}
-function storeCandle(sym,c){if(!c||!Number.isFinite(c.c)||c.c<=0)return;let a=state.candles[sym];let i=a.findIndex(x=>x.t===c.t);if(i>=0)a[i]=c;else a.push(c);a.sort((x,y)=>x.t-y.t);if(a.length>600)a.splice(0,a.length-600);state.lastKline[sym]=Date.now();state.prices[sym]=c.c;renderAll()}
-function handleMessage(raw){
- const msg=parseEnvelope(raw);if(!msg)return;
- // Mudrex documented push envelope: {stream:"kline@1m@btcusdt",data:{s,t,o,h,l,c,v}}
- if(msg.stream && msg.data){
-  const stream=String(msg.stream).toLowerCase(), payload=msg.data;
-  if(stream.includes('kline')){const sym=symbolFrom(payload)||symbolFrom({s:stream.split('@').pop()});const c=parseCandle(payload,sym);if(sym&&c)storeCandle(sym,c);return;}
-  if(stream.includes('ticker')){const arr=Array.isArray(payload)?payload:[payload];for(const o of arr){const sym=symbolFrom(o);const price=parseNum(pick(o,['p','price','lastPrice','last_price']));if(sym&&price>0){state.prices[sym]=price;state.lastTick[sym]=Date.now();}}renderAll();return;}
+let symbols=[], prices={}, candles={}, paused=false, ws=null, wsReady=false, lastUpdate=0;
+let feeRate=0.0005, stopPct=0.0035, targetPct=0.007, positionSize=100;
+let paper=JSON.parse(localStorage.getItem('mudrexBoardPaperV3')||'{"open":[],"history":[]}');
+function save(){localStorage.setItem('mudrexBoardPaperV3',JSON.stringify(paper));}
+function num(v){const n=Number(v);return Number.isFinite(n)?n:null}
+function fmt(n){if(n==null||!Number.isFinite(n))return '—';return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:8})}
+function symNorm(v){if(typeof v!=='string')return null;let s=v.toUpperCase().replace(/[^A-Z0-9]/g,'');if(s.endsWith('USDT')&&s.length>4)return s;if(v.includes('/')){s=v.toUpperCase().replace('/','');if(s.endsWith('USDT'))return s}return null}
+function extractSymbols(obj){
+ const out=new Set();
+ function walk(x,depth=0){if(depth>7||x==null)return;if(Array.isArray(x)){for(const y of x)walk(y,depth+1);return}
+ if(typeof x==='object'){for(const [k,v] of Object.entries(x)){if(typeof v==='string'&&/symbol|asset|instrument|pair|ticker/i.test(k)){const s=symNorm(v);if(s)out.add(s)}walk(v,depth+1)}return}
+ if(typeof x==='string'){const s=symNorm(x);if(s)out.add(s)}}
+ walk(obj);return [...out];
+}
+async function fetchJSON(url,ms=9000){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);try{const r=await fetch(url,{signal:c.signal,cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);return await r.json()}finally{clearTimeout(t)}}
+async function discover(){
+ $('status').textContent='Mudrex public market list dhoondh rahe hain…';
+ const candidates=[
+  API,
+  API+'/ticker',
+  API+'/ticker/price',
+  'https://trade.mudrex.com/fapi/v1/futures'
+ ];
+ let found=[];
+ for(const url of candidates){
+  try{const data=await fetchJSON(url);const got=extractSymbols(data);if(got.length>found.length)found=got;if(found.length>2)break}catch(e){}
  }
- if(msg.id!==undefined && (msg.result!==undefined || msg.error)){if(msg.error){state.errors=state.errors||{};state.errors.WS=msg.error.msg||JSON.stringify(msg.error);setStatus('Mudrex subscription error: '+state.errors.WS,'bad')}return;}
- const items=Array.isArray(msg)?msg:(Array.isArray(msg.data)?msg.data:[msg.data||msg]);
- for(const o of items){if(!o||typeof o!=='object')continue;const sym=symbolFrom(o);const c=parseCandle(o,sym);if(sym&&c&&(o.o!==undefined||o.open!==undefined)){storeCandle(sym,c);continue;}const price=parseNum(pick(o,['p','price','lastPrice','last_price','markPrice','mark_price']));if(sym&&price>0){state.prices[sym]=price;state.lastTick[sym]=Date.now();renderAll();}}
+ // Public REST price endpoint's exact market-list schema is not guaranteed.
+ if(found.length){symbols=[...new Set(found)].sort();$('status').textContent='Market list response mili: '+symbols.length+' symbols. Live price/candle availability alag ho sakti hai.';return true}
+ symbols=['BTCUSDT','ETHUSDT'];
+ $('status').textContent='Public all-market list browser se nahi mili. Sirf BTCUSDT/ETHUSDT fallback dikh rahe hain; all Mudrex coins ka daawa nahi kiya ja raha.';
+ $('explain').textContent='Official Mudrex docs public market-data ke liye kline REST aur WebSocket batate hain; complete asset list endpoint authenticated API section mein hai. No-API-key condition mein all symbols discover karna is browser page se verify nahi ho saka.';
+ return false;
 }
-function connectWS(){if(state.paused)return;try{if(state.ws){state.ws.onclose=null;state.ws.close()}const ws=new WebSocket(WS_URL);state.ws=ws;
- ws.onopen=()=>{state.wsConnected=true;state.retry=0;setStatus('WebSocket connected · subscribing to Mudrex ticker and 1m candles','warn');
-  ws.send(JSON.stringify({id:1,method:'SUBSCRIBE',params:['ticker@1s'],assets:['btcusdt','ethusdt']}));
-  ws.send(JSON.stringify({id:2,method:'SUBSCRIBE',params:['kline@1m@btcusdt','kline@1m@ethusdt']}));
- };
- ws.onmessage=e=>handleMessage(e.data);
- ws.onerror=()=>{state.wsConnected=false;setStatus('WebSocket error — REST candle fallback try hoga','bad')};
- ws.onclose=()=>{state.wsConnected=false;if(!state.paused){setStatus('Feed reconnect ho raha hai…','warn');const wait=Math.min(30000,1500*Math.pow(2,state.retry++));setTimeout(connectWS,wait)}};
- }catch(e){setStatus('WebSocket start nahi hua: '+e.message,'bad')}
+function openWS(){
+ try{if(ws)ws.close();ws=new WebSocket(WS);
+ ws.onopen=()=>{wsReady=true;$('status').textContent='Mudrex WebSocket connected; market updates subscribe kar rahe hain.';subscribeSymbols()};
+ ws.onmessage=e=>{try{const m=JSON.parse(e.data);handleWS(m)}catch(err){}};
+ ws.onerror=()=>{wsReady=false};
+ ws.onclose=()=>{wsReady=false;if(!paused)setTimeout(()=>{if(!paused)openWS()},5000)};
+ }catch(e){wsReady=false}
 }
-async function fetchCandles(sym){
- const asset=sym.slice(0,-4).toLowerCase()+'/usdt';
- const end=Math.floor(Date.now()/1000), start=end-1440*60;
- const url=BASE+'/kline?assets='+encodeURIComponent(asset)+'&aggregation=1m&start_time='+start+'&end_time='+end;
+function subscribeSymbols(){
+ if(!ws||ws.readyState!==1)return;
+ // Mudrex documented stream names use ticker@1s and kline@interval@symbol.
+ const params=[];
+ for(const s of symbols){const lower=s.toLowerCase();params.push('ticker@1s@'+lower,'kline@1m@'+lower)}
+ try{ws.send(JSON.stringify({method:'SUBSCRIBE',params,id:Date.now()}))}catch(e){}
+}
+function handleWS(m){
+ const d=m.data??m.result??m;
+ const stream=String(m.stream??m.topic??m.channel??'').toLowerCase();
+ const candidates=[d,m];
+ for(const x of candidates){
+  if(!x||typeof x!=='object')continue;
+  const raw=x.symbol??x.s??x.asset??x.pair??x.instrument??stream.split('@').pop();
+  const s=symNorm(raw);if(!s||!symbols.includes(s))continue;
+  const p=num(x.price??x.lastPrice??x.last_price??x.c??x.close??x.p);
+  if(p&&p>0){prices[s]={price:p,time:Date.now()};lastUpdate=Date.now()}
+  if(Array.isArray(x.kline))storeCandle(s,x.kline);
+  else if(x.k||x.open!==undefined||x.o!==undefined)storeCandle(s,x.k??x);
+ }
+ render();
+}
+function storeCandle(s,k){
+ if(Array.isArray(k)){if(k.length<5)return;const c={time:num(k[0])||Date.now(),open:num(k[1]),high:num(k[2]),low:num(k[3]),close:num(k[4]),volume:num(k[5])||0};addCandle(s,c);return}
+ const c={time:num(k.t??k.time??k.open_time)||Date.now(),open:num(k.o??k.open),high:num(k.h??k.high),low:num(k.l??k.low),close:num(k.c??k.close),volume:num(k.v??k.volume)||0};if(c.close)addCandle(s,c);
+}
+function addCandle(s,c){candles[s]??=[];const a=candles[s];if(a.length&&a[a.length-1].time===c.time)a[a.length-1]=c;else a.push(c);if(a.length>500)a.splice(0,a.length-500);if(c.close&&!prices[s])prices[s]={price:c.close,time:Date.now()}}
+async function getKlines(s,interval,limit=100){
+ const asset=s.replace(/USDT$/,'/USDT');
+ const end=Math.floor(Date.now()/1000),start=end-limit*60*(interval==='1m'?1:interval==='5m'?5:15);
+ const url=API+'/kline?assets='+encodeURIComponent(asset)+'&aggregation='+encodeURIComponent(interval)+'&start_time='+start+'&end_time='+end;
+ const j=await fetchJSON(url,10000);let data=j.data??j;
+ let arr=Array.isArray(data)?data:(data.asset_ticks??data.klines??data.candles??data[asset]??[]);
+ if(!Array.isArray(arr)&&typeof arr==='object')arr=arr[asset]??arr[s]??[];
+ if(!Array.isArray(arr))return [];
+ return arr.map(k=>{if(Array.isArray(k))return {time:num(k[0])||0,open:num(k[1]),high:num(k[2]),low:num(k[3]),close:num(k[4]),volume:num(k[5])||0};return {time:num(k.open_time??k.openTime??k.time??k.t)||0,open:num(k.open??k.o),high:num(k.high??k.h),low:num(k.low??k.l),close:num(k.close??k.c),volume:num(k.volume??k.v)||0}}).filter(k=>k.close&&k.open);
+}
+async function refreshOne(s){
  try{
-  const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);
-  const json=await r.json();if(json.success===false)throw Error((json.errors||[]).map(x=>x.text||x.code).join(', ')||'Mudrex API returned success=false');
-  const ticks=json?.data?.asset_ticks;
-  if(!ticks||typeof ticks!=='object')throw Error('Mudrex response missing data.asset_ticks');
-  const rows=ticks[asset]||ticks[asset.toUpperCase()]||ticks[asset.replace('/','')]||[];
-  if(!Array.isArray(rows)||!rows.length)throw Error('No candles returned for '+asset);
-  const cs=rows.map(x=>parseCandle(x,sym)).filter(Boolean);
-  if(!cs.length)throw Error('Mudrex candle array could not be parsed');
-  state.candles[sym]=cs.slice(-600);state.lastKline[sym]=Date.now();
-  const last=state.candles[sym].at(-1);if(last&&!state.prices[sym])state.prices[sym]=last.c;
-  renderAll();return true;
- }catch(e){const msg=e.message||String(e);state.errors=state.errors||{};state.errors[sym]=msg;console.warn('Mudrex REST kline failed',url,e);return false}
+  // Pull 1m candles directly from Mudrex; derive 5m/15m closed bars locally.
+  const arr=await getKlines(s,'1m',160);
+  if(arr.length){candles[s]=arr;const last=arr[arr.length-1];if(!prices[s]||Date.now()-prices[s].time>15000)prices[s]={price:last.close,time:Date.now(),source:'candle fallback'}}
+ }catch(e){}
 }
-async function refresh(){if(state.paused)return;setText('lastUpdate','Refresh check: '+new Date().toLocaleTimeString());const results=await Promise.all(SYMBOLS.map(fetchCandles));if(results.every(Boolean))setStatus('Mudrex Futures REST candles received · indicator history available','good');else if(Object.values(state.prices).some(x=>x>0))setStatus('Ticker price aa rahi hai, lekin Mudrex candles fail hain. '+((state.errors&&state.errors.BTCUSDT)||'endpoint/format/CORS issue')+'. Signals WAIT rahenge.','warn');else setStatus('Mudrex feed se candle data nahi mila. '+((state.errors&&state.errors.BTCUSDT)||'API/CORS/response format issue')+'; prices invent nahi kiye jayenge.','bad');renderAll()}
-function ema(arr,period){if(arr.length<period)return NaN;const k=2/(period+1);let v=arr.slice(0,period).reduce((a,b)=>a+b,0)/period;for(let i=period;i<arr.length;i++)v=arr[i]*k+v*(1-k);return v}
-function rsi(arr,p=14){if(arr.length<p+1)return NaN;let gain=0,loss=0;for(let i=arr.length-p;i<arr.length;i++){const d=arr[i]-arr[i-1];if(d>=0)gain+=d;else loss-=d}if(loss===0)return 100;return 100-100/(1+(gain/p)/(loss/p))}
-function aggregate(candles,minutes){const out=[];for(const c of candles){const t=Math.floor(c.t/(minutes*60000))*minutes*60000;let x=out[out.length-1];if(!x||x.t!==t){out.push({t,o:c.o,h:c.h,l:c.l,c:c.c,v:c.v||0})}else{x.h=Math.max(x.h,c.h);x.l=Math.min(x.l,c.l);x.c=c.c;x.v+=c.v||0}}return out}
-function trend(candles){if(candles.length<25)return {dir:'—',score:0,ready:false};const closes=candles.map(c=>c.c),last=closes.at(-1),e9=ema(closes,9),e21=ema(closes,21),prev=closes.at(-2);let s=0;if(e9>e21)s++;else if(e9<e21)s--;if(last>e9)s++;else if(last<e9)s--;if(last>prev)s+=0.5;else if(last<prev)s-=0.5;return {dir:s>0?'Bullish':s<0?'Bearish':'Flat',score:s,ready:true,e9,e21,last}}
-function calcSignal(sym){const candles=state.candles[sym]||[];const one=aggregate(candles,1),five=aggregate(candles,5),fifteen=aggregate(candles,15),hour=aggregate(candles,60);const t1=trend(one),t5=trend(five),t15=trend(fifteen),t60=trend(hour);const closes=one.map(c=>c.c),price=state.prices[sym]||closes.at(-1)||NaN,rv=rsi(closes),threshold=+$('threshold').value;
- let score=(t1.ready?t1.score:0)+(t5.ready?t5.score*1.2:0)+(t15.ready?t15.score*0.8:0);if(Number.isFinite(rv)){if(rv>=52&&rv<=70)score+=0.75;else if(rv<=48&&rv>=30)score-=0.75;else if(rv>75)score-=0.5;else if(rv<25)score+=0.5}
- const fresh=Number.isFinite(price)&&price>0&&state.lastTick[sym]&&Date.now()-state.lastTick[sym]<15000;
- const enough=one.length>=25&&five.length>=25&&fifteen.length>=25&&t1.ready&&t5.ready&&t15.ready&&Number.isFinite(rv);
- let side='WAIT',reason='Candles/RSI ka sufficient history abhi nahi hai.';
- if(!fresh)reason='Fresh Mudrex ticker confirm nahi hua; safe mode mein WAIT.';
- else if(!enough)reason='1m/5m/15m ke liye sufficient Mudrex candles nahi hain. Signal ko force nahi kiya.';
- else if(score>=threshold&&t1.score>0&&t5.score>0&&t15.score>=0&&rv>=50&&rv<=75){side='LONG';reason='1m momentum + 5m trend support; 15m trend opposite nahi, RSI confirmation.'}
- else if(score<=-threshold&&t1.score<0&&t5.score<0&&t15.score<=0&&rv>=25&&rv<=50){side='SHORT';reason='1m momentum + 5m trend support; 15m trend opposite nahi, RSI confirmation.'}
- else reason='Trend/timeframe/RSI alignment complete nahi; WAIT. Score alone entry signal nahi hai.';
- const slp=clamp(+ $('slRate').value,0.1,5)/100,tpp=clamp(+$('tpRate').value,0.1,10)/100,fee=clamp(+$('feeRate').value,0,1)/100,notional=clamp(+$('notional').value,5,100000);
- const entry=Number.isFinite(price)?price:NaN,sl=side==='LONG'?entry*(1-slp):side==='SHORT'?entry*(1+slp):NaN,tp=side==='LONG'?entry*(1+tpp):side==='SHORT'?entry*(1-tpp):NaN;
- const gross=notional*tpp,fees=notional*fee*2,net=gross-fees;
- const mom=closes.length>=6?(closes.at(-1)/closes.at(-6)-1)*100:NaN;const vols=one.slice(-21,-1).map(c=>c.v||0),avgVol=vols.length?vols.reduce((a,b)=>a+b,0)/vols.length:0,lastVol=one.at(-1)?.v||0;const volRatio=avgVol>0?lastVol/avgVol:NaN;return {sym,price,side,reason,score,rv,t1,t5,t15,t60,mom,volRatio,entry,sl,tp,net,feeCost:fees,notional,ready:enough&&fresh};
+async function refresh(){
+ if(paused)return;
+ $('status').textContent='Mudrex market refresh…';
+ await Promise.all(symbols.map(s=>refreshOne(s)));
+ $('status').textContent=(wsReady?'WebSocket connected':'WebSocket unavailable')+' · Last refresh '+new Date().toLocaleTimeString();
+ render();
 }
-function renderSignal(x){const s=x.sym;setText('price-'+s,Number.isFinite(x.price)?fmt(x.price, x.price>100?2:4)+' USDT':'— USDT');const sig=$('signal-'+s);sig.textContent=x.side;sig.className='signal '+x.side;setText('quality-'+s,x.ready?'LIVE · READY':'DATA CHECK');setText('entry-'+s,Number.isFinite(x.entry)?fmt(x.entry,x.entry>100?2:4):'—');setText('sl-'+s,Number.isFinite(x.sl)?fmt(x.sl,x.sl>100?2:4):'—');setText('tp-'+s,Number.isFinite(x.tp)?fmt(x.tp,x.tp>100?2:4):'—');setText('net-'+s,Number.isFinite(x.entry)?fmt(x.net)+' USDT':'—');setText('trend-'+s,`${x.t1.dir} / ${x.t5.dir} / ${x.t15.dir}`);setText('trend1h-'+s,x.t60.dir);setText('momentum-'+s,Number.isFinite(x.mom)?(x.mom>=0?'+':'')+fmt(x.mom,3)+'%':'—');setText('volume-'+s,Number.isFinite(x.volRatio)?fmt(x.volRatio,2)+'× average':'Unavailable');setText('rsi-'+s,Number.isFinite(x.rv)?fmt(x.rv):'—');setText('score-'+s,Number.isFinite(x.score)?fmt(x.score,1):'—');setText('fee-'+s,Number.isFinite(x.entry)?fmt(x.feeCost)+' USDT':'—');setText('reason-'+s,x.reason)}
-function renderAll(){for(const s of SYMBOLS){const x=calcSignal(s);state.lastSignals[s]=x;renderSignal(x)}$('lastUpdate').textContent='Last UI update: '+new Date().toLocaleTimeString()+' · Prices are not guaranteed exchange fill prices.';renderTrades()}
-function paperOpen(sym){openPaper(sym,'LONG')}
-function paperShort(sym){openPaper(sym,'SHORT')}
-function openPaper(sym,side){const price=state.prices[sym];if(!Number.isFinite(price)||price<=0){alert('Abhi verified live price nahi hai; paper trade open nahi kiya.');return}if(!state.lastTick[sym]||Date.now()-state.lastTick[sym]>15000){alert('Mudrex ticker stale hai. Fresh data aane par try karein.');return}const fee=clamp(+$('feeRate').value,0,1)/100,slp=clamp(+$('slRate').value,.1,5)/100,tpp=clamp(+$('tpRate').value,.1,10)/100;const tr={id:Date.now()+'-'+Math.random().toString(16).slice(2,7),sym,side,entry:price,sl:side==='LONG'?price*(1-slp):price*(1+slp),tp:side==='LONG'?price*(1+tpp):price*(1-tpp),notional:clamp(+$('notional').value,5,100000),feeRate:fee,opened:Date.now()};state.open.unshift(tr);renderTrades()}
-function closePaper(id,reason='Manual close'){const i=state.open.findIndex(t=>t.id===id);if(i<0)return;const tr=state.open.splice(i,1)[0],exit=state.prices[tr.sym];if(!Number.isFinite(exit)||exit<=0){state.open.push(tr);alert('Fresh exit price nahi hai; trade close nahi kiya.');return}const sign=tr.side==='LONG'?1:-1,gross=sign*(exit-tr.entry)/tr.entry*tr.notional,fees=(tr.entry+exit)/tr.entry*tr.notional*tr.feeRate,net=gross-fees;state.closed.unshift({...tr,exit,reason,net,closed:Date.now()});renderTrades()}
-function renderTrades(){try{localStorage.setItem('mudrexSignalBoardPaperV2',JSON.stringify({open:state.open,closed:state.closed,settings:Object.fromEntries(['feeRate','slRate','tpRate','notional','threshold','timeExit'].map(k=>[k,$(k).value]))}))}catch(e){}const open=$('openTrades');open.innerHTML='';$('openEmpty').style.display=state.open.length?'none':'block';$('openCount').textContent=state.open.length;
- for(const t of state.open){const p=state.prices[t.sym],age=Date.now()-t.opened,sign=t.side==='LONG'?1:-1,gross=Number.isFinite(p)?sign*(p-t.entry)/t.entry*t.notional:0,fees=Number.isFinite(p)?(t.entry+p)/t.entry*t.notional*t.feeRate:0,net=gross-fees;const tr=document.createElement('tr');tr.innerHTML=`<td>${t.sym}</td><td class="${t.side==='LONG'?'positive':'negative'}">${t.side}</td><td>${fmt(t.entry,t.entry>100?2:4)}</td><td>${fmt(t.sl,t.sl>100?2:4)}</td><td>${fmt(t.tp,t.tp>100?2:4)}</td><td class="${net>=0?'positive':'negative'}">${fmt(net)} USDT</td><td>${Math.floor(age/60000)}m ${Math.floor(age/1000)%60}s</td><td><button class="btn smallbtn" onclick="closePaper('${t.id}','Manual close')">Close</button></td>`;open.appendChild(tr);
-  if(Number.isFinite(p)&&((t.side==='LONG'&&p<=t.sl)||(t.side==='SHORT'&&p>=t.sl)))closePaper(t.id,'Stop-loss');
-  else if(Number.isFinite(p)&&((t.side==='LONG'&&p>=t.tp)||(t.side==='SHORT'&&p<=t.tp)))closePaper(t.id,'Target');
-  else if(+$('timeExit').value>0&&age>=+$('timeExit').value*60000)closePaper(t.id,'Time exit');
- }
- const closed=$('closedTrades');closed.innerHTML='';$('closedEmpty').style.display=state.closed.length?'none':'block';let total=0,wins=0,loss=0;for(const t of state.closed){total+=t.net;if(t.net>=0)wins++;else loss++;const tr=document.createElement('tr');tr.innerHTML=`<td>${new Date(t.closed).toLocaleTimeString()}</td><td>${t.sym}</td><td>${t.side}</td><td>${fmt(t.entry,t.entry>100?2:4)} → ${fmt(t.exit,t.exit>100?2:4)}</td><td>${t.reason}</td><td class="${t.net>=0?'positive':'negative'}">${fmt(t.net)} USDT</td>`;closed.appendChild(tr)}
- $('closedCount').textContent=state.closed.length; $('totalPnl').textContent=fmt(total)+' USDT';$('totalPnl').className='val '+(total>=0?'positive':'negative');$('winRate').textContent=state.closed.length?fmt(wins/state.closed.length*100)+'%':'—';$('winsLosses').textContent=wins+' / '+loss}
-$('refreshBtn').addEventListener('click',()=>{refresh();if(!state.wsConnected)connectWS()});
-$('pauseBtn').addEventListener('click',()=>{state.paused=!state.paused;$('pauseBtn').textContent=state.paused?'Resume updates':'Pause updates';if(state.paused){if(state.ws){state.ws.onclose=null;state.ws.close()}setStatus('Updates paused','warn')}else{connectWS();refresh()}});
-$('resetBtn').addEventListener('click',()=>{if(confirm('Open aur closed paper history sab reset karni hai?')){state.open=[];state.closed=[];renderTrades()}});
-['feeRate','slRate','tpRate','notional','threshold','timeExit'].forEach(id=>$(id).addEventListener('change',renderAll));
-window.paperOpen=paperOpen;window.paperShort=paperShort;window.closePaper=closePaper;
-connectWS();refresh();setInterval(()=>{if(!state.paused){renderAll();if(!state.wsConnected)refresh()}},5000);setInterval(()=>{if(!state.paused&&state.wsConnected)refresh()},60000);
+function ema(values,period){if(values.length<period)return null;const k=2/(period+1);let v=values.slice(0,period).reduce((a,b)=>a+b,0)/period;for(let i=period;i<values.length;i++)v=values[i]*k+v*(1-k);return v}
+function rsi(vals,p=14){if(vals.length<=p)return null;let up=0,dn=0;for(let i=vals.length-p;i<vals.length;i++){const d=vals[i]-vals[i-1];if(d>0)up+=d;else dn-=d}if(dn===0)return 100;return 100-100/(1+up/dn)}
+function analyze(s){
+ const a=(candles[s]||[]).filter(x=>x.close&&x.open);if(a.length<30)return {signal:'WAIT',reason:'Candle history kam hai',price:prices[s]?.price??null};
+ const closes=a.map(x=>x.close),p=prices[s]?.price??closes.at(-1),e9=ema(closes.slice(0,-1),9),e21=ema(closes.slice(0,-1),21),r=rsi(closes.slice(0,-1)),last=closes.at(-2),prev=closes.at(-4);
+ if(!e9||!e21||r==null||!p)return {signal:'WAIT',reason:'Indicators ready nahi',price:p};
+ const trend=e9>e21?'Bullish':e9<e21?'Bearish':'Flat';
+ const mom=prev?(last-prev)/prev*100:0;
+ const score=(e9>e21?1:e9<e21?-1:0)+(mom>0.04?1:mom<-.04?-1:0)+(r>=52&&r<=70?1:r<=48&&r>=30?-1:0);
+ let signal='WAIT',reason='Mixed momentum / confirmation kam';
+ if(score>=2&&r>=50&&r<=72&&mom>0.015){signal='LONG';reason='Trend + momentum aligned'}
+ if(score<=-2&&r<=50&&r>=28&&mom<-.015){signal='SHORT';reason='Trend + momentum aligned'}
+ if(Date.now()-(prices[s]?.time||0)>20000){signal='WAIT';reason='Price stale; fresh data ka wait'}
+ const sl=signal==='LONG'?p*(1-stopPct):signal==='SHORT'?p*(1+stopPct):null;
+ const tp=signal==='LONG'?p*(1+targetPct):signal==='SHORT'?p*(1-targetPct):null;
+ const fee=positionSize*feeRate*2, gross=positionSize*targetPct,net=gross-fee;
+ return {signal,reason,price:p,trend,rsi:r,mom,score,sl,tp,fee,net,age:Date.now()-(prices[s]?.time||0)};
+}
+function openPaper(s,side){
+ const a=analyze(s),p=a.price;if(!p)return alert('Price available nahi hai; paper trade open nahi hua.');
+ if(paper.open.some(t=>t.symbol===s))return alert('Is coin ka ek paper trade already open hai.');
+ const dir=side==='LONG'?1:-1;
+ paper.open.push({id:Date.now()+Math.random(),symbol:s,side,entry:p,sl:p*(1-dir*stopPct),tp:p*(1+dir*targetPct),size:positionSize,feeRate,opened:Date.now()});save();render();
+}
+function closePaper(id,why='Manual close'){
+ const i=paper.open.findIndex(t=>t.id===id);if(i<0)return;const t=paper.open[i],exit=prices[t.symbol]?.price;if(!exit)return alert('Current price nahi hai.');
+ const direction=t.side==='LONG'?1:-1, gross=t.size*((exit-t.entry)/t.entry)*direction,fees=t.size*t.feeRate*2;
+ paper.history.unshift({...t,exit,closed:Date.now(),gross,fees,net:gross-fees,reason:why});paper.open.splice(i,1);save();render();
+}
+function checkPaper(){
+ for(const t of [...paper.open]){const p=prices[t.symbol]?.price;if(!p)continue;const hit=t.side==='LONG'?(p<=t.sl?'Stop loss':p>=t.tp?'Target hit':''):(p>=t.sl?'Stop loss':p<=t.tp?'Target hit':'');if(hit)closePaper(t.id,hit)}
+}
+function render(){
+ const q=$('search').value.trim().toUpperCase(),f=$('filter').value;
+ const list=symbols.filter(s=>s.includes(q)).map(s=>({s,a:analyze(s)})).filter(x=>f==='ALL'||x.a.signal===f);
+ $('marketCount').textContent=symbols.length;$('liveCount').textContent=Object.keys(prices).filter(s=>prices[s]?.price&&Date.now()-prices[s].time<20000).length;
+ $('openCount').textContent=paper.open.length;
+ $('pnl').textContent=fmt(paper.history.reduce((n,t)=>n+(t.net||0),0));
+ $('markets').innerHTML=list.length?list.map(({s,a})=>`<article class="card">
+ <div class="row"><b>${s.replace('USDT','')} <span class="small">/ USDT</span></b><span class="pill ${a.signal.toLowerCase()}">${a.signal}</span></div>
+ <div class="price">${fmt(a.price)} <span class="small">USDT</span></div>
+ <div class="row small"><span>${a.trend||'Trend: —'}</span><span>${a.age!=null?'Data age '+Math.max(0,Math.round(a.age/1000))+'s':'No fresh tick'}</span></div>
+ <div class="metrics"><div class="metric"><span>RSI (1m)</span><b>${a.rsi==null?'—':a.rsi.toFixed(1)}</b></div><div class="metric"><span>Momentum</span><b>${a.mom==null?'—':a.mom.toFixed(3)+'%'}</b></div><div class="metric"><span>Entry reference</span><b>${a.signal==='WAIT'?'—':fmt(a.price)}</b></div><div class="metric"><span>Stop-loss</span><b>${fmt(a.sl)}</b></div><div class="metric"><span>Target</span><b>${fmt(a.tp)}</b></div><div class="metric"><span>Est. round-trip fee</span><b>${fmt(a.fee)} USDT</b></div></div>
+ <div class="small">${a.reason}. Target gross estimate ${fmt(positionSize*targetPct)} USDT; estimated net after assumed fee ${fmt(a.net)} USDT on ${positionSize} USDT notional, before slippage/funding.</div>
+ <div class="actions"><button class="longbtn" onclick="openPaper('${s}','LONG')">Paper LONG</button><button class="shortbtn" onclick="openPaper('${s}','SHORT')">Paper SHORT</button></div>
+ </article>`).join(''):'<div class="card">Is filter/search ke liye market nahi mila.</div>';
+ $('openTrades').innerHTML=paper.open.length?`<div class="tablewrap"><table><thead><tr><th>Coin</th><th>Side</th><th>Entry</th><th>Live</th><th>SL</th><th>TP</th><th>Action</th></tr></thead><tbody>${paper.open.map(t=>`<tr><td>${t.symbol}</td><td>${t.side}</td><td>${fmt(t.entry)}</td><td>${fmt(prices[t.symbol]?.price)}</td><td>${fmt(t.sl)}</td><td>${fmt(t.tp)}</td><td><button onclick="closePaper(${t.id})">Close</button></td></tr>`).join('')}</tbody></table></div>`:'Abhi koi open paper trade nahi.';
+ $('history').innerHTML=paper.history.length?`<div class="tablewrap"><table><thead><tr><th>Coin</th><th>Side</th><th>Entry</th><th>Exit</th><th>Fees</th><th>Net P/L</th><th>Reason</th></tr></thead><tbody>${paper.history.slice(0,100).map(t=>`<tr><td>${t.symbol}</td><td>${t.side}</td><td>${fmt(t.entry)}</td><td>${fmt(t.exit)}</td><td>${fmt(t.fees)}</td><td style="color:${t.net>=0?'var(--green)':'var(--red)'}">${fmt(t.net)}</td><td>${t.reason||''}</td></tr>`).join('')}</tbody></table></div><button id="clearHistory" style="margin-top:10px">Clear paper history</button>`:'Abhi history nahi hai.';
+ const clear=$('clearHistory');if(clear)clear.onclick=()=>{if(confirm('Closed paper history delete karein?')){paper.history=[];save();render()}};
+ checkPaper();
+}
+$('search').addEventListener('input',render);$('filter').addEventListener('change',render);
+$('refresh').onclick=async()=>{await discover();if(wsReady)subscribeSymbols();await refresh()};
+$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'Resume updates':'Pause updates';if(!paused)refresh()};
+window.openPaper=openPaper;window.closePaper=closePaper;
+(async()=>{await discover();openWS();await refresh();setInterval(()=>{if(!paused)refresh()},30000);setInterval(()=>{if(!paused)render()},5000)})();
 </script>
 </body>
 </html>
