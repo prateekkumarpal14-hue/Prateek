@@ -41,8 +41,8 @@
 const API='https://trade.mudrex.com/fapi/v1/price';
 const WS='wss://trade.mudrex.com/fapi/v1/price/ws/linear';
 const $=id=>document.getElementById(id);
-let symbols=[], prices={}, candles={}, paused=false, ws=null, wsReady=false, lastUpdate=0;
-let feeRate=0.0005, stopPct=0.0035, targetPct=0.007, positionSize=100;
+let symbols=[], prices={}, candles={}, paused=false, ws=null, wsReady=false, lastUpdate=0, lastCandleRefresh=0;
+let feeRate=0.0005, stopPct=0.0035, targetPct=0.007, positionSize=100, candleErrors=[];
 let paper=JSON.parse(localStorage.getItem('mudrexBoardPaperV3')||'{"open":[],"history":[]}');
 function save(){localStorage.setItem('mudrexBoardPaperV3',JSON.stringify(paper));}
 function num(v){const n=Number(v);return Number.isFinite(n)?n:null}
@@ -56,13 +56,16 @@ function extractSymbols(obj){
  walk(obj);return [...out];
 }
 async function fetchJSON(url,ms=9000){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);try{const r=await fetch(url,{signal:c.signal,cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);return await r.json()}finally{clearTimeout(t)}}
+// Broad no-key candidate list. The board only counts a pair as discovered after
+// Mudrex's own ticker stream actually returns data for it.
+const CANDIDATES = (`BTC ETH BNB SOL XRP DOGE ADA AVAX TRX LINK DOT MATIC POL LTC BCH UNI ATOM ETC FIL NEAR APT ARB OP SUI SEI TIA INJ RUNE FTM SAND MANA AXS GALA IMX APE SHIB PEPE FLOKI BONK WIF ORDI SATS JUP PYTH WLD TAO FET RENDER RNDR AAVE MKR CRV COMP SNX DYDX GMX LDO PENDLE ENA ONDO JTO JUP STRK ZK ZRO BLUR ENS CHZ ENJ FLOW ICP HBAR VET ALGO XLM XMR ZEC DASH EOS IOTA NEO QTUM KAVA MINA ROSE KSM ZIL ONE CELO CFX GMT MASK YFI SUSHI 1INCH BAT ZRX ANKR LPT OCEAN AGIX ARKM MEME TURBO BOME NOT TON PEOPLE WAXP XTZ THETA KNC IOST IOTX RVN DGB WOO COTI API3 BAND STORJ SKL CELR CTSI LRC ICX ONT WAVES ZEN HIVE HFT HIGH MAGIC ASTR AXL BLAST MANTA METIS ZETA ALT AEVO DYM STRAX SUPER ILV YGG PIXEL PORTAL XAI VANRY ZENT ZKJ BB LISTA IO BANANA BIGTIME CYBER EDU ID ARPA ACH C98 HOOK OSMO PAXG TWT HYPE PUMP ASTER XPL WLFI TRUMP MELANIA FARTCOIN VIRTUAL AI16Z COOKIE GRASS MORPHO SYRUP KAITO MOVE OM RSR CKB PENGU SPX MOG BRETT TOSHI MEW PONKE CATI HMSTR EIGEN ETHFI SAFE ZORA LINEA MON NIGHT PIPPIN XAUT S JELLY USDC USDE FDUSD DAI USDD USDP TUSD PYUSD BUSD`.split(/\s+/).filter(Boolean).map(x=>x+'USDT'));
 async function discover(){
- // Mudrex documents GET /futures as authenticated asset discovery. Keep this
- // no-key build honest rather than pretending the protected endpoint is public.
- symbols=['BTCUSDT','ETHUSDT'];
- $('status').textContent='No-key mode: public ticker/candle connection test; asset list is not publicly discoverable here.';
- $('explain').textContent='Mudrex documentation lists GET /futures under authenticated Asset Discovery. Public no-key market data supports klines and ticker streams, but does not document an unauthenticated all-symbol list. This build therefore cannot honestly claim to show every Futures coin without a verified public symbol list.';
- return false;
+ // Without a key there is no documented all-contract listing endpoint. Subscribe
+ // to a broad candidate set and let Mudrex ticker snapshots confirm live markets.
+ symbols=[...new Set(['BTCUSDT','ETHUSDT',...CANDIDATES])];
+ $('status').textContent='Mudrex public ticker se candidate pairs verify ho rahe hain…';
+ $('explain').textContent='Candidate symbols ki broad list subscribe ki ja rahi hai. Sirf Mudrex ticker se actual price milne wale pairs ko discovered/live maana jayega; missing pairs ko valid market assume nahi kiya jayega.';
+ return true;
 }
 function openWS(){
  try{if(ws)ws.close();ws=new WebSocket(WS);
@@ -74,21 +77,17 @@ function openWS(){
 }
 function subscribeSymbols(){
  if(!ws||ws.readyState!==1)return;
- // Mudrex protocol: ticker stream name has NO symbol suffix; symbols go in assets.
- const assets=symbols.map(s=>s.toLowerCase());
- try{
-  ws.send(JSON.stringify({method:'SUBSCRIBE',params:['ticker@1s'],assets,id:Date.now()}));
-  // Kline streams are separate named subscriptions; subscribe only known symbols.
-  for(const s of symbols)ws.send(JSON.stringify({method:'SUBSCRIBE',params:['kline@1m@'+s.toLowerCase()],id:Date.now()}));
- }catch(e){$('status').textContent='WebSocket subscription send failed: '+e.message}
-} 
+ // Mudrex documents ticker@1s as one subscription with an unlimited asset list.
+ try{ws.send(JSON.stringify({method:'SUBSCRIBE',params:['ticker@1s'],assets:symbols.map(s=>s.toLowerCase()),id:Date.now()}));}
+ catch(e){$('status').textContent='WebSocket subscription send failed: '+e.message}
+}
 function handleWS(m){
  const d=m.data??m.result??m;
  const stream=String(m.stream??m.topic??m.channel??'').toLowerCase();
  const items=Array.isArray(d)?d:[d];
  for(const x of items){
   if(!x||typeof x!=='object')continue;
-  const raw=x.symbol??x.s??x.asset??x.pair??x.instrument??stream.split('@').pop();
+  const raw=x.symbol??x.s??x.asset??x.pair??x.instrument??(stream.startsWith('kline@')?stream.split('@').pop():null);
   const s=symNorm(raw);if(!s||!symbols.includes(s))continue;
   const p=num(x.price??x.lastPrice??x.last_price??x.c??x.close??x.p);
   if(p&&p>0){prices[s]={price:p,time:Date.now(),source:stream.includes('ticker')?'Mudrex ticker':'Mudrex kline'};lastUpdate=Date.now()}
@@ -102,28 +101,51 @@ function storeCandle(s,k){
  const c={time:num(k.t??k.time??k.open_time)||Date.now(),open:num(k.o??k.open),high:num(k.h??k.high),low:num(k.l??k.low),close:num(k.c??k.close),volume:num(k.v??k.volume)||0};if(c.close)addCandle(s,c);
 }
 function addCandle(s,c){candles[s]??=[];const a=candles[s];if(a.length&&a[a.length-1].time===c.time)a[a.length-1]=c;else a.push(c);if(a.length>500)a.splice(0,a.length-500);if(c.close&&!prices[s])prices[s]={price:c.close,time:Date.now()}}
-async function getKlines(s,interval,limit=100){
- const asset=s.replace(/USDT$/,'/USDT');
- const end=Math.floor(Date.now()/1000),start=end-limit*60*(interval==='1m'?1:interval==='5m'?5:15);
- const url=API+'/kline?assets='+encodeURIComponent(asset)+'&aggregation='+encodeURIComponent(interval)+'&start_time='+start+'&end_time='+end;
- const j=await fetchJSON(url,10000);let data=j.data??j;
- let arr=Array.isArray(data)?data:(data.asset_ticks??data.klines??data.candles??data[asset]??[]);
- if(!Array.isArray(arr)&&typeof arr==='object')arr=arr[asset]??arr[s]??[];
+function parseKlineArray(arr){
  if(!Array.isArray(arr))return [];
- return arr.map(k=>{if(Array.isArray(k))return {time:num(k[0])||0,open:num(k[1]),high:num(k[2]),low:num(k[3]),close:num(k[4]),volume:num(k[5])||0};return {time:num(k.open_time??k.openTime??k.time??k.t)||0,open:num(k.open??k.o),high:num(k.high??k.h),low:num(k.low??k.l),close:num(k.close??k.c),volume:num(k.volume??k.v)||0}}).filter(k=>k.close&&k.open);
+ return arr.map(k=>{if(Array.isArray(k))return {time:num(k[0])||0,open:num(k[1]),high:num(k[2]),low:num(k[3]),close:num(k[4]),volume:num(k[5])||0};return {time:num(k.open_time??k.openTime??k.time??k.t)||0,open:num(k.open??k.o),high:num(k.high??k.h),low:num(k.low??k.l),close:num(k.close??k.c),volume:num(k.volume??k.v)||0}}).filter(k=>k.close&&k.open).sort((a,b)=>a.time-b.time);
 }
-async function refreshOne(s){
- try{
-  // Pull 1m candles directly from Mudrex; derive 5m/15m closed bars locally.
-  const arr=await getKlines(s,'1m',160);
-  if(arr.length){candles[s]=arr;const last=arr[arr.length-1];if(!prices[s]||Date.now()-prices[s].time>15000)prices[s]={price:last.close,time:Date.now(),source:'candle fallback'}}
- }catch(e){}
+function findAssetCandles(obj,asset,symbol){
+ const keys=[asset,asset.toLowerCase(),symbol,symbol.toLowerCase(),asset.replace('/',''),symbol.toLowerCase()];
+ for(const key of keys){if(obj&&typeof obj==='object'&&obj[key]!=null){const v=obj[key];if(Array.isArray(v))return parseKlineArray(v);if(typeof v==='object'){for(const z of ['data','klines','candles','ticks','items'])if(Array.isArray(v[z]))return parseKlineArray(v[z]);}}}
+ if(Array.isArray(obj)){
+  // Some responses wrap each asset as {asset|symbol, data|klines}.
+  for(const item of obj){if(!item||typeof item!=='object')continue;const id=String(item.asset??item.symbol??item.s??'').toLowerCase();if(id===asset.toLowerCase()||id===symbol.toLowerCase()){for(const z of ['data','klines','candles','ticks','items'])if(Array.isArray(item[z]))return parseKlineArray(item[z]);}}
+ }
+ return [];
 }
+async function refreshCandlesBulk(){
+ const end=Math.floor(Date.now()/1000),start=end-125*60;
+ const active=symbols.filter(s=>prices[s]?.price&&Date.now()-prices[s].time<120000);
+ const list=[...new Set(['BTCUSDT','ETHUSDT',...active])];
+ candleErrors=[];
+ for(let i=0;i<list.length;i+=25){
+  const batch=list.slice(i,i+25),assets=batch.map(s=>s.toLowerCase().replace(/usdt$/,'/usdt'));
+  const url=API+'/kline?assets='+encodeURIComponent(assets.join(','))+'&aggregation=1m&start_time='+start+'&end_time='+end;
+  try{
+   const j=await fetchJSON(url,12000);if(j?.success===false)throw Error((j.errors||[]).map(x=>x.text||x.code).join(', ')||'API success=false');
+   const data=j.data??j.result??j;
+   let got=0;
+   for(let n=0;n<batch.length;n++){
+    const s=batch[n],asset=assets[n];let arr=findAssetCandles(data,asset,s);
+    if(!arr.length&&batch.length===1)arr=parseKlineArray(data);
+    if(arr.length){candles[s]=arr;got++;if(!prices[s]||Date.now()-prices[s].time>15000)prices[s]={price:arr[arr.length-1].close,time:Date.now(),source:'Mudrex candle'};}
+   }
+   if(got===0)candleErrors.push({symbol:batch.slice(0,3).join(',')+(batch.length>3?'…':''),error:'REST batch response se candle format match nahi hua'});
+  }catch(e){candleErrors.push({symbol:batch.slice(0,3).join(',')+(batch.length>3?'…':''),error:String(e.message||e).slice(0,130)});}
+ }
+ lastCandleRefresh=Date.now();
+}
+async function refreshOne(s){return refreshCandlesBulk();}
 async function refresh(){
  if(paused)return;
- $('status').textContent='Mudrex market refresh…';
- await Promise.all(symbols.map(s=>refreshOne(s)));
+ $('status').textContent='Mudrex public market refresh…';
+ // Fetch bulk candle history once per minute; ticker stream remains live.
+ if(!lastCandleRefresh||Date.now()-lastCandleRefresh>60000)await refreshCandlesBulk();
  $('status').textContent=(wsReady?'WebSocket connected':'WebSocket unavailable')+' · Last refresh '+new Date().toLocaleTimeString();
+ const discovered=symbols.filter(s=>prices[s]?.price&&Date.now()-prices[s].time<120000);
+ if(candleErrors.length){$('explain').textContent='Mudrex live ticker pairs: '+discovered.length+'; candle history mein issue: '+candleErrors.slice(0,3).map(x=>x.symbol+': '+x.error).join(' | ')+'. Jin coins ki candle history nahi aati, unka signal WAIT rahega.'}
+ else{$('explain').textContent='Mudrex ticker se verified live pairs: '+discovered.length+' / '+symbols.length+' candidate symbols. Candles: '+Object.keys(candles).filter(s=>candles[s]?.length>=30).length+' pairs with indicator history. Unverified/missing symbols ko available market nahi maana gaya.'}
  render();
 }
 function ema(values,period){if(values.length<period)return null;const k=2/(period+1);let v=values.slice(0,period).reduce((a,b)=>a+b,0)/period;for(let i=period;i<values.length;i++)v=values[i]*k+v*(1-k);return v}
@@ -160,8 +182,8 @@ function checkPaper(){
 }
 function render(){
  const q=$('search').value.trim().toUpperCase(),f=$('filter').value;
- const list=symbols.filter(s=>s.includes(q)).map(s=>({s,a:analyze(s)})).filter(x=>f==='ALL'||x.a.signal===f);
- $('marketCount').textContent=symbols.length;$('liveCount').textContent=Object.keys(prices).filter(s=>prices[s]?.price&&Date.now()-prices[s].time<20000).length;
+ const visible=symbols.filter(s=>prices[s]?.price&&Date.now()-prices[s].time<120000);const base=visible.length?visible:['BTCUSDT','ETHUSDT'];const list=base.filter(s=>s.includes(q)).map(s=>({s,a:analyze(s)})).filter(x=>f==='ALL'||x.a.signal===f);
+ $('marketCount').textContent=symbols.filter(s=>prices[s]?.price&&Date.now()-prices[s].time<120000).length;$('liveCount').textContent=Object.keys(prices).filter(s=>prices[s]?.price&&Date.now()-prices[s].time<20000).length;
  $('openCount').textContent=paper.open.length;
  $('pnl').textContent=fmt(paper.history.reduce((n,t)=>n+(t.net||0),0));
  $('markets').innerHTML=list.length?list.map(({s,a})=>`<article class="card">
