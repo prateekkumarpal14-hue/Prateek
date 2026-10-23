@@ -112,10 +112,18 @@ function parseKlineArray(arr){
  return arr.map(k=>{if(Array.isArray(k))return {time:num(k[0])||0,open:num(k[1]),high:num(k[2]),low:num(k[3]),close:num(k[4]),volume:num(k[5])||0};return {time:num(k.open_time??k.openTime??k.time??k.t)||0,open:num(k.open??k.o),high:num(k.high??k.h),low:num(k.low??k.l),close:num(k.close??k.c),volume:num(k.volume??k.v)||0}}).filter(k=>k.close&&k.open).sort((a,b)=>a.time-b.time);
 }
 function findAssetCandles(obj,asset,symbol){
+ // Mudrex historical-kline response wraps the per-market arrays in data.asset_ticks.
+ const containers=[obj,obj?.asset_ticks,obj?.data?.asset_ticks,obj?.data,obj?.result?.asset_ticks,obj?.result];
  const keys=[asset,asset.toLowerCase(),symbol,symbol.toLowerCase(),asset.replace('/',''),symbol.toLowerCase()];
- for(const key of keys){if(obj&&typeof obj==='object'&&obj[key]!=null){const v=obj[key];if(Array.isArray(v))return parseKlineArray(v);if(typeof v==='object'){for(const z of ['data','klines','candles','ticks','items'])if(Array.isArray(v[z]))return parseKlineArray(v[z]);}}}
+ for(const box of containers){
+  for(const key of keys){
+   if(box&&typeof box==='object'&&box[key]!=null){
+    const v=box[key];if(Array.isArray(v))return parseKlineArray(v);
+    if(typeof v==='object')for(const z of ['data','klines','candles','ticks','items','asset_ticks'])if(Array.isArray(v[z]))return parseKlineArray(v[z]);
+   }
+  }
+ }
  if(Array.isArray(obj)){
-  // Some responses wrap each asset as {asset|symbol, data|klines}.
   for(const item of obj){if(!item||typeof item!=='object')continue;const id=String(item.asset??item.symbol??item.s??'').toLowerCase();if(id===asset.toLowerCase()||id===symbol.toLowerCase()){for(const z of ['data','klines','candles','ticks','items'])if(Array.isArray(item[z]))return parseKlineArray(item[z]);}}
  }
  return [];
@@ -157,8 +165,8 @@ async function refreshCandlesBulk(){
     const j=await fetchJSON(url,10000);
     if(j?.success===false)throw Error((j.errors||[]).map(x=>x.text||x.code).join(', ')||'API success=false');
     const data=j.data??j.result??j;
-    let arr=parseKlineArray(data);
-    if(!arr.length)arr=findAssetCandles(data,asset,s);
+    let arr=findAssetCandles(data,asset,s);
+    if(!arr.length)arr=parseKlineArray(data);
     if(arr.length){candles[s]=arr;successes++;if(!prices[s]||Date.now()-prices[s].time>15000)prices[s]={price:arr[arr.length-1].close,time:Date.now(),source:'Mudrex candle'};}
    }catch(e){if(candleErrors.length<6)candleErrors.push({symbol:s,error:String(e.message||e).slice(0,100)});}
   }
