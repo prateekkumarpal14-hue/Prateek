@@ -132,18 +132,42 @@ function handleMessage(raw){const data=parseEnvelope(raw);if(!data)return;
  }
 }
 function connectWS(){if(state.paused)return;try{if(state.ws){state.ws.onclose=null;state.ws.close()}const ws=new WebSocket(WS_URL);state.ws=ws;
- ws.onopen=()=>{state.wsConnected=true;state.retry=0;setStatus('Mudrex WebSocket connected · live feed verify ho raha hai','good');
+ ws.onopen=()=>{state.wsConnected=true;state.retry=0;setStatus('WebSocket connected (connection only) · waiting for parsed ticker/candles','warn');
   // Mudrex documented stream envelope. Ticker is subscribed for both contracts; kline subscription is attempted as a separate stream.
-  ws.send(JSON.stringify({method:'SUBSCRIBE',params:['ticker@1s'],assets:['btcusdt','ethusdt'],id:1}));
-  ws.send(JSON.stringify({method:'SUBSCRIBE',params:['kline@1m'],assets:['btcusdt','ethusdt'],id:2}));
+  ws.send(JSON.stringify({method:'SUBSCRIBE',params:['btcusdt@ticker@1s','ethusdt@ticker@1s','btcusdt@kline@1m','ethusdt@kline@1m'],id:1}));
+  ws.send(JSON.stringify({method:'SUBSCRIBE',params:['ticker@1s','kline@1m'],assets:['btcusdt','ethusdt'],id:2}));
  };
  ws.onmessage=e=>handleMessage(e.data);
  ws.onerror=()=>{state.wsConnected=false;setStatus('WebSocket error — REST candle fallback try hoga','bad')};
  ws.onclose=()=>{state.wsConnected=false;if(!state.paused){setStatus('Feed reconnect ho raha hai…','warn');const wait=Math.min(30000,1500*Math.pow(2,state.retry++));setTimeout(connectWS,wait)}};
  }catch(e){setStatus('WebSocket start nahi hua: '+e.message,'bad')}
 }
-async function fetchCandles(sym){const url=BASE+'/kline?assets='+encodeURIComponent(sym.slice(0,-4)+'/USDT')+'&interval=1m&limit=300';try{const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);const json=await r.json();let data=json.data??json.result??json; if(data&&typeof data==='object'&&!Array.isArray(data)){data=data[sym]??data[sym.slice(0,-4)+'/USDT']??data[sym.toLowerCase()]??data.klines??data.list??data.rows??data.data??data}if(!Array.isArray(data))throw Error('Unexpected candle response format');const cs=data.map(x=>parseCandle(x,sym)).filter(Boolean);if(!cs.length)throw Error('No candles in response');state.candles[sym]=cs.slice(-600);state.lastKline[sym]=Date.now();const last=state.candles[sym].at(-1);if(last)state.prices[sym]=state.prices[sym]||last.c;renderAll();return true}catch(e){console.warn('Mudrex REST kline failed',sym,e);return false}}
-async function refresh(){if(state.paused)return;setText('lastUpdate','Refresh check: '+new Date().toLocaleTimeString());const results=await Promise.all(SYMBOLS.map(fetchCandles));if(results.every(Boolean))setStatus('Mudrex Futures candles received · live price feed verify ho raha hai','good');else if(Object.values(state.prices).some(x=>x>0))setStatus('Ticker data mil raha hai, lekin candle endpoint fail/format different hai. Signals WAIT rahenge jab tak enough candles na hon.','warn');else setStatus('Mudrex feed se data nahi mila. Network/API/CORS check karein; prices invent nahi kiye jayenge.','bad');renderAll()}
+async function fetchCandles(sym){
+ const asset=sym.slice(0,-4)+'/USDT';
+ const urls=[
+  BASE+'/kline?assets='+encodeURIComponent(asset)+'&interval=1m&limit=300',
+  BASE+'/kline?asset='+encodeURIComponent(asset)+'&interval=1m&limit=300',
+  BASE+'/kline?symbol='+encodeURIComponent(asset)+'&interval=1m&limit=300'
+ ];
+ let lastErr='No response';
+ for(const url of urls){
+  try{
+   const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);
+   const json=await r.json();let data=json.data??json.result??json;
+   if(data&&typeof data==='object'&&!Array.isArray(data)){
+    data=data[asset]??data[sym]??data[asset.toLowerCase()]??data[sym.toLowerCase()]??data.klines??data.list??data.rows??data.data??data;
+   }
+   if(!Array.isArray(data))throw Error('Response has no candle array');
+   const cs=data.map(x=>parseCandle(x,sym)).filter(Boolean);
+   if(!cs.length)throw Error('Candle response format did not match OHLCV');
+   state.candles[sym]=cs.slice(-600);state.lastKline[sym]=Date.now();
+   const last=state.candles[sym].at(-1);if(last&&!state.prices[sym])state.prices[sym]=last.c;
+   renderAll();return true;
+  }catch(e){lastErr=e.message||String(e);console.warn('Mudrex REST kline failed',url,e)}
+ }
+ state.errors=state.errors||{};state.errors[sym]=lastErr;return false
+}
+async function refresh(){if(state.paused)return;setText('lastUpdate','Refresh check: '+new Date().toLocaleTimeString());const results=await Promise.all(SYMBOLS.map(fetchCandles));if(results.every(Boolean))setStatus('Mudrex Futures REST candles received · indicator history available','good');else if(Object.values(state.prices).some(x=>x>0))setStatus('Ticker price aa rahi hai, lekin Mudrex candles fail hain. '+((state.errors&&state.errors.BTCUSDT)||'endpoint/format/CORS issue')+'. Signals WAIT rahenge.','warn');else setStatus('Mudrex feed se candle data nahi mila. '+((state.errors&&state.errors.BTCUSDT)||'API/CORS/response format issue')+'; prices invent nahi kiye jayenge.','bad');renderAll()}
 function ema(arr,period){if(arr.length<period)return NaN;const k=2/(period+1);let v=arr.slice(0,period).reduce((a,b)=>a+b,0)/period;for(let i=period;i<arr.length;i++)v=arr[i]*k+v*(1-k);return v}
 function rsi(arr,p=14){if(arr.length<p+1)return NaN;let gain=0,loss=0;for(let i=arr.length-p;i<arr.length;i++){const d=arr[i]-arr[i-1];if(d>=0)gain+=d;else loss-=d}if(loss===0)return 100;return 100-100/(1+(gain/p)/(loss/p))}
 function aggregate(candles,minutes){const out=[];for(const c of candles){const t=Math.floor(c.t/(minutes*60000))*minutes*60000;let x=out[out.length-1];if(!x||x.t!==t){out.push({t,o:c.o,h:c.h,l:c.l,c:c.c,v:c.v||0})}else{x.h=Math.max(x.h,c.h);x.l=Math.min(x.l,c.l);x.c=c.c;x.v+=c.v||0}}return out}
