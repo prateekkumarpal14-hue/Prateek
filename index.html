@@ -57,51 +57,43 @@ function extractSymbols(obj){
 }
 async function fetchJSON(url,ms=9000){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);try{const r=await fetch(url,{signal:c.signal,cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);return await r.json()}finally{clearTimeout(t)}}
 async function discover(){
- $('status').textContent='Mudrex public market list dhoondh rahe hain…';
- const candidates=[
-  API,
-  API+'/ticker',
-  API+'/ticker/price',
-  'https://trade.mudrex.com/fapi/v1/futures'
- ];
- let found=[];
- for(const url of candidates){
-  try{const data=await fetchJSON(url);const got=extractSymbols(data);if(got.length>found.length)found=got;if(found.length>2)break}catch(e){}
- }
- // Public REST price endpoint's exact market-list schema is not guaranteed.
- if(found.length){symbols=[...new Set(found)].sort();$('status').textContent='Market list response mili: '+symbols.length+' symbols. Live price/candle availability alag ho sakti hai.';return true}
+ // Mudrex documents GET /futures as authenticated asset discovery. Keep this
+ // no-key build honest rather than pretending the protected endpoint is public.
  symbols=['BTCUSDT','ETHUSDT'];
- $('status').textContent='Public all-market list browser se nahi mili. Sirf BTCUSDT/ETHUSDT fallback dikh rahe hain; all Mudrex coins ka daawa nahi kiya ja raha.';
- $('explain').textContent='Official Mudrex docs public market-data ke liye kline REST aur WebSocket batate hain; complete asset list endpoint authenticated API section mein hai. No-API-key condition mein all symbols discover karna is browser page se verify nahi ho saka.';
+ $('status').textContent='No-key mode: public ticker/candle connection test; asset list is not publicly discoverable here.';
+ $('explain').textContent='Mudrex documentation lists GET /futures under authenticated Asset Discovery. Public no-key market data supports klines and ticker streams, but does not document an unauthenticated all-symbol list. This build therefore cannot honestly claim to show every Futures coin without a verified public symbol list.';
  return false;
 }
 function openWS(){
  try{if(ws)ws.close();ws=new WebSocket(WS);
  ws.onopen=()=>{wsReady=true;$('status').textContent='Mudrex WebSocket connected; market updates subscribe kar rahe hain.';subscribeSymbols()};
- ws.onmessage=e=>{try{const m=JSON.parse(e.data);handleWS(m)}catch(err){}};
+ ws.onmessage=e=>{try{const m=JSON.parse(e.data);if(m.error){$('status').textContent='Mudrex subscription error: '+(m.error.msg||JSON.stringify(m.error));return}if(m.result==='success')$('status').textContent='Mudrex WebSocket connected; subscription accepted.';handleWS(m)}catch(err){}};
  ws.onerror=()=>{wsReady=false};
  ws.onclose=()=>{wsReady=false;if(!paused)setTimeout(()=>{if(!paused)openWS()},5000)};
  }catch(e){wsReady=false}
 }
 function subscribeSymbols(){
  if(!ws||ws.readyState!==1)return;
- // Mudrex documented stream names use ticker@1s and kline@interval@symbol.
- const params=[];
- for(const s of symbols){const lower=s.toLowerCase();params.push('ticker@1s@'+lower,'kline@1m@'+lower)}
- try{ws.send(JSON.stringify({method:'SUBSCRIBE',params,id:Date.now()}))}catch(e){}
-}
+ // Mudrex protocol: ticker stream name has NO symbol suffix; symbols go in assets.
+ const assets=symbols.map(s=>s.toLowerCase());
+ try{
+  ws.send(JSON.stringify({method:'SUBSCRIBE',params:['ticker@1s'],assets,id:Date.now()}));
+  // Kline streams are separate named subscriptions; subscribe only known symbols.
+  for(const s of symbols)ws.send(JSON.stringify({method:'SUBSCRIBE',params:['kline@1m@'+s.toLowerCase()],id:Date.now()}));
+ }catch(e){$('status').textContent='WebSocket subscription send failed: '+e.message}
+} 
 function handleWS(m){
  const d=m.data??m.result??m;
  const stream=String(m.stream??m.topic??m.channel??'').toLowerCase();
- const candidates=[d,m];
- for(const x of candidates){
+ const items=Array.isArray(d)?d:[d];
+ for(const x of items){
   if(!x||typeof x!=='object')continue;
   const raw=x.symbol??x.s??x.asset??x.pair??x.instrument??stream.split('@').pop();
   const s=symNorm(raw);if(!s||!symbols.includes(s))continue;
   const p=num(x.price??x.lastPrice??x.last_price??x.c??x.close??x.p);
-  if(p&&p>0){prices[s]={price:p,time:Date.now()};lastUpdate=Date.now()}
-  if(Array.isArray(x.kline))storeCandle(s,x.kline);
-  else if(x.k||x.open!==undefined||x.o!==undefined)storeCandle(s,x.k??x);
+  if(p&&p>0){prices[s]={price:p,time:Date.now(),source:stream.includes('ticker')?'Mudrex ticker':'Mudrex kline'};lastUpdate=Date.now()}
+  if(x.kline)storeCandle(s,x.kline);
+  else if(stream.startsWith('kline@')||x.o!==undefined||x.open!==undefined)storeCandle(s,x);
  }
  render();
 }
