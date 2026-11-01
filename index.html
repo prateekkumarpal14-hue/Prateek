@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mudrex Futures Signal Scanner — Stable V3</title>
+<title>Mudrex Futures Signal Scanner — Stable V4</title>
 <style>
 :root{color-scheme:dark;--bg:#08111f;--panel:#111e31;--panel2:#0b1728;--line:#263b56;--text:#eef4ff;--muted:#9fb0c8;--green:#42dfa5;--red:#ff7182;--yellow:#ffd477;--blue:#80bdff}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
@@ -34,7 +34,7 @@ footer{padding:16px 0;color:var(--muted);font-size:11px}
 <body>
 <header><div class="wrap" style="padding:0">
 <h1>₿ Mudrex Futures Signal Scanner</h1>
-<div class="muted small">Mudrex Futures public data · Closed-candle confirmation · Manual paper analysis only · No API keys / No real orders</div>
+<div class="muted small">Mudrex Futures public data · Adaptive closed-candle confirmation · Manual paper analysis only · No API keys / No real orders</div>
 <span class="pill" id="status">Connecting…</span><span class="pill" id="wsstatus">Ticker: connecting…</span><span class="pill" id="refreshAge">Candle refresh: —</span>
 </div></header>
 <main class="wrap">
@@ -72,7 +72,7 @@ footer{padding:16px 0;color:var(--muted);font-size:11px}
 
 <section class="panel">
 <h2>Scanner rules & diagnostics</h2>
-<div class="small" id="rules">Signals are based on closed 1m candles, 5m trend, 15m context, RSI, momentum, volume and ATR. A confirmed direction is held until a confirmed opposite setup, SL/target touch, expiry, or stale/missing data. A single WAIT candle does not erase an active signal.</div>
+<div class="small" id="rules">Signals use closed 1m candles, aligned 5m/15m context, adaptive momentum, RSI, candle confirmation, optional volume confirmation and ATR risk. A sideways 1m trend may qualify only when price holds the EMA21 in the higher-timeframe direction. Two closed candles are required. A single WAIT candle does not erase an active signal.</div>
 <div class="small" id="debug" style="margin-top:8px">Diagnostics: waiting…</div>
 </section>
 <footer>Watchlist is a broad candidate list, not a guaranteed complete Mudrex contract directory. Only pairs returning valid Mudrex ticker/candle data are counted as verified. 1m candles are grouped into aligned 5m and 15m bars. Entry reference is frozen at signal confirmation; live ticker is shown separately. Forecasts and risk levels are estimates, not promises.</footer>
@@ -158,8 +158,11 @@ function atr(c,p=14){
  return v;
 }
 function trend(c,fast,slow){
- if(c.length<slow+2)return 'UNAVAILABLE';const a=c.map(x=>x.c),f=ema(a,fast),s=ema(a,slow);
- return f>s?'BULLISH':f<s?'BEARISH':'FLAT';
+ if(c.length<slow+2)return 'UNAVAILABLE';
+ const a=c.map(x=>x.c),f=ema(a,fast),s=ema(a,slow);
+ const gap=(f-s)/s;
+ if(Math.abs(gap)<0.00012)return 'SIDEWAYS';
+ return gap>0?'BULLISH':'BEARISH';
 }
 function sideOf(sig){return sig==='LONG'||sig==='SHORT'?sig:null}
 function riskLevels(m,side,entry,ind){
@@ -173,34 +176,52 @@ function riskLevels(m,side,entry,ind){
  m.tp=side==='LONG'?entry+reward:entry-reward;
 }
 function analyze(m){
- const c=m.candles, c5=aggregate(c,5),c15=aggregate(c,15);
+ const c=m.candles,c5=aggregate(c,5),c15=aggregate(c,15);
  if(c.length<100||c5.length<18||c15.length<8){
   m.ready=false;m.raw='WAIT';m.lastRawReason='Insufficient closed candle history (1m '+c.length+', 5m '+c5.length+', 15m '+c15.length+')';m.ind=null;return;
  }
  const one=c.slice(),cl=one.map(x=>x.c),last=one[one.length-1],prev=one[one.length-2];
  const t1=trend(one,9,21),t5=trend(c5,5,13),t15=trend(c15,5,13);
  const rv=rsi(cl,14),a=atr(one,14),mom=(last.c/cl[cl.length-6]-1)*100;
- const avgVol=one.slice(-21,-1).reduce((s,x)=>s+x.v,0)/20,volRatio=avgVol>0?last.v/avgVol:NaN;
- const e9=ema(cl,9),body=last.c>last.o?'UP':last.c<last.o?'DOWN':'FLAT';
- const candleConfirmLong=body==='UP'&&last.c>e9&&prev.c>ema(cl.slice(0,-1),9);
- const candleConfirmShort=body==='DOWN'&&last.c<e9&&prev.c<ema(cl.slice(0,-1),9);
- const notChasing=Math.abs(last.c/e9-1)<.0025;
- const longOK=t1==='BULLISH'&&t5==='BULLISH'&&t15!=='BEARISH'&&mom>=.018&&rv>=46&&rv<=69&&candleConfirmLong&&notChasing&&volRatio>=.55;
- const shortOK=t1==='BEARISH'&&t5==='BEARISH'&&t15!=='BULLISH'&&mom<=-.018&&rv>=31&&rv<=54&&candleConfirmShort&&notChasing&&volRatio>=.55;
- const strongLong=longOK&&t15==='BULLISH'&&volRatio>=.9&&rv>=51;
- const strongShort=shortOK&&t15==='BEARISH'&&volRatio>=.9&&rv<=49;
- let raw=longOK?'LONG':shortOK?'SHORT':'WAIT';
- let reason='Closed-candle setup confirmation nahi mila';
- if(t1!==t5&&(t1==='BULLISH'||t1==='BEARISH')&&(t5==='BULLISH'||t5==='BEARISH'))reason='1m aur 5m trend conflict';
- else if(t1==='BEARISH'&&t5==='BEARISH'&&rv<30)reason='RSI extreme low; SHORT chase avoid';
- else if(t1==='BULLISH'&&t5==='BULLISH'&&rv>70)reason='RSI extreme high; LONG chase avoid';
- else if(!notChasing)reason='Price EMA se door; late entry avoid';
- else if(volRatio<.55)reason='Volume confirmation weak';
- else if(raw==='LONG')reason=strongLong?'STRONG LONG: 1m/5m/15m aligned, candle + volume confirmed':'LONG: 1m/5m aligned, 15m context acceptable';
- else if(raw==='SHORT')reason=strongShort?'STRONG SHORT: 1m/5m/15m aligned, candle + volume confirmed':'SHORT: 1m/5m aligned, 15m context acceptable';
+ const avgVol=one.slice(-21,-1).reduce((s,x)=>s+x.v,0)/20;
+ const volRatio=avgVol>0&&last.v>0?last.v/avgVol:NaN;
+ const e9=ema(cl,9),e21=ema(cl,21),prevE9=ema(cl.slice(0,-1),9);
+ const body=last.c>last.o?'UP':last.c<last.o?'DOWN':'FLAT';
+ const candleConfirmLong=body==='UP'&&last.c>e9&&prev.c>prevE9;
+ const candleConfirmShort=body==='DOWN'&&last.c<e9&&prev.c<prevE9;
+ const longMicro=(t1==='BULLISH'||(t1==='SIDEWAYS'&&last.c>e21&&last.c>e9));
+ const shortMicro=(t1==='BEARISH'||(t1==='SIDEWAYS'&&last.c<e21&&last.c<e9));
+ const momMin=Math.max(.004,(a/last.c)*100*.12);
+ const notChasing=Math.abs(last.c/e9-1)<.0028;
+ const volumeOK=!finite(volRatio)||volRatio>=.45;
+ const longContext=t5==='BULLISH'&&t15!=='BEARISH';
+ const shortContext=t5==='BEARISH'&&t15!=='BULLISH';
+ const longOK=longContext&&longMicro&&mom>=momMin&&rv>=46&&rv<=68&&candleConfirmLong&&notChasing&&volumeOK;
+ const shortOK=shortContext&&shortMicro&&mom<=-momMin&&rv>=32&&rv<=54&&candleConfirmShort&&notChasing&&volumeOK;
+ const strongLong=longOK&&t15==='BULLISH'&&finite(volRatio)&&volRatio>=.9&&rv>=51;
+ const strongShort=shortOK&&t15==='BEARISH'&&finite(volRatio)&&volRatio>=.9&&rv<=49;
+ const raw=longOK?'LONG':shortOK?'SHORT':'WAIT';
+ let reason='Closed-candle confirmation incomplete';
+ if(!longOK&&!shortOK){
+  if(t5!=='BULLISH'&&t5!=='BEARISH')reason='5m trend is sideways/unavailable';
+  else if(t5==='BULLISH'&&t15==='BEARISH')reason='5m bullish but 15m bearish conflict';
+  else if(t5==='BEARISH'&&t15==='BULLISH')reason='5m bearish but 15m bullish conflict';
+  else if(t5==='BULLISH'&&!longMicro)reason='1m price has not reclaimed EMA9/EMA21 for LONG';
+  else if(t5==='BEARISH'&&!shortMicro)reason='1m price has not stayed below EMA9/EMA21 for SHORT';
+  else if(t5==='BULLISH'&&mom<momMin)reason='Insufficient 1m momentum for LONG (need '+momMin.toFixed(3)+'%)';
+  else if(t5==='BEARISH'&&mom>-momMin)reason='Insufficient 1m momentum for SHORT (need -'+momMin.toFixed(3)+'%)';
+  else if(t5==='BULLISH'&&(rv<46||rv>68))reason='RSI outside LONG range (46–68)';
+  else if(t5==='BEARISH'&&(rv<32||rv>54))reason='RSI outside SHORT range (32–54)';
+  else if(t5==='BULLISH'&&!candleConfirmLong)reason='Waiting for 2 bullish closed-candle confirmations';
+  else if(t5==='BEARISH'&&!candleConfirmShort)reason='Waiting for 2 bearish closed-candle confirmations';
+  else if(!notChasing)reason='Price too far from EMA9; late entry avoided';
+  else if(!volumeOK)reason='Available volume is unusually weak';
+  else reason='Closed-candle confirmation incomplete';
+ }else if(raw==='LONG')reason=strongLong?'STRONG LONG · 1m/5m/15m aligned':'LONG · higher-timeframe and 1m confirmation';
+ else reason=strongShort?'STRONG SHORT · 1m/5m/15m aligned':'SHORT · higher-timeframe and 1m confirmation';
+
  m.ready=true;m.raw=raw;m.lastRawReason=reason;
- m.ind={t1,t5,t15,rsi:rv,atr:a,mom,volRatio,body,lastTime:last.t,oneCount:c.length,fiveCount:c5.length,fifteenCount:c15.length};
- // Signal state changes only once per new closed 1m candle.
+ m.ind={t1,t5,t15,rsi:rv,atr:a,mom,momMin,volRatio,body,lastTime:last.t,oneCount:c.length,fiveCount:c5.length,fifteenCount:c15.length,e9,e21};
  if(last.t>m.lastProcessed){
   m.lastProcessed=last.t;
   if(raw===m.candidate)m.candidateCount++;else{m.candidate=raw;m.candidateCount=raw==='WAIT'?0:1}
@@ -208,8 +229,13 @@ function analyze(m){
    if(m.activeSide){
     m.ageBars++;
     const ageLimit=cfg().expiry;
-    if(m.ageBars>=ageLimit){m.exitReason='Signal expired after '+ageLimit+' closed candles';m.activeSide=null;m.entry=m.sl=m.tp=0;m.signal='WAIT';m.reason=m.exitReason}
-    else{m.signal=m.activeSide;m.reason='HELD · '+m.lastRawReason+' · '+m.ageBars+'/'+ageLimit+' candles'}
+    if(m.ageBars>=ageLimit){
+     m.exitReason='Signal expired after '+ageLimit+' closed candles';
+     m.activeSide=null;m.entry=m.sl=m.tp=0;m.signal='WAIT';m.reason=m.exitReason;
+    }else{
+     m.signal=m.activeSide;
+     m.reason='HELD · '+m.lastRawReason+' · '+m.ageBars+'/'+ageLimit+' candles';
+    }
    }else{m.signal='WAIT';m.reason=reason}
   }else if(m.candidateCount>=2){
    if(m.activeSide!==raw){
@@ -220,17 +246,21 @@ function analyze(m){
     m.signal=raw;m.signalAt=Date.now();m.signalCandle=last.t;
     m.reason=(raw==='LONG'&&strongLong?'STRONG LONG':raw==='SHORT'&&strongShort?'STRONG SHORT':raw)+' · 2 closed candles confirmed';
    }else{
-    m.ageBars=0;m.signal=raw;m.reason=(strongLong||strongShort?'STRONG ':'')+raw+' · confirmation maintained';
+    m.ageBars=0;m.signal=raw;
+    m.reason=(strongLong||strongShort?'STRONG ':'')+raw+' · confirmation maintained';
    }
   }else if(m.activeSide){
-   m.ageBars++;m.signal=m.activeSide;m.reason='HELD · opposite/new setup confirmation pending';
-  }else{m.signal='WAIT';m.reason='First confirmation candle; second closed candle ka wait'}
+   m.ageBars++;m.signal=m.activeSide;m.reason='HELD · new setup confirmation pending';
+  }else{m.signal='WAIT';m.reason='First valid candle; second closed candle confirmation pending'}
  }
- // Hard invalidation only on live ticker touching stored SL/TP.
  if(m.activeSide&&m.price>0&&m.tickerAt&&Date.now()-m.tickerAt<15000){
   const hitSL=m.activeSide==='LONG'?m.price<=m.sl:m.price>=m.sl;
   const hitTP=m.activeSide==='LONG'?m.price>=m.tp:m.price<=m.tp;
-  if(hitSL||hitTP){m.exitReason=hitSL?'Paper SL touched':'Paper target touched';m.activeSide=null;m.signal='WAIT';m.entry=m.sl=m.tp=0;m.reason=m.exitReason;m.candidate='';m.candidateCount=0}
+  if(hitSL||hitTP){
+   m.exitReason=hitSL?'Paper SL touched':'Paper target touched';
+   m.activeSide=null;m.signal='WAIT';m.entry=m.sl=m.tp=0;m.reason=m.exitReason;
+   m.candidate='';m.candidateCount=0;
+  }
  }
 }
 function renderCoin(m){
@@ -244,7 +274,7 @@ function renderCoin(m){
  <div class="metrics">
  <div class="metric"><span>1m trend</span><b>${ind?.t1||'—'}</b></div><div class="metric"><span>5m trend</span><b>${ind?.t5||'—'}</b></div>
  <div class="metric"><span>15m trend</span><b>${ind?.t15||'—'}</b></div><div class="metric"><span>RSI 1m</span><b>${finite(ind?.rsi)?ind.rsi.toFixed(2):'—'}</b></div>
- <div class="metric"><span>Momentum</span><b>${finite(ind?.mom)?(ind.mom>0?'+':'')+ind.mom.toFixed(3)+'%':'—'}</b></div><div class="metric"><span>Volume / avg</span><b>${finite(ind?.volRatio)?ind.volRatio.toFixed(2)+'x':'—'}</b></div>
+ <div class="metric"><span>Momentum / minimum</span><b>${finite(ind?.mom)?(ind.mom>0?'+':'')+ind.mom.toFixed(3)+'% / '+ind.momMin.toFixed(3)+'%':'—'}</b></div><div class="metric"><span>Volume / avg</span><b>${finite(ind?.volRatio)?ind.volRatio.toFixed(2)+'x':'Unavailable · neutral'}</b></div>
  <div class="metric"><span>Entry reference</span><b>${m.activeSide?fmt(m.entry):'—'}</b></div><div class="metric"><span>Live ticker</span><b>${liveAge!==null?fmt(m.price)+' · '+liveAge+'s':'No fresh tick'}</b></div>
  <div class="metric"><span>Stop loss</span><b>${m.activeSide?fmt(m.sl):'—'}</b></div><div class="metric"><span>Target</span><b>${m.activeSide?fmt(m.tp):'—'}</b></div>
  </div>
