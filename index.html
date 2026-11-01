@@ -1,838 +1,350 @@
-HTML
-
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="hi">
 <head>
-<meta charset="UTF-8">
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mudrex Futures Signal Scanner V2</title>
+<title>Mudrex Futures Signal Scanner — Stable V3</title>
 <style>
-*{box-sizing:border-box}
-body{margin:0;background:#080e19;color:#edf3ff;font:14px Arial}
-header{padding:16px;background:#111c2e;border-bottom:1px solid #293a53}
-h1{font-size:20px;margin:0 0 7px}
-.small{font-size:11px;color:#94a6c0;line-height:1.6}
-.wrap{max-width:1250px;margin:auto;padding:12px}
-.panel,.coin{background:#111b2d;border:1px solid #293a53;border-radius:11px;padding:12px;margin-bottom:10px}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.stat{flex:1;min-width:90px;background:#091426;padding:10px;border-radius:8px}
-.stat span{display:block;color:#94a6c0;font-size:11px}
-.stat b{display:block;font-size:19px;margin-top:5px}
-button,input,select{background:#192941;color:white;border:1px solid #3b506e;border-radius:7px;padding:10px}
-button{font-weight:bold;cursor:pointer}
-.primary{background:#176ac2}
-input{max-width:150px}
-#search{flex:1;min-width:120px;max-width:none}
-.coinhead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
-.symbol{font-size:16px;font-weight:bold}
-.price{font-size:18px;font-weight:bold}
-.tag{padding:6px 9px;border-radius:6px;font-weight:bold;font-size:12px}
-.STRONG-LONG,.EARLY-LONG{background:#104536;color:#40efb0}
-.STRONG-SHORT,.EARLY-SHORT{background:#501e2b;color:#ff7c91}
-.NO-TRADE{background:#45391d;color:#ffcf67}
-.NO-DATA{background:#43202a;color:#ff9eaa}
-.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-top:11px}
-.metric{background:#091426;padding:9px;border-radius:7px;min-width:0}
-.metric span{display:block;color:#91a2bc;font-size:10px;margin-bottom:5px}
-.metric b{font-size:13px;overflow-wrap:anywhere}
-.reason{font-size:12px;color:#c1cce0;margin-top:10px;line-height:1.6}
-.green{color:#36e6a6}.red{color:#ff788e}.yellow{color:#ffd06c}
-hr{border:0;border-top:1px solid #293a53;margin:12px 0}
-@media(max-width:520px){
- .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
- h1{font-size:18px}
-}
+:root{color-scheme:dark;--bg:#08111f;--panel:#111e31;--panel2:#0b1728;--line:#263b56;--text:#eef4ff;--muted:#9fb0c8;--green:#42dfa5;--red:#ff7182;--yellow:#ffd477;--blue:#80bdff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{position:sticky;top:0;z-index:5;background:#0b192b;border-bottom:1px solid var(--line);padding:13px}
+.wrap{max-width:1200px;margin:auto;padding:12px}h1{font-size:21px;margin:0 0 4px}h2{font-size:16px;margin:0 0 10px}
+.small,.muted{color:var(--muted)}.small{font-size:12px}.pill{display:inline-block;border:1px solid var(--line);border-radius:20px;padding:4px 9px;margin:6px 5px 0 0;font-size:11px}
+.panel,.coin,.stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}
+.panel{margin:10px 0}.warning{background:#2a2417;border:1px solid #6c572c;color:#ffe3a0;padding:10px;border-radius:9px;font-size:12px;margin:10px 0}
+.toolbar{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+input,select,button{font:inherit;color:var(--text);background:#0b1728;border:1px solid var(--line);border-radius:8px;padding:10px;min-width:0}
+button{cursor:pointer;font-weight:650}button.primary{background:#1d4774}button:disabled{opacity:.5}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}
+.stat span{font-size:11px;color:var(--muted)}.stat b{display:block;font-size:20px;margin-top:2px;overflow-wrap:anywhere}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:10px}
+.coin{padding:12px}.top{display:flex;justify-content:space-between;align-items:center;gap:8px}.symbol{font-size:16px;font-weight:800}
+.badge{font-weight:800;border-radius:7px;padding:4px 8px;font-size:11px;white-space:nowrap}
+.long{background:#123e32;color:#70f0bd}.short{background:#4b202d;color:#ff9eaa}.wait{background:#44391d;color:#ffe09a}.nodata{background:#263247;color:#b9c8dd}
+.price{font-size:23px;font-weight:800;margin:7px 0}.metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:9px 0}
+.metric{background:var(--panel2);border-radius:7px;padding:7px;min-width:0}.metric span{display:block;font-size:11px;color:var(--muted)}.metric b{display:block;margin-top:2px;overflow-wrap:anywhere;font-size:13px}
+.reason{font-size:12px;color:#c4d2e5;min-height:34px}.good{color:var(--green)}.bad{color:var(--red)}.yellow{color:var(--yellow)}
+.settings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.settings label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.actions button{flex:1}
+.tablewrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:12px;min-width:620px}td,th{text-align:left;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap}
+footer{padding:16px 0;color:var(--muted);font-size:11px}
+@media(min-width:700px){.toolbar{grid-template-columns:2fr 1fr 1fr 1fr}.stats{grid-template-columns:repeat(5,minmax(0,1fr))}.settings{grid-template-columns:repeat(4,minmax(0,1fr))}}
 </style>
 </head>
 <body>
+<header><div class="wrap" style="padding:0">
+<h1>₿ Mudrex Futures Signal Scanner</h1>
+<div class="muted small">Mudrex Futures public data · Closed-candle confirmation · Manual paper analysis only · No API keys / No real orders</div>
+<span class="pill" id="status">Connecting…</span><span class="pill" id="wsstatus">Ticker: connecting…</span><span class="pill" id="refreshAge">Candle refresh: —</span>
+</div></header>
+<main class="wrap">
+<div class="warning"><b>Risk warning:</b> Ye scanner guaranteed prediction nahi hai. Futures mein capital ka bada hissa ya poora margin lose ho sakta hai. Ye sirf public market data aur paper analysis use karta hai; Mudrex par koi real order nahi lagata. Fee, spread, slippage, funding, leverage aur contract minimum app mein alag ho sakte hain. Real funds se pehle paper test zaroor karein.</div>
 
-<header>
-<h1>₿ Mudrex Futures Signal Scanner V2</h1>
-<div class="small">
-Mudrex USDT Futures · Public live data · Manual only · No API keys · No real orders
-</div>
-</header>
-
-<div class="wrap">
-
-<div class="panel">
- <div class="row">
-  <div class="stat"><span>TOTAL</span><b id="total">0</b></div>
-  <div class="stat"><span>READY</span><b id="ready">0</b></div>
-  <div class="stat"><span>LONG</span><b class="green" id="longs">0</b></div>
-  <div class="stat"><span>SHORT</span><b class="red" id="shorts">0</b></div>
-  <div class="stat"><span>NO TRADE</span><b class="yellow" id="waits">0</b></div>
- </div>
-
- <div id="status" class="small" style="margin-top:12px">
- Connecting to Mudrex...
- </div>
-
- <div class="row" style="margin-top:12px">
-  <button class="primary" id="refresh">Refresh now</button>
-  <button id="pause">Pause</button>
-  <button id="reset">Reset signals</button>
-  <select id="filter">
-   <option value="ALL">All coins</option>
-   <option value="LONG">LONG</option>
-   <option value="SHORT">SHORT</option>
-   <option value="NO-TRADE">NO TRADE</option>
-   <option value="NO-DATA">NO DATA</option>
-  </select>
-  <input id="search" placeholder="Search coin...">
- </div>
+<div class="toolbar">
+<input id="search" placeholder="Coin search: BTC, SOL, XRP…">
+<select id="filter"><option value="ALL">All coins</option><option value="LONG">LONG only</option><option value="SHORT">SHORT only</option><option value="WAIT">NO TRADE only</option><option value="NODATA">No data only</option></select>
+<button class="primary" id="refresh">Refresh candles now</button>
+<button id="pause">Pause updates</button>
 </div>
 
-<div class="panel">
- <b>Position and execution calculator</b>
- <div class="row" style="margin-top:10px">
-  <label class="small">Position USDT<br>
-   <input id="amount" type="number" value="20" min="1">
-  </label>
-  <label class="small">Fee / side %<br>
-   <input id="fee" type="number" value="0.05" step="0.01">
-  </label>
-  <label class="small">Extra cost % round trip<br>
-   <input id="extra" type="number" value="0.05" step="0.01">
-  </label>
- </div>
- <div id="calc" class="small" style="margin-top:10px"></div>
+<div class="stats">
+<div class="stat"><span>Total candidate coins</span><b id="total">0</b></div>
+<div class="stat"><span>Data ready</span><b id="ready">0</b></div>
+<div class="stat"><span>LONG</span><b class="good" id="longs">0</b></div>
+<div class="stat"><span>SHORT</span><b class="bad" id="shorts">0</b></div>
+<div class="stat"><span>NO TRADE / NO DATA</span><b class="yellow" id="waits">0</b></div>
 </div>
+<div class="small" id="diagnostics">Mudrex public market data loading…</div>
 
-<div class="panel">
- <b>Market diagnostics</b>
- <div id="diagnostics" class="small" style="margin-top:8px">
- Waiting for market data...
- </div>
+<section class="panel">
+<h2>Position & fee calculator</h2>
+<div class="settings">
+<div><label for="notional">Position notional (USDT)</label><input id="notional" type="number" min="1" value="20"></div>
+<div><label for="fee">Fee per side (%)</label><input id="fee" type="number" min="0" max="1" step="0.01" value="0.05"></div>
+<div><label for="slip">Estimated round-trip slippage (%)</label><input id="slip" type="number" min="0" max="1" step="0.01" value="0.03"></div>
+<div><label for="expiry">Signal validity (closed 1m candles)</label><input id="expiry" type="number" min="2" max="20" step="1" value="8"></div>
 </div>
+<p class="small" id="feeSummary">Estimated costs loading…</p>
+</section>
 
-<div id="coins"></div>
+<h2>Market signals</h2>
+<div class="grid" id="markets"><div class="panel">Market data load ho raha hai…</div></div>
 
-<div class="panel small">
- <b>Important risk notice</b><br>
- This scanner is for indicator research and paper testing only.
- No signal guarantees profit. Estimated fees and execution costs
- are assumptions, not actual Mudrex fills. Funding, liquidation,
- spread and slippage can differ. No real orders are placed.
-</div>
-
-</div>
-
+<section class="panel">
+<h2>Scanner rules & diagnostics</h2>
+<div class="small" id="rules">Signals are based on closed 1m candles, 5m trend, 15m context, RSI, momentum, volume and ATR. A confirmed direction is held until a confirmed opposite setup, SL/target touch, expiry, or stale/missing data. A single WAIT candle does not erase an active signal.</div>
+<div class="small" id="debug" style="margin-top:8px">Diagnostics: waiting…</div>
+</section>
+<footer>Watchlist is a broad candidate list, not a guaranteed complete Mudrex contract directory. Only pairs returning valid Mudrex ticker/candle data are counted as verified. 1m candles are grouped into aligned 5m and 15m bars. Entry reference is frozen at signal confirmation; live ticker is shown separately. Forecasts and risk levels are estimates, not promises.</footer>
+</main>
 <script>
 'use strict';
-
 const REST='https://trade.mudrex.com/fapi/v1/price/kline';
-const SOCKET='wss://trade.mudrex.com/fapi/v1/price/ws/linear';
-
-/* Curated symbol watchlist. Not a verified complete Mudrex listing. */
-const BASES=(
-'BTC ETH BNB SOL XRP ADA DOGE TRX AVAX LINK DOT LTC BCH UNI ETC FIL ATOM NEAR APT ARB OP SUI SEI INJ TIA TON WIF PEPE SHIB FLOKI FTM RENDER FET TAO IMX GALA SAND MANA AAVE MKR CRV COMP SNX DYDX LDO ENS JUP JTO PYTH WLD ONDO NOT ZK ZRO STRK BLUR ENA ETHFI PENDLE POL XLM XMR HBAR VET ALGO ICP QNT AXS CHZ FLOW THETA EGLD KAVA ZEC DASH NEO GMT MASK LRC ONE ZIL ROSE COTI ANKR BAT YFI SUSHI MINA KSM RUNE STX KAS'
-).split(/\s+/);
-
+const WS='wss://trade.mudrex.com/fapi/v1/price/ws/linear';
+const BASES=('BTC ETH BNB SOL XRP ADA DOGE TRX AVAX LINK DOT LTC BCH UNI ETC FIL ATOM NEAR APT ARB OP SUI SEI INJ TIA TON WIF PEPE SHIB FLOKI BONK FTM RENDER FET TAO IMX GALA SAND MANA AAVE MKR CRV COMP SNX DYDX LDO ENS JUP JTO PYTH WLD ONDO NOT ZK ZRO STRK BLUR ENA ETHFI PENDLE POL XLM XMR HBAR VET ALGO ICP QNT AXS CHZ FLOW THETA EGLD KAVA ZEC DASH NEO GMT MASK LRC ONE ZIL ROSE COTI ANKR BAT YFI SUSHI 1INCH MINA KSM RUNE STX KAS').split(/\s+/);
+const coins=BASES.map(base=>({
+ base,symbol:base+'/USDT',ws:base.toLowerCase()+'usdt',
+ candles:[],price:0,mark:0,tickerAt:0,signal:'WAIT',raw:'WAIT',reason:'Waiting for candle data',
+ ready:false,ind:null,lastProcessed:0,candidate:'',candidateCount:0,
+ activeSide:null,entry:0,sl:0,tp:0,signalAt:0,signalCandle:0,ageBars:0,
+ exitReason:'',lastRawReason:'Waiting for closed candles'
+}));
 const $=id=>document.getElementById(id);
-const now=()=>Date.now();
-const num=x=>Number.isFinite(Number(x))?Number(x):0;
-
-function makeCoin(b){
- return {
-  b,sym:b+'/USDT',ws:b.toLowerCase()+'usdt',
-  candles:[],price:0,signal:'NO-DATA',
-  reason:'Waiting for candle data',
-  trend1:'—',trend5:'—',trend15:'—',
-  rsi:null,atr:null,mom:null,
-  raw:'—',bars5:0,bars15:0,
-  lastCandle:0,updated:0,wsTime:0,
-  error:'',
-  candidate:'',candidateCount:0,
-  activeSide:'',activeAge:0,
-  entry:0,stop:0,target:0,
-  grossTargetPct:0,netTarget:0,
-  setupTime:0,setupId:0,
-  lastProcessed:0
- };
+let ws=null,paused=false,busy=false,lastCandleRefresh=0,lastTick=0,reconnectTimer=null;
+const FEE_DEFAULT=0.0005;
+const norm=s=>String(s??'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+const finite=n=>Number.isFinite(n);
+function nval(id,def){const x=Number($(id).value);return $(id).value.trim()!==''&&finite(x)?x:def}
+function cfg(){return {fee:Math.max(0,Math.min(1,nval('fee',.05)))/100,slip:Math.max(0,Math.min(1,nval('slip',.03)))/100,notional:Math.max(1,nval('notional',20)),expiry:Math.max(2,Math.min(20,Math.floor(nval('expiry',8))))}}
+function fmt(x,max=5){if(!finite(x)||x<=0)return '—';return x>=1000?x.toLocaleString('en-US',{maximumFractionDigits:2}):x>=1?x.toFixed(4):x.toPrecision(max)}
+function clock(t=Date.now()){return new Date(t).toLocaleTimeString('en-IN',{hour12:false})}
+function setText(id,v){$(id).textContent=v}
+function parseCandle(x){
+ let t,o,h,l,c,v;
+ if(Array.isArray(x)){[t,o,h,l,c,v]=x}
+ else if(x&&typeof x==='object'){t=x.t??x.time??x.timestamp??x.open_time??x.openTime;o=x.o??x.open;h=x.h??x.high;l=x.l??x.low;c=x.c??x.close;v=x.v??x.volume??0}
+ t=Number(t);if(t>0&&t<1e12)t*=1000;
+ o=Number(o);h=Number(h);l=Number(l);c=Number(c);v=Number(v)||0;
+ if(!finite(t)||!finite(o)||!finite(h)||!finite(l)||!finite(c)||c<=0||h<l)return null;
+ return {t,o,h,l,c,v};
 }
-
-const coins=BASES.map(makeCoin);
-let busy=false,paused=false,lastRest=0;
-let socket=null,socketTimer=null,pingTimer=null;
-let retry=2000,interval=null;
-
-function fmt(x){
- if(!Number.isFinite(x)||x<=0)return '—';
- if(x>=1000)return x.toLocaleString('en-US',{maximumFractionDigits:2});
- if(x>=1)return x.toFixed(4);
- return x.toFixed(8);
+function parseArray(a){return Array.isArray(a)?a.map(parseCandle).filter(Boolean).sort((x,y)=>x.t-y.t):[]}
+function extractMap(j){
+ const roots=[j?.data?.asset_ticks,j?.asset_ticks,j?.data?.ticks,j?.data,j?.result?.asset_ticks,j?.result,j];
+ for(const root of roots){if(root&&typeof root==='object'&&!Array.isArray(root))return root}
+ return null;
 }
-
-function ema(a,p){
- if(a.length<p)return null;
- const k=2/(p+1);
- let e=a.slice(0,p).reduce((s,v)=>s+v,0)/p;
- for(let i=p;i<a.length;i++)e=a[i]*k+e*(1-k);
- return e;
+function candlesFor(j,asset,base){
+ const root=extractMap(j);const keys=[asset,asset.toLowerCase(),base+'/USDT',base.toLowerCase()+'/usdt',base+'USDT',(base+'USDT').toLowerCase()];
+ if(root){for(const k of keys){const v=root[k]??root[Object.keys(root).find(z=>norm(z)===norm(k))];if(Array.isArray(v))return parseArray(v);if(v&&typeof v==='object'){for(const q of ['ticks','candles','klines','data','items'])if(Array.isArray(v[q]))return parseArray(v[q])}}}
+ // Also support a list of objects carrying symbol/asset and candle arrays.
+ const arr=Array.isArray(j?.data)?j.data:Array.isArray(j?.result)?j.result:Array.isArray(j)?j:null;
+ if(arr){for(const item of arr){const k=norm(item?.asset??item?.symbol??item?.s);if(keys.some(z=>norm(z)===k)){for(const q of ['ticks','candles','klines','data','items'])if(Array.isArray(item[q]))return parseArray(item[q])}}}
+ return [];
 }
-
+async function fetchJSON(url,timeout=12000){
+ const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),timeout);
+ try{const r=await fetch(url,{cache:'no-store',signal:ctrl.signal});if(!r.ok)throw Error('HTTP '+r.status);return await r.json()}
+ finally{clearTimeout(timer)}
+}
+function aggregate(c,mins){
+ const groups=new Map();
+ for(const x of c){const bucket=Math.floor(x.t/(mins*60000));if(!groups.has(bucket))groups.set(bucket,[]);groups.get(bucket).push(x)}
+ const out=[];
+ for(const [bucket,g] of groups){
+  g.sort((a,b)=>a.t-b.t);
+  if(g.length!==mins)continue;
+  let contiguous=true;for(let i=1;i<g.length;i++)if(g[i].t-g[i-1].t!==60000)contiguous=false;
+  if(!contiguous)continue;
+  const start=bucket*mins*60000;
+  if(g[0].t!==start||g[g.length-1].t+60000> Date.now())continue;
+  out.push({t:start,o:g[0].o,h:Math.max(...g.map(x=>x.h)),l:Math.min(...g.map(x=>x.l)),c:g[g.length-1].c,v:g.reduce((s,x)=>s+x.v,0)});
+ }
+ return out.sort((a,b)=>a.t-b.t);
+}
+function ema(a,p){if(a.length<p)return NaN;let v=a.slice(0,p).reduce((s,x)=>s+x,0)/p,k=2/(p+1);for(let i=p;i<a.length;i++)v=a[i]*k+v*(1-k);return v}
 function rsi(a,p=14){
- if(a.length<p+1)return null;
- let up=0,down=0;
- for(let i=1;i<=p;i++){
-  const d=a[i]-a[i-1];
-  up+=Math.max(d,0);
-  down+=Math.max(-d,0);
- }
- let ag=up/p,al=down/p;
- for(let i=p+1;i<a.length;i++){
-  const d=a[i]-a[i-1];
-  ag=(ag*(p-1)+Math.max(d,0))/p;
-  al=(al*(p-1)+Math.max(-d,0))/p;
- }
- if(al===0)return 100;
- return 100-100/(1+ag/al);
+ if(a.length<=p)return NaN;let gain=0,loss=0;
+ for(let i=1;i<=p;i++){const d=a[i]-a[i-1];if(d>0)gain+=d;else loss-=d}
+ let ag=gain/p,al=loss/p;
+ for(let i=p+1;i<a.length;i++){const d=a[i]-a[i-1];ag=(ag*(p-1)+Math.max(0,d))/p;al=(al*(p-1)+Math.max(0,-d))/p}
+ if(al===0)return ag===0?50:100;return 100-100/(1+ag/al)
 }
-
-function atr(a,p=14){
- if(a.length<p+1)return null;
- const tr=[];
- for(let i=1;i<a.length;i++){
-  const x=a[i],prev=a[i-1];
-  tr.push(Math.max(
-   x.h-x.l,
-   Math.abs(x.h-prev.c),
-   Math.abs(x.l-prev.c)
-  ));
- }
- if(tr.length<p)return null;
+function atr(c,p=14){
+ if(c.length<=p)return NaN;let tr=[];
+ for(let i=1;i<c.length;i++){const x=c[i],prev=c[i-1].c;tr.push(Math.max(x.h-x.l,Math.abs(x.h-prev),Math.abs(x.l-prev)))}
  let v=tr.slice(0,p).reduce((s,x)=>s+x,0)/p;
  for(let i=p;i<tr.length;i++)v=(v*(p-1)+tr[i])/p;
  return v;
 }
-
-function candleTime(t){
- t=num(t);
- if(t>0&&t<100000000000)t*=1000;
- return t;
+function trend(c,fast,slow){
+ if(c.length<slow+2)return 'UNAVAILABLE';const a=c.map(x=>x.c),f=ema(a,fast),s=ema(a,slow);
+ return f>s?'BULLISH':f<s?'BEARISH':'FLAT';
 }
-
-function parseCandle(x){
- if(Array.isArray(x)){
-  return {
-   t:candleTime(x[0]),o:num(x[1]),h:num(x[2]),
-   l:num(x[3]),c:num(x[4]),v:num(x[5])
-  };
- }
- if(!x||typeof x!=='object')return null;
- return {
-  t:candleTime(x.t??x.timestamp??x.time??x.open_time??x.start_time),
-  o:num(x.o??x.open),h:num(x.h??x.high),
-  l:num(x.l??x.low),c:num(x.c??x.close),
-  v:num(x.v??x.volume)
- };
+function sideOf(sig){return sig==='LONG'||sig==='SHORT'?sig:null}
+function riskLevels(m,side,entry,ind){
+ const cfgNow=cfg(),a=ind.atr,pct=entry>0?a/entry:0;
+ const stopPct=Math.max(.0018,Math.min(.008,Math.max(pct*1.15,.0018)));
+ const cost=2*cfgNow.fee+cfgNow.slip;
+ const risk=Math.max(entry*stopPct,entry*(cost*1.8));
+ const reward=Math.max(risk*1.55,entry*(cost*2.8));
+ m.entry=entry;
+ m.sl=side==='LONG'?entry-risk:entry+risk;
+ m.tp=side==='LONG'?entry+reward:entry-reward;
 }
-
-function validCandle(x){
- return x&&x.t>0&&x.o>0&&x.h>0&&x.l>0&&x.c>0&&x.h>=x.l&&x.h>=x.o&&x.h>=x.c&&x.l<=x.o&&x.l<=x.c;
-}
-
-function clean(s){
- return String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
-}
-
-/* Handles Mudrex response wrappers without silently inventing candles. */
-function findRows(obj,coin){
- if(!obj)return [];
- if(Array.isArray(obj)){
-  if(obj.length&&Array.isArray(obj[0]))return obj;
-  if(obj.length&&typeof obj[0]==='object'){
-   const matched=obj.filter(x=>{
-    const s=x.asset??x.symbol??x.instrument??x.s;
-    return !s||clean(s)===clean(coin.sym)||clean(s)===clean(coin.ws);
-   });
-   if(matched.length)return matched;
-  }
-  return obj;
+function analyze(m){
+ const c=m.candles, c5=aggregate(c,5),c15=aggregate(c,15);
+ if(c.length<100||c5.length<18||c15.length<8){
+  m.ready=false;m.raw='WAIT';m.lastRawReason='Insufficient closed candle history (1m '+c.length+', 5m '+c5.length+', 15m '+c15.length+')';m.ind=null;return;
  }
- if(typeof obj!=='object')return [];
- const keys=[
-  coin.sym,coin.b+'USDT',coin.ws,coin.b
- ];
- for(const [k,v] of Object.entries(obj)){
-  if(keys.includes(k)||keys.includes(clean(k))){
-   return findRows(v,coin);
-  }
- }
- for(const k of ['candles','ticks','klines','data','values','items','result']){
-  if(obj[k]!==undefined){
-   const r=findRows(obj[k],coin);
-   if(r.length)return r;
-  }
- }
- return [];
-}
-
-function extractAssetRows(j,coin){
- const d=j?.data??j;
- if(Array.isArray(d)){
-  return findRows(d,coin);
- }
- if(typeof d==='object'){
-  for(const key of ['asset_ticks','ticks','klines','candles','result']){
-   if(d[key]!==undefined){
-    const r=findRows(d[key],coin);
-    if(r.length)return r;
-   }
-  }
-  return findRows(d,coin);
- }
- return [];
-}
-
-function aggregate(c,minutes){
- const map=new Map();
- for(const x of c){
-  const t=Math.floor(x.t/(minutes*60000))*minutes*60000;
-  if(!map.has(t))map.set(t,[]);
-  map.get(t).push(x);
- }
- const out=[];
- for(const [t,g] of map){
-  if(t+minutes*60000>now())continue;
-  g.sort((a,b)=>a.t-b.t);
-  const unique=[];
-  for(const x of g){
-   if(!unique.length||unique[unique.length-1].t!==x.t)unique.push(x);
-  }
-  /* Require every real minute. Missing candles are never fabricated. */
-  if(unique.length!==minutes)continue;
-  let consecutive=true;
-  for(let i=1;i<unique.length;i++){
-   if(unique[i].t-unique[i-1].t!==60000)consecutive=false;
-  }
-  if(!consecutive)continue;
-  out.push({
-   t,o:unique[0].o,c:unique[unique.length-1].c,
-   h:Math.max(...unique.map(x=>x.h)),
-   l:Math.min(...unique.map(x=>x.l)),
-   v:unique.reduce((s,x)=>s+x.v,0)
-  });
- }
- return out.sort((a,b)=>a.t-b.t);
-}
-
-function direction(a,fast=9,slow=21){
- if(a.length<slow+2)return '—';
- const c=a.map(x=>x.c);
- const f=ema(c,fast),s=ema(c,slow);
- if(f===null||s===null)return '—';
- const diff=(f-s)/s*100;
- if(diff>0.012)return 'Bullish';
- if(diff< -0.012)return 'Bearish';
- return 'Sideways';
-}
-
-function sideOf(raw){
- if(raw.endsWith('LONG'))return 'LONG';
- if(raw.endsWith('SHORT'))return 'SHORT';
- return '';
-}
-
-function clearSetup(m,reason){
- m.activeSide='';
- m.signal='NO-TRADE';
- m.reason=reason;
- m.entry=0;m.stop=0;m.target=0;
- m.grossTargetPct=0;m.netTarget=0;
- m.activeAge=0;
-}
-
-function setupPrices(m,side,price,a){
- const av=atr(a,14);
- if(!av||!price)return false;
-
- const fee=Math.max(0,num($('fee').value))/100*2;
- const extra=Math.max(0,num($('extra').value))/100;
-
- /* Minimum move must exceed estimated round-trip costs plus a buffer. */
- const costFloor=price*(fee+extra+0.0003);
- const stopDistance=Math.max(av*1.05,price*0.0010);
- const targetDistance=Math.max(av*1.45,costFloor*2.2,price*0.0018);
-
- if(targetDistance/stopDistance<1.25)return false;
-
- m.entry=price;
- if(side==='LONG'){
-  m.stop=price-stopDistance;
-  m.target=price+targetDistance;
- }else{
-  m.stop=price+stopDistance;
-  m.target=price-targetDistance;
- }
- m.grossTargetPct=targetDistance/price*100;
-
- const amount=Math.max(0,num($('amount').value));
- const gross=amount*m.grossTargetPct/100;
- const costs=amount*(fee+extra);
- m.netTarget=gross-costs;
- return m.netTarget>0;
-}
-
-/* Signal logic only runs once for each new closed 1m candle. */
-function analyse(m){
- const c=m.candles;
- if(c.length<60){
-  m.signal='NO-DATA';
-  m.reason='Need at least 60 valid closed 1m candles';
-  return;
- }
-
- const id=c[c.length-1].t;
- if(id===m.lastProcessed)return;
- m.lastProcessed=id;
- m.lastCandle=id;
-
- const closes=c.map(x=>x.c);
- const price=closes[closes.length-1];
- const a=atr(c,14);
- const r=rsi(closes,14);
- const b5=aggregate(c,5);
- const b15=aggregate(c,15);
-
- m.bars5=b5.length;m.bars15=b15.length;
- m.atr=a;m.rsi=r;m.price=m.price||price;
- m.trend1=direction(c,9,21);
- m.trend5=direction(b5,9,21);
- m.trend15=direction(b15,5,13);
-
- if(!a||r===null||m.trend5==='—'){
-  m.signal='NO-DATA';
-  m.reason='Indicator history insufficient';
-  return;
- }
-
- const e9=ema(closes,9);
- const e21=ema(closes,21);
- const previous=closes[closes.length-2];
- const momentum=(price-previous)/previous*100;
- m.mom=momentum;
-
- const up1=m.trend1==='Bullish';
- const dn1=m.trend1==='Bearish';
- const up5=m.trend5==='Bullish';
- const dn5=m.trend5==='Bearish';
-
- const body=Math.abs(c[c.length-1].c-c[c.length-1].o);
- const candleStrength=body/a;
-
- let raw='',why='No confirmed setup';
-
- /* Avoid chasing extreme RSI and tiny candle movement. */
- const longOK=up1&&up5&&r>=50&&r<=68&&
-  momentum>0.012&&price>e9&&e9>e21&&
-  candleStrength>=0.12;
-
- const shortOK=dn1&&dn5&&r>=32&&r<=50&&
-  momentum< -0.012&&price<e9&&e9<e21&&
-  candleStrength>=0.12;
-
- if(longOK){
-  raw='LONG';
-  why='1m and 5m bullish · RSI and momentum confirmed';
-  if(m.trend15==='Bearish')why+=' · 15m headwind';
- }else if(shortOK){
-  raw='SHORT';
-  why='1m and 5m bearish · RSI and momentum confirmed';
-  if(m.trend15==='Bullish')why+=' · 15m headwind';
- }else{
-  if(up1&&dn5)why='Conflicting 1m / 5m trend';
-  else if(dn1&&up5)why='Conflicting 1m / 5m trend';
-  else if(r>72||r<28)why='Extreme RSI · avoid chasing';
-  else if(Math.abs(momentum)<0.012)why='Insufficient 1m momentum';
-  else why='Trend or candle confirmation missing';
- }
-
- m.raw=raw||'NO-TRADE';
-
- /* Existing position reference: do not erase on one neutral candle. */
- if(m.activeSide){
-  m.activeAge++;
-  const live=m.price||price;
-  const hitSL=m.activeSide==='LONG'?live<=m.stop:live>=m.stop;
-  const hitTP=m.activeSide==='LONG'?live>=m.target:live<=m.target;
-  const opposite=raw&&raw!==m.activeSide;
-
-  if(hitSL){
-   clearSetup(m,'Price crossed reference stop-loss · setup invalidated');
-   m.candidate='';m.candidateCount=0;
-   return;
-  }
-  if(hitTP){
-   clearSetup(m,'Price reached reference target · setup completed');
-   m.candidate='';m.candidateCount=0;
-   return;
-  }
-
-  if(opposite){
-   if(m.candidate===raw)m.candidateCount++;
-   else{m.candidate=raw;m.candidateCount=1;}
-   if(m.candidateCount>=2){
-    clearSetup(m,'Opposite direction confirmed on 2 closed candles');
-    m.candidate='';m.candidateCount=0;
-    /* New opposite setup may be evaluated on next candle. */
-    return;
-   }
-  }else{
-   m.candidate='';m.candidateCount=0;
-  }
-
-  if(m.activeAge>=8){
-   clearSetup(m,'Setup expired after 8 closed candles');
-   return;
-  }
-
-  m.signal=m.activeSide==='LONG'?'STRONG-LONG':'STRONG-SHORT';
-  m.reason='Confirmed setup remains active · '+m.activeAge+
-   '/8 candles · '+why;
-  return;
- }
-
- if(!raw){
-  m.candidate='';m.candidateCount=0;
-  m.signal='NO-TRADE';
-  m.reason=why;
-  return;
- }
-
- if(m.candidate===raw)m.candidateCount++;
- else{
-  m.candidate=raw;
-  m.candidateCount=1;
- }
-
- if(m.candidateCount<2){
-  m.signal='NO-TRADE';
-  m.reason='First confirmation received · waiting for second closed candle';
-  return;
- }
-
- const current=m.price||price;
- if(!setupPrices(m,raw,c,current)){
-  m.signal='NO-TRADE';
-  m.reason='Expected move is too small after estimated fees and execution costs';
-  m.candidate='';m.candidateCount=0;
-  return;
- }
-
- m.activeSide=raw;
- m.activeAge=0;
- m.setupTime=now();
- m.setupId=id;
- m.signal=raw==='LONG'?'STRONG-LONG':'STRONG-SHORT';
- m.reason='Two closed 1m confirmations · 5m trend aligned · '+why;
- m.candidate='';
- m.candidateCount=0;
-}
-
-/* Public REST candle request. Max 25 assets per batch. */
-async function fetchBatch(batch){
- const end=Math.floor(now()/1000);
- const start=end-6*60*60;
- const params=new URLSearchParams({
-  assets:batch.map(x=>x.sym).join(','),
-  aggregation:'1m',
-  start_time:String(start),
-  end_time:String(end)
- });
-
- const controller=new AbortController();
- const timeout=setTimeout(()=>controller.abort(),15000);
-
- try{
-  const response=await fetch(REST+'?'+params,{
-   cache:'no-store',
-   signal:controller.signal
-  });
-  if(!response.ok)throw new Error('HTTP '+response.status);
-
-  const json=await response.json();
-  for(const m of batch){
-   const rows=extractAssetRows(json,m);
-   const parsed=rows.map(parseCandle).filter(validCandle)
-    .sort((a,b)=>a.t-b.t);
-   const unique=[];
-   for(const x of parsed){
-    if(!unique.length||unique[unique.length-1].t!==x.t)
-     unique.push(x);
-   }
-   const closed=unique.filter(x=>x.t+60000<=now()).slice(-300);
-
-   if(closed.length>=60){
-    const old=m.candles;
-    const latest=closed[closed.length-1].t;
-    if(!old.length||latest>=old[old.length-1].t){
-     m.candles=closed;
-     m.updated=now();
-     m.error='';
-     analyse(m);
-    }
+ const one=c.slice(),cl=one.map(x=>x.c),last=one[one.length-1],prev=one[one.length-2];
+ const t1=trend(one,9,21),t5=trend(c5,5,13),t15=trend(c15,5,13);
+ const rv=rsi(cl,14),a=atr(one,14),mom=(last.c/cl[cl.length-6]-1)*100;
+ const avgVol=one.slice(-21,-1).reduce((s,x)=>s+x.v,0)/20,volRatio=avgVol>0?last.v/avgVol:NaN;
+ const e9=ema(cl,9),body=last.c>last.o?'UP':last.c<last.o?'DOWN':'FLAT';
+ const candleConfirmLong=body==='UP'&&last.c>e9&&prev.c>ema(cl.slice(0,-1),9);
+ const candleConfirmShort=body==='DOWN'&&last.c<e9&&prev.c<ema(cl.slice(0,-1),9);
+ const notChasing=Math.abs(last.c/e9-1)<.0025;
+ const longOK=t1==='BULLISH'&&t5==='BULLISH'&&t15!=='BEARISH'&&mom>=.018&&rv>=46&&rv<=69&&candleConfirmLong&&notChasing&&volRatio>=.55;
+ const shortOK=t1==='BEARISH'&&t5==='BEARISH'&&t15!=='BULLISH'&&mom<=-.018&&rv>=31&&rv<=54&&candleConfirmShort&&notChasing&&volRatio>=.55;
+ const strongLong=longOK&&t15==='BULLISH'&&volRatio>=.9&&rv>=51;
+ const strongShort=shortOK&&t15==='BEARISH'&&volRatio>=.9&&rv<=49;
+ let raw=longOK?'LONG':shortOK?'SHORT':'WAIT';
+ let reason='Closed-candle setup confirmation nahi mila';
+ if(t1!==t5&&(t1==='BULLISH'||t1==='BEARISH')&&(t5==='BULLISH'||t5==='BEARISH'))reason='1m aur 5m trend conflict';
+ else if(t1==='BEARISH'&&t5==='BEARISH'&&rv<30)reason='RSI extreme low; SHORT chase avoid';
+ else if(t1==='BULLISH'&&t5==='BULLISH'&&rv>70)reason='RSI extreme high; LONG chase avoid';
+ else if(!notChasing)reason='Price EMA se door; late entry avoid';
+ else if(volRatio<.55)reason='Volume confirmation weak';
+ else if(raw==='LONG')reason=strongLong?'STRONG LONG: 1m/5m/15m aligned, candle + volume confirmed':'LONG: 1m/5m aligned, 15m context acceptable';
+ else if(raw==='SHORT')reason=strongShort?'STRONG SHORT: 1m/5m/15m aligned, candle + volume confirmed':'SHORT: 1m/5m aligned, 15m context acceptable';
+ m.ready=true;m.raw=raw;m.lastRawReason=reason;
+ m.ind={t1,t5,t15,rsi:rv,atr:a,mom,volRatio,body,lastTime:last.t,oneCount:c.length,fiveCount:c5.length,fifteenCount:c15.length};
+ // Signal state changes only once per new closed 1m candle.
+ if(last.t>m.lastProcessed){
+  m.lastProcessed=last.t;
+  if(raw===m.candidate)m.candidateCount++;else{m.candidate=raw;m.candidateCount=raw==='WAIT'?0:1}
+  if(raw==='WAIT'){
+   if(m.activeSide){
+    m.ageBars++;
+    const ageLimit=cfg().expiry;
+    if(m.ageBars>=ageLimit){m.exitReason='Signal expired after '+ageLimit+' closed candles';m.activeSide=null;m.entry=m.sl=m.tp=0;m.signal='WAIT';m.reason=m.exitReason}
+    else{m.signal=m.activeSide;m.reason='HELD · '+m.lastRawReason+' · '+m.ageBars+'/'+ageLimit+' candles'}
+   }else{m.signal='WAIT';m.reason=reason}
+  }else if(m.candidateCount>=2){
+   if(m.activeSide!==raw){
+    m.activeSide=raw;m.ageBars=0;m.exitReason='';
+    const liveFresh=m.price>0&&Date.now()-m.tickerAt<12000;
+    const entry=liveFresh?m.price:last.c;
+    riskLevels(m,raw,entry,m.ind);
+    m.signal=raw;m.signalAt=Date.now();m.signalCandle=last.t;
+    m.reason=(raw==='LONG'&&strongLong?'STRONG LONG':raw==='SHORT'&&strongShort?'STRONG SHORT':raw)+' · 2 closed candles confirmed';
    }else{
-    m.error='Insufficient candle history: '+closed.length;
-    if(!m.candles.length){
-     m.signal='NO-DATA';
-     m.reason=m.error;
-    }
+    m.ageBars=0;m.signal=raw;m.reason=(strongLong||strongShort?'STRONG ':'')+raw+' · confirmation maintained';
    }
-  }
- }finally{
-  clearTimeout(timeout);
+  }else if(m.activeSide){
+   m.ageBars++;m.signal=m.activeSide;m.reason='HELD · opposite/new setup confirmation pending';
+  }else{m.signal='WAIT';m.reason='First confirmation candle; second closed candle ka wait'}
+ }
+ // Hard invalidation only on live ticker touching stored SL/TP.
+ if(m.activeSide&&m.price>0&&m.tickerAt&&Date.now()-m.tickerAt<15000){
+  const hitSL=m.activeSide==='LONG'?m.price<=m.sl:m.price>=m.sl;
+  const hitTP=m.activeSide==='LONG'?m.price>=m.tp:m.price<=m.tp;
+  if(hitSL||hitTP){m.exitReason=hitSL?'Paper SL touched':'Paper target touched';m.activeSide=null;m.signal='WAIT';m.entry=m.sl=m.tp=0;m.reason=m.exitReason;m.candidate='';m.candidateCount=0}
  }
 }
-
+function renderCoin(m){
+ const sig=m.ready?(m.signal||'WAIT'):'NO DATA',cls=sig==='LONG'?'long':sig==='SHORT'?'short':sig==='NO DATA'?'nodata':'wait';
+ const liveAge=m.tickerAt?Math.max(0,Math.round((Date.now()-m.tickerAt)/1000)):null;
+ const ind=m.ind;
+ return `<article class="coin">
+ <div class="top"><b class="symbol">${m.base}/USDT</b><span class="badge ${cls}">${sig}${m.activeSide&&m.signal===m.activeSide?' · HELD':''}</span></div>
+ <div class="price">${fmt(m.price||m.candles.at(-1)?.c)} <span class="small">USDT</span></div>
+ <div class="reason">${m.ready?(m.reason||m.lastRawReason):m.lastRawReason}</div>
+ <div class="metrics">
+ <div class="metric"><span>1m trend</span><b>${ind?.t1||'—'}</b></div><div class="metric"><span>5m trend</span><b>${ind?.t5||'—'}</b></div>
+ <div class="metric"><span>15m trend</span><b>${ind?.t15||'—'}</b></div><div class="metric"><span>RSI 1m</span><b>${finite(ind?.rsi)?ind.rsi.toFixed(2):'—'}</b></div>
+ <div class="metric"><span>Momentum</span><b>${finite(ind?.mom)?(ind.mom>0?'+':'')+ind.mom.toFixed(3)+'%':'—'}</b></div><div class="metric"><span>Volume / avg</span><b>${finite(ind?.volRatio)?ind.volRatio.toFixed(2)+'x':'—'}</b></div>
+ <div class="metric"><span>Entry reference</span><b>${m.activeSide?fmt(m.entry):'—'}</b></div><div class="metric"><span>Live ticker</span><b>${liveAge!==null?fmt(m.price)+' · '+liveAge+'s':'No fresh tick'}</b></div>
+ <div class="metric"><span>Stop loss</span><b>${m.activeSide?fmt(m.sl):'—'}</b></div><div class="metric"><span>Target</span><b>${m.activeSide?fmt(m.tp):'—'}</b></div>
+ </div>
+ <div class="small">Closed candles: ${m.candles.length} · 5m bars: ${ind?.fiveCount??'—'} · 15m bars: ${ind?.fifteenCount??'—'} · Raw setup: ${m.raw||'WAIT'} · Data age: ${liveAge===null?'—':liveAge+'s'}</div>
+ </article>`;
+}
+function render(){
+ const q=$('search').value.trim().toUpperCase(),f=$('filter').value;
+ const visible=coins.filter(m=>(!q||m.base.includes(q))&&(f==='ALL'||(f==='NODATA'?!m.ready:f==='WAIT'?m.ready&&m.signal==='WAIT':m.ready&&m.signal===f)));
+ visible.sort((a,b)=>{const rank=m=>m.activeSide?3:m.ready?2:0;return rank(b)-rank(a)||Math.abs(b.ind?.mom||0)-Math.abs(a.ind?.mom||0)});
+ $('markets').innerHTML=visible.map(renderCoin).join('')||'<div class="panel">No matching coins.</div>';
+ const ready=coins.filter(m=>m.ready).length,longs=coins.filter(m=>m.ready&&m.signal==='LONG').length,shorts=coins.filter(m=>m.ready&&m.signal==='SHORT').length;
+ setText('total',coins.length);setText('ready',ready);setText('longs',longs);setText('shorts',shorts);setText('waits',coins.length-longs-shorts);
+ setText('feeSummary',`Illustrative round-trip fee: ${(cfg().notional*cfg().fee*2).toFixed(4)} USDT · Slippage estimate: ${(cfg().notional*cfg().slip).toFixed(4)} USDT · Total estimated cost: ${(cfg().notional*(cfg().fee*2+cfg().slip)).toFixed(4)} USDT. Excludes funding and spread.`);
+ setText('refreshAge',lastCandleRefresh?'Candle refresh: '+clock(lastCandleRefresh):'Candle refresh: —');
+}
+async function fetchBatch(batch){
+ const end=Math.floor(Date.now()/1000),start=end-320*60;
+ const assets=batch.map(m=>m.symbol);
+ const url=REST+'?assets='+encodeURIComponent(assets.join(','))+'&aggregation=1m&start_time='+start+'&end_time='+end;
+ const j=await fetchJSON(url,15000);
+ if(j?.success===false)throw Error(JSON.stringify(j.errors||j));
+ let good=0,empty=0;
+ for(const m of batch){
+  const arr=candlesFor(j,m.symbol,m.base).filter(x=>x.t+60000<=Date.now()).slice(-300);
+  if(arr.length>=100){m.candles=arr;analyze(m);good++}
+  else{m.candles=arr;m.ready=false;m.raw='WAIT';m.ind=null;m.lastRawReason='Not enough closed Mudrex candles ('+arr.length+')';if(!m.activeSide){m.signal='WAIT';m.entry=m.sl=m.tp=0}empty++}
+ }
+ return {good,empty};
+}
 async function refreshCandles(){
- if(busy||paused)return;
- busy=true;
- let good=0,bad=0;
- $('status').textContent='Loading Mudrex Futures candles...';
-
+ if(busy||paused)return;busy=true;$('refresh').disabled=true;
+ let good=0,empty=0,failed=0,errors=[];
  try{
   for(let i=0;i<coins.length;i+=25){
    const batch=coins.slice(i,i+25);
-   try{
-    await fetchBatch(batch);
-    good++;
-   }catch(e){
-    bad++;
-    batch.forEach(m=>{
-     m.error=e.message;
-     if(!m.candles.length){
-      m.signal='NO-DATA';
-      m.reason='REST error: '+e.message;
-     }
-    });
+   try{const r=await fetchBatch(batch);good+=r.good;empty+=r.empty}
+   catch(e){
+    failed++;errors.push('Batch '+(Math.floor(i/25)+1)+': '+e.message);
+    // Retry each symbol individually so one invalid pair cannot block the rest.
+    for(const m of batch){
+     try{const r=await fetchBatch([m]);good+=r.good;empty+=r.empty}
+     catch(err){empty++;m.ready=false;m.ind=null;m.lastRawReason='Mudrex candle error: '+String(err.message||err).slice(0,90);if(!m.activeSide)m.signal='WAIT'}
+    }
    }
-   $('status').textContent='REST '+Math.min(i+25,coins.length)+
-    '/'+coins.length+' · OK '+good+' · Failed '+bad;
+   setText('status',`Candle refresh ${Math.min(i+25,coins.length)}/${coins.length} · ${good} ready · ${failed} batch fallback`);
    render();
   }
-  lastRest=now();
-  $('status').textContent='Mudrex REST completed · '+good+
-   ' batches OK · '+bad+' failed · '+new Date().toLocaleTimeString();
- }finally{
-  busy=false;
-  render();
+  lastCandleRefresh=Date.now();
+  setText('status',`Mudrex candle refresh complete · ${good} ready · ${empty} unavailable/insufficient · ${failed} batch fallback`);
+  setText('debug',errors.length?errors.join(' | '):'All REST batches returned. Individual candle arrays are validated; missing symbols are not assigned invented prices or signals.');
+ }catch(e){setText('status','Refresh error: '+e.message);setText('debug',e.stack||e.message)}
+ finally{busy=false;$('refresh').disabled=false;render()}
+}
+function checkLiveExit(m){
+ if(!m.activeSide||!(m.price>0)||!m.tickerAt||Date.now()-m.tickerAt>15000)return;
+ const hitSL=m.activeSide==='LONG'?m.price<=m.sl:m.price>=m.sl;
+ const hitTP=m.activeSide==='LONG'?m.price>=m.tp:m.price<=m.tp;
+ if(hitSL||hitTP){
+  m.exitReason=hitSL?'Paper SL touched':'Paper target touched';
+  m.activeSide=null;m.signal='WAIT';m.entry=m.sl=m.tp=0;
+  m.reason=m.exitReason;m.candidate='';m.candidateCount=0;
  }
 }
-
-/* Mudrex ticker format:
-   {stream:"ticker@1s",data:[{s:"btcusdt",p:...}]}
-*/
-function handleTicker(item){
- if(!item||typeof item!=='object')return;
- const symbol=item.s??item.symbol??item.asset;
- const price=num(item.p??item.price??item.last_price);
- if(!symbol||price<=0)return;
- const key=clean(symbol);
- const m=coins.find(x=>key===clean(x.ws)||key===clean(x.sym));
- if(!m)return;
- m.price=price;
- m.wsTime=now();
-
- if(m.activeSide){
-  const hitSL=m.activeSide==='LONG'?price<=m.stop:price>=m.stop;
-  const hitTP=m.activeSide==='LONG'?price>=m.target:price<=m.target;
-  if(hitSL){
-   clearSetup(m,'Live price crossed stop reference');
-   m.candidate='';m.candidateCount=0;
-  }else if(hitTP){
-   clearSetup(m,'Live price crossed target reference');
-   m.candidate='';m.candidateCount=0;
-  }
- }
+function handleTicker(x){
+ const s=norm(x?.s??x?.symbol??x?.asset??'');if(!s)return;
+ const m=coins.find(z=>norm(z.base+'USDT')===s);if(!m)return;
+ const p=Number(x.p??x.price??x.lastPrice),mp=Number(x.mp??x.markPrice);
+ if(p>0&&finite(p)){m.price=p;m.tickerAt=Date.now();lastTick=Date.now();checkLiveExit(m)}
+ if(mp>0&&finite(mp))m.mark=mp;
 }
-
-function connectSocket(){
- if(paused)return;
+function connectWS(){
  try{
-  socket=new WebSocket(SOCKET);
-
-  socket.onopen=()=>{
-   retry=2000;
-   socket.send(JSON.stringify({
-    id:1,
-    method:'SUBSCRIBE',
-    params:['ticker@1s'],
-    assets:coins.map(x=>x.ws)
-   }));
-   $('status').textContent='WebSocket connected · ticker subscription sent';
-   clearInterval(pingTimer);
-   pingTimer=setInterval(()=>{
-    if(socket&&socket.readyState===1){
-     socket.send(JSON.stringify({id:2,method:'LIST_SUBSCRIPTIONS'}));
-    }
-   },20000);
+  if(ws){try{ws.close()}catch(e){}}
+  ws=new WebSocket(WS);
+  ws.onopen=()=>{
+   setText('wsstatus','Ticker: connected');
+   try{ws.send(JSON.stringify({id:1,method:'SUBSCRIBE',params:['ticker@1s'],assets:coins.map(m=>m.ws)}))}catch(e){setText('wsstatus','Ticker: subscribe failed')}
   };
-
-  socket.onmessage=e=>{
-   try{
-    const msg=JSON.parse(e.data);
-    if(msg.error){
-     $('status').textContent='WebSocket error: '+msg.error.msg;
-     return;
-    }
-    const data=msg.data;
-    if(Array.isArray(data))data.forEach(handleTicker);
-    else if(data&&typeof data==='object')handleTicker(data);
-   }catch(_){}
+  ws.onmessage=e=>{
+   let j;try{j=JSON.parse(e.data)}catch{return}
+   if(j.error){setText('wsstatus','Ticker error: '+(j.error.msg||'subscription error'));return}
+   const d=j.data,items=Array.isArray(d)?d:(d?[d]:[]);
+   for(const x of items)handleTicker(x);
   };
-
-  socket.onerror=()=>{
-   $('status').textContent='WebSocket error · REST remains active';
-  };
-
-  socket.onclose=()=>{
-   clearInterval(pingTimer);
-   if(!paused){
-    $('status').textContent='WebSocket disconnected · reconnecting';
-    clearTimeout(socketTimer);
-    socketTimer=setTimeout(connectSocket,retry);
-    retry=Math.min(retry*2,30000);
-   }
-  };
- }catch(e){
-  $('status').textContent='WebSocket unavailable · REST mode';
- }
+  ws.onerror=()=>setText('wsstatus','Ticker: connection error');
+  ws.onclose=()=>{setText('wsstatus','Ticker: disconnected · reconnecting');if(!paused){clearTimeout(reconnectTimer);reconnectTimer=setTimeout(connectWS,5000)}};
+ }catch(e){setText('wsstatus','Ticker unavailable')}
 }
-
-function card(m){
- const sig=m.signal;
- const age=m.wsTime?Math.floor((now()-m.wsTime)/1000):null;
- const ticker=age===null?'Not received':age+'s ago';
- const p=m.price||0;
- const active=!!m.activeSide;
- const amount=Math.max(0,num($('amount').value));
- const fee=Math.max(0,num($('fee').value))*2/100;
- const extra=Math.max(0,num($('extra').value))/100;
- const gross=active?amount*m.grossTargetPct/100:0;
- const costs=amount*(fee+extra);
- const net=gross-costs;
-
- return `<div class="coin">
- <div class="coinhead">
-  <div>
-   <div class="symbol">${m.b}/USDT</div>
-   <div class="small">${m.candles.length} closed 1m candles · ${m.bars5} complete 5m bars · ${m.bars15} complete 15m bars</div>
-  </div>
-  <div class="price">${fmt(p)}</div>
-  <span class="tag ${sig}">${sig.replace('-',' ')}</span>
- </div>
-
- <div class="metrics">
-  <div class="metric"><span>1m TREND</span><b>${m.trend1}</b></div>
-  <div class="metric"><span>5m TREND</span><b>${m.trend5}</b></div>
-  <div class="metric"><span>15m TREND</span><b>${m.trend15}</b></div>
-  <div class="metric"><span>RSI</span><b>${m.rsi===null?'—':m.rsi.toFixed(2)}</b></div>
-  <div class="metric"><span>ATR 1m</span><b>${m.atr?fmt(m.atr):'—'}</b></div>
-  <div class="metric"><span>MOMENTUM</span><b>${m.mom===null?'—':m.mom.toFixed(3)+'%'}</b></div>
-  <div class="metric"><span>ENTRY REFERENCE</span><b>${active?fmt(m.entry):'—'}</b></div>
-  <div class="metric"><span>LIVE PRICE</span><b>${fmt(p)}</b></div>
-  <div class="metric"><span>STOP LOSS</span><b>${active?fmt(m.stop):'—'}</b></div>
-  <div class="metric"><span>TARGET</span><b>${active?fmt(m.target):'—'}</b></div>
-  <div class="metric"><span>GROSS TARGET</span><b>${active?m.grossTargetPct.toFixed(3)+'%':'—'}</b></div>
-  <div class="metric"><span>NET TARGET EST.</span><b class="${net>0?'green':'red'}">${active?net.toFixed(4)+' USDT':'—'}</b></div>
- </div>
-
- <div class="reason">${m.reason}</div>
- <div class="small" style="margin-top:7px">
-  Candle update: ${m.updated?new Date(m.updated).toLocaleTimeString():'—'}
-  · Ticker: ${ticker}
-  · Signal age: ${active?m.activeAge+' candles':'Inactive'}
- </div>
- ${m.error?'<div class="small red">Data warning: '+m.error+'</div>':''}
- </div>`;
-}
-
-function render(){
- const ready=coins.filter(m=>m.candles.length>=60&&m.bars5>=12).length;
- const longs=coins.filter(m=>m.activeSide==='LONG').length;
- const shorts=coins.filter(m=>m.activeSide==='SHORT').length;
- const noData=coins.filter(m=>m.signal==='NO-DATA').length;
- const waits=coins.length-longs-shorts-noData;
-
- $('total').textContent=coins.length;
- $('ready').textContent=ready;
- $('longs').textContent=longs;
- $('shorts').textContent=shorts;
- $('waits').textContent=waits;
-
- $('diagnostics').textContent=
- 'Ready '+ready+'/'+coins.length+
- ' · LONG '+longs+' · SHORT '+shorts+
- ' · NO TRADE '+waits+' · NO DATA '+noData+
- ' · Last REST '+(lastRest?new Date(lastRest).toLocaleTimeString():'pending');
-
- const filter=$('filter').value;
- const q=$('search').value.trim().toUpperCase();
-
- const filtered=coins.filter(m=>{
-  const f=filter==='ALL'||
-   (filter==='LONG'&&m.activeSide==='LONG')||
-   (filter==='SHORT'&&m.activeSide==='SHORT')||
-   (filter==='NO-TRADE'&&m.signal==='NO-TRADE')||
-   (filter==='NO-DATA'&&m.signal==='NO-DATA');
-  return f&&(!q||m.b.includes(q));
- });
-
- $('coins').innerHTML=filtered.map(card).join('');
-
- const amount=Math.max(0,num($('amount').value));
- const fee=Math.max(0,num($('fee').value))*2/100;
- const extra=Math.max(0,num($('extra').value))/100;
- $('calc').textContent=
- 'Round trip trading fee: '+(amount*fee).toFixed(4)+
- ' USDT · Estimated extra execution cost: '+(amount*extra).toFixed(4)+
- ' USDT · Total estimated cost: '+(amount*(fee+extra)).toFixed(4)+
- ' USDT';
-}
-
-$('refresh').onclick=refreshCandles;
-
-$('pause').onclick=()=>{
- paused=!paused;
- $('pause').textContent=paused?'Resume':'Pause';
- if(paused){
-  clearTimeout(socketTimer);
-  clearInterval(pingTimer);
-  if(socket)socket.close();
-  $('status').textContent='Scanner paused';
- }else{
-  connectSocket();
-  refreshCandles();
- }
-};
-
-$('reset').onclick=()=>{
- for(const m of coins){
-  m.activeSide='';
-  m.entry=0;m.stop=0;m.target=0;
-  m.activeAge=0;
-  m.candidate='';m.candidateCount=0;
-  m.signal=m.candles.length>=60?'NO-TRADE':'NO-DATA';
-  m.reason='Manual signal reset';
- }
+function heartbeat(){if(ws&&ws.readyState===1){try{ws.send(JSON.stringify({id:Date.now(),method:'LIST_SUBSCRIPTIONS'}))}catch(e){}}}
+function resetAll(){
+ if(!confirm('All active signals and candle confirmation state reset karna hai?'))return;
+ for(const m of coins){m.activeSide=null;m.entry=m.sl=m.tp=0;m.signal='WAIT';m.candidate='';m.candidateCount=0;m.ageBars=0;m.lastProcessed=0;m.reason='Manual reset';}
  render();
-};
-
-$('filter').onchange=render;
-$('search').oninput=render;
-['amount','fee','extra'].forEach(id=>$(id).oninput=render);
-
-render();
-connectSocket();
-refreshCandles();
-
-interval=setInterval(()=>{
- render();
- if(!paused&&!busy&&now()-lastRest>=30000)refreshCandles();
-},1000);
-
+}
+$('search').addEventListener('input',render);$('filter').addEventListener('change',render);
+$('refresh').addEventListener('click',refreshCandles);
+$('pause').addEventListener('click',()=>{paused=!paused;$('pause').textContent=paused?'Resume updates':'Pause updates';if(!paused){connectWS();refreshCandles()}});
+['notional','fee','slip','expiry'].forEach(id=>$(id).addEventListener('change',render));
+(async()=>{connectWS();await refreshCandles();setInterval(()=>{if(!paused)render()},1000);setInterval(()=>{if(!paused&&!busy&&Date.now()-lastCandleRefresh>35000)refreshCandles()},5000);setInterval(heartbeat,20000)})();
 </script>
 </body>
 </html>
