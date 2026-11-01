@@ -3,353 +3,392 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mudrex Futures Signal Board</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mudrex Futures Signal Scanner</title>
 <style>
-:root{color-scheme:dark;--bg:#080d18;--panel:#111a2b;--line:#26344c;--muted:#91a0b8;--green:#19d69b;--red:#ff647c;--yellow:#ffc857;--blue:#65a9ff}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:#edf3ff;font:14px Arial,sans-serif}
-header{padding:17px;background:#101a2b;border-bottom:1px solid var(--line)}
-h1{font-size:21px;margin:0 0 7px}
-.sub{color:var(--muted);font-size:12px;line-height:1.5}
+body{margin:0;background:#080e19;color:#edf3ff;font:14px Arial,sans-serif}
+header{padding:16px;background:#111c2e;border-bottom:1px solid #293a53}
+h1{font-size:20px;margin:0 0 7px}
+.small{font-size:11px;color:#93a4bd;line-height:1.5}
 .wrap{max-width:1250px;margin:auto;padding:12px}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px;margin-bottom:12px}
-.row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
-.stat{flex:1;min-width:105px;background:#0b1424;border:1px solid var(--line);padding:10px;border-radius:9px}
+.panel,.coin{background:#111b2d;border:1px solid #293a53;border-radius:11px;padding:12px;margin-bottom:10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.stat{flex:1;min-width:90px;background:#0a1424;padding:10px;border-radius:8px}
+.stat span{display:block;color:#91a2bc;font-size:11px}
 .stat b{display:block;font-size:19px;margin-top:5px}
-.small{font-size:11px;color:var(--muted)}
-button,input,select{background:#17243a;color:#edf3ff;border:1px solid #354763;border-radius:7px;padding:10px}
-button{cursor:pointer;font-weight:bold}
-button.primary{background:#1769c2;border-color:#1769c2}
-input{min-width:0}
-input[type=number]{width:90px}
-#search{flex:1;min-width:130px}
-.coin{background:#101a2b;border:1px solid var(--line);border-radius:11px;padding:13px;margin-bottom:9px}
-.coinhead{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
-.symbol{font-weight:bold;font-size:16px}
-.price{font-weight:bold;font-size:17px}
-.signal{font-weight:bold;padding:6px 10px;border-radius:7px;background:#26344c}
-.LONG{color:var(--green);background:#103c34}
-.SHORT{color:var(--red);background:#451d2a}
-.WAIT{color:var(--yellow);background:#44351a}
-.NODATA{color:#ff9b9b;background:#431f28}
-.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px}
+button,input,select{background:#192941;color:white;border:1px solid #3b506e;border-radius:7px;padding:10px}
+button{font-weight:bold;cursor:pointer}
+.primary{background:#176ac2}
+#search{flex:1;min-width:120px}
+.coinhead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.symbol{font-size:16px;font-weight:bold}
+.price{font-size:17px;font-weight:bold}
+.tag{padding:6px 9px;border-radius:6px;font-weight:bold;font-size:12px}
+.STRONG-LONG,.EARLY-LONG{background:#104536;color:#40efb0}
+.STRONG-SHORT,.EARLY-SHORT{background:#501e2b;color:#ff7c91}
+.NO-TRADE{background:#45391d;color:#ffcf67}
+.NO-DATA{background:#43202a;color:#ff9eaa}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-top:11px}
 .metric{background:#0a1424;padding:9px;border-radius:7px;min-width:0}
-.metric span{display:block;color:var(--muted);font-size:11px;margin-bottom:5px}
+.metric span{display:block;color:#91a2bc;font-size:10px;margin-bottom:5px}
 .metric b{font-size:13px;overflow-wrap:anywhere}
-.reason{font-size:12px;color:#b9c6da;margin-top:10px;line-height:1.5}
-.green{color:var(--green)}.red{color:var(--red)}.yellow{color:var(--yellow)}
-.hidden{display:none}
-#status{line-height:1.6}
+.reason{font-size:12px;color:#c1cce0;margin-top:10px;line-height:1.5}
+.green{color:#36e6a6}.red{color:#ff788e}.yellow{color:#ffd06c}
 @media(max-width:520px){.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}h1{font-size:18px}}
 </style>
 </head>
 <body>
 <header>
-<h1>₿ Mudrex Futures Signal Board</h1>
-<div class="sub">USDT Perpetual Futures · Public Mudrex data · Manual trading only · No API keys · No real orders</div>
+<h1>₿ Mudrex Futures Signal Scanner</h1>
+<div class="small">Mudrex USDT Futures · Public market data · Manual trading only · No API keys · No real orders</div>
 </header>
 
 <div class="wrap">
 <div class="panel">
 <div class="row">
-<div class="stat"><span class="small">TOTAL COINS</span><b id="total">0</b></div>
-<div class="stat"><span class="small">DATA READY</span><b id="ready">0</b></div>
-<div class="stat"><span class="small">LONG</span><b class="green" id="longs">0</b></div>
-<div class="stat"><span class="small">SHORT</span><b class="red" id="shorts">0</b></div>
-<div class="stat"><span class="small">WAIT / NO DATA</span><b class="yellow" id="waits">0</b></div>
+<div class="stat"><span>TOTAL COINS</span><b id="total">0</b></div>
+<div class="stat"><span>DATA READY</span><b id="ready">0</b></div>
+<div class="stat"><span>LONG</span><b class="green" id="longs">0</b></div>
+<div class="stat"><span>SHORT</span><b class="red" id="shorts">0</b></div>
+<div class="stat"><span>NO TRADE</span><b class="yellow" id="waits">0</b></div>
 </div>
-<div class="small" id="status" style="margin-top:12px">Starting scanner...</div>
+<div id="status" class="small" style="margin-top:12px">Connecting...</div>
 <div class="row" style="margin-top:12px">
-<button class="primary" id="refresh">Refresh market</button>
+<button class="primary" id="refresh">Refresh now</button>
 <button id="pause">Pause</button>
-<button id="reset">Reset signals</button>
+<button id="reset">Reset</button>
 <select id="filter">
 <option value="ALL">All coins</option>
-<option value="LONG">LONG only</option>
-<option value="SHORT">SHORT only</option>
-<option value="WAIT">WAIT only</option>
-<option value="NODATA">NO DATA only</option>
+<option value="LONG">LONG signals</option>
+<option value="SHORT">SHORT signals</option>
+<option value="NO-TRADE">No trade</option>
+<option value="NO-DATA">No data</option>
 </select>
-<input id="search" placeholder="Search coin e.g. FTM, FET, BTC">
+<input id="search" placeholder="Search BTC, FET, TRX...">
 </div>
 </div>
 
 <div class="panel">
-<b>Fee & Position Calculator</b>
+<b>Position and fee calculator</b>
 <div class="row" style="margin-top:10px">
-<label class="small">Position USDT<br><input id="amount" type="number" value="100" min="1"></label>
-<label class="small">Fee / side %<br><input id="fee" type="number" value="0.05" step="0.01"></label>
-<label class="small">Stop loss %<br><input id="sl" type="number" value="0.35" step="0.05"></label>
-<label class="small">Target %<br><input id="tp" type="number" value="0.70" step="0.05"></label>
+<label class="small">Position USDT<br><input id="amount" type="number" value="20" min="1"></label>
+<label class="small">Fee per side %<br><input id="fee" type="number" value="0.05" step="0.01"></label>
+<label class="small">Stop loss %<br><input id="sl" type="number" value="0.40" step="0.05"></label>
+<label class="small">Target %<br><input id="tp" type="number" value="0.80" step="0.05"></label>
 </div>
 <div id="calc" class="small" style="margin-top:10px"></div>
 </div>
 
 <div class="panel">
-<b>Scanner diagnostics</b>
-<div class="small" id="diagnostics" style="margin-top:8px">Waiting for first market response...</div>
+<b>Market diagnostics</b>
+<div id="diagnostics" class="small" style="margin-top:8px">Waiting for market data...</div>
 </div>
 
 <div id="coins"></div>
 
 <div class="panel small">
-<b>Risk warning:</b> This is an indicator scanner, not a guaranteed prediction. Futures trading can lose your full margin. Signals are based on closed historical candles and are not guaranteed execution prices. Funding, spread, slippage, liquidation and exact exchange fees are not fully simulated. Verify every setup on Mudrex before any manual trade.
+<b>Risk notice:</b> Signals are indicator-based scenarios, not guaranteed predictions. Small-priced coins can still be highly volatile and illiquid. A low token price does not mean lower risk. Verify contract minimum quantity, minimum notional, margin, funding, spread and slippage on Mudrex. This scanner never places orders.
 </div>
 </div>
 
 <script>
 'use strict';
 
-const API='https://trade.mudrex.com/fapi/v1/price/kline';
+const REST='https://trade.mudrex.com/fapi/v1/price/kline';
+const SOCKET='wss://trade.mudrex.com/fapi/v1/price/ws/linear';
 
 const BASES=(
 'BTC ETH BNB SOL XRP ADA DOGE TRX AVAX LINK DOT LTC BCH UNI ETC FIL ATOM NEAR APT ARB OP SUI SEI INJ TIA TON WIF PEPE SHIB FLOKI FTM RENDER FET TAO IMX GALA SAND MANA AAVE MKR CRV COMP SNX DYDX LDO ENS JUP JTO PYTH WLD ONDO NOT ZK ZRO STRK BLUR ENA ETHFI PENDLE POL XLM XMR HBAR VET ALGO ICP QNT AXS CHZ FLOW THETA EGLD KAVA ZEC DASH NEO GMT MASK LRC ONE ZIL ROSE COTI ANKR BAT YFI SUSHI MINA KSM RUNE STX KAS'
 ).split(/\s+/);
 
 const coins=BASES.map(b=>({
- b,
- sym:b+'/USDT',
- candles:[],
- price:0,
- signal:'NODATA',
- reason:'Waiting for candle data',
- trend:'—',
- rsi:0,
- mom:0,
- emaFast:0,
- emaSlow:0,
- bars5:0,
- raw:'—',
- confirmations:0,
- lastSignalCandle:0,
- updated:0,
- error:''
+ b,sym:b+'/USDT',ws:b.toLowerCase()+'usdt',
+ candles:[],price:0,signal:'NO-DATA',reason:'Waiting for candles',
+ trend1:'—',trend5:'—',trend15:'—',rsi:null,mom:null,
+ bars5:0,bars15:0,updated:0,lastCandle:0,raw:'—',
+ entry:0,stop:0,target:0,wsTime:0
 }));
 
-let busy=false,paused=false,timer=null,lastRefresh=0;
-const $=id=>document.getElementById(id);
+let busy=false,paused=false,lastRest=0,socket=null;
+let socketRetry=2000,socketTimer=null;
+let nextRest=0;
 
-function norm(s){
- return String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+const $=id=>document.getElementById(id);
+const now=()=>Date.now();
+const clean=s=>String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+
+function number(x){
+ const n=Number(x);
+ return Number.isFinite(n)?n:0;
 }
-function fmt(n){
- if(!Number.isFinite(n))return '—';
- return n>=1000?n.toLocaleString('en-US',{maximumFractionDigits:2}):
- n>=1?n.toFixed(4):n.toFixed(8);
+function fmt(x){
+ if(!Number.isFinite(x)||!x)return '—';
+ if(x>=1000)return x.toLocaleString('en-US',{maximumFractionDigits:2});
+ if(x>=1)return x.toFixed(4);
+ return x.toFixed(8);
 }
-function ema(values,period){
- if(values.length<period)return null;
- let k=2/(period+1);
- let e=values.slice(0,period).reduce((a,b)=>a+b,0)/period;
- for(let i=period;i<values.length;i++)e=values[i]*k+e*(1-k);
+function ema(a,p){
+ if(a.length<p)return null;
+ const k=2/(p+1);
+ let e=a.slice(0,p).reduce((s,v)=>s+v,0)/p;
+ for(let i=p;i<a.length;i++)e=a[i]*k+e*(1-k);
  return e;
 }
-function rsi(values,period=14){
- if(values.length<=period)return null;
- let gains=0,losses=0;
- for(let i=1;i<=period;i++){
-  let d=values[i]-values[i-1];
-  if(d>0)gains+=d;else losses-=d;
+function calcRSI(a,p=14){
+ if(a.length<=p)return null;
+ let up=0,down=0;
+ for(let i=1;i<=p;i++){
+  const d=a[i]-a[i-1];
+  if(d>0)up+=d;else down-=d;
  }
- let ag=gains/period,al=losses/period;
- for(let i=period+1;i<values.length;i++){
-  let d=values[i]-values[i-1];
-  ag=(ag*(period-1)+Math.max(d,0))/period;
-  al=(al*(period-1)+Math.max(-d,0))/period;
+ let ag=up/p,al=down/p;
+ for(let i=p+1;i<a.length;i++){
+  const d=a[i]-a[i-1];
+  ag=(ag*(p-1)+Math.max(0,d))/p;
+  al=(al*(p-1)+Math.max(0,-d))/p;
  }
  if(al===0)return 100;
- return 100-(100/(1+ag/al));
+ return 100-100/(1+ag/al);
 }
-function normalizeCandle(x){
+function normalizeTime(t){
+ t=number(t);
+ if(t>0&&t<100000000000)t*=1000;
+ return t;
+}
+function parseCandle(x){
  if(Array.isArray(x)){
-  let t=Number(x[0]),o=Number(x[1]),h=Number(x[2]),l=Number(x[3]),c=Number(x[4]),v=Number(x[5]||0);
-  if(t<1e12)t*=1000;
-  return {t,o,h,l,c,v};
- }
- if(x&&typeof x==='object'){
-  let t=Number(x.timestamp??x.time??x.open_time??x.start_time??x.t);
-  if(t<1e12)t*=1000;
   return {
-   t,
-   o:Number(x.open??x.o),
-   h:Number(x.high??x.h),
-   l:Number(x.low??x.l),
-   c:Number(x.close??x.c),
-   v:Number(x.volume??x.v??0)
+   t:normalizeTime(x[0]),o:number(x[1]),h:number(x[2]),
+   l:number(x[3]),c:number(x[4]),v:number(x[5])
   };
  }
- return null;
+ if(!x||typeof x!=='object')return null;
+ return {
+  t:normalizeTime(x.timestamp??x.time??x.open_time??x.start_time??x.t),
+  o:number(x.open??x.o),h:number(x.high??x.h),
+  l:number(x.low??x.l),c:number(x.close??x.c),
+  v:number(x.volume??x.v)
+ };
 }
-function validCandle(x){
- return x&&Number.isFinite(x.t)&&Number.isFinite(x.o)&&
- Number.isFinite(x.h)&&Number.isFinite(x.l)&&Number.isFinite(x.c)&&
- x.c>0&&x.h>=x.l;
+function goodCandle(x){
+ return x&&x.t>0&&x.o>0&&x.h>0&&x.l>0&&x.c>0&&x.h>=x.l;
 }
 
-/* Mudrex response parser: asset_ticks is the primary documented/observed shape.
-   Additional wrappers are handled without inventing candle values. */
-function extractAssetMap(json){
- if(!json)return null;
- let d=json.data??json;
- if(d.asset_ticks)return d.asset_ticks;
- if(d.data?.asset_ticks)return d.data.asset_ticks;
- if(d.ticks)return d.ticks;
- if(d.result?.asset_ticks)return d.result.asset_ticks;
+/* Accept the common public REST response wrappers. */
+function getAssetMap(j){
+ if(!j)return null;
+ const d=j.data??j;
+ const candidates=[
+  d.asset_ticks,
+  d.data?.asset_ticks,
+  d.ticks,
+  d.result?.asset_ticks,
+  d.result?.data?.asset_ticks,
+  d
+ ];
+ for(const v of candidates){
+  if(v&&typeof v==='object'&&!Array.isArray(v))return v;
+ }
  if(Array.isArray(d)){
-  let out={};
-  for(let item of d){
-   let key=item.asset??item.symbol??item.instrument;
-   let rows=item.ticks??item.candles??item.klines??item.data;
-   if(key&&rows)out[key]=rows;
+  const out={};
+  for(const x of d){
+   const k=x.asset??x.symbol??x.instrument;
+   const v=x.ticks??x.candles??x.klines??x.data;
+   if(k&&v)out[k]=v;
   }
   if(Object.keys(out).length)return out;
  }
  return null;
 }
-function rowsFromValue(value){
- if(Array.isArray(value))return value;
- if(!value||typeof value!=='object')return [];
- return value.candles??value.ticks??value.klines??value.data??value.values??[];
+function rowsOf(v){
+ if(Array.isArray(v))return v;
+ if(!v||typeof v!=='object')return [];
+ for(const k of ['candles','ticks','klines','data','values','items']){
+  if(Array.isArray(v[k]))return v[k];
+ }
+ return [];
 }
-function findRows(map,coin){
+function rowsFor(map,m){
  if(!map)return [];
- const wanted=[norm(coin.sym),norm(coin.b+'USDT'),norm(coin.b+'/USDT')];
- for(const [key,value] of Object.entries(map)){
-  if(wanted.includes(norm(key)))return rowsFromValue(value);
+ const keys=[m.sym,m.b+'USDT',m.b+'/USDT',m.ws,m.b];
+ for(const [k,v] of Object.entries(map)){
+  if(keys.includes(k)||keys.includes(clean(k)))return rowsOf(v);
  }
  return [];
 }
 
-/* Build 5-minute bars from actual 1-minute candles.
-   A bucket needs at least 3 distinct minutes; no fabricated candles are added. */
-function aggregate5(candles){
+/* Aggregate real 1m candles. Missing minutes are not invented. */
+function aggregate(c,minutes,minCount){
  const groups=new Map();
- for(const x of candles){
-  const bucket=Math.floor(x.t/300000)*300000;
-  if(!groups.has(bucket))groups.set(bucket,[]);
-  groups.get(bucket).push(x);
+ for(const x of c){
+  const t=Math.floor(x.t/(minutes*60000))*minutes*60000;
+  if(!groups.has(t))groups.set(t,[]);
+  groups.get(t).push(x);
  }
  const out=[];
- for(const [t,group] of groups){
-  const sorted=group.sort((a,b)=>a.t-b.t);
+ for(const [t,g] of groups){
+  const a=g.sort((x,y)=>x.t-y.t);
   const unique=[];
-  for(const x of sorted){
-   if(!unique.length||unique[unique.length-1].t!==x.t)unique.push(x);
+  for(const x of a){
+   if(!unique.length||unique.at(-1).t!==x.t)unique.push(x);
   }
-  if(unique.length<3)continue;
-  if(t+300000>Date.now())continue;
-  const first=unique[0],last=unique[unique.length-1];
+  if(unique.length<minCount||t+minutes*60000>now())continue;
   out.push({
-   t,
-   o:first.o,
+   t,o:unique[0].o,c:unique.at(-1).c,
    h:Math.max(...unique.map(x=>x.h)),
    l:Math.min(...unique.map(x=>x.l)),
-   c:last.c,
    v:unique.reduce((s,x)=>s+x.v,0),
    count:unique.length
   });
  }
  return out.sort((a,b)=>a.t-b.t);
 }
+function direction(a,fast,slow){
+ if(a.length<slow+2)return '—';
+ const closes=a.map(x=>x.c);
+ const f=ema(closes,fast),s=ema(closes,slow);
+ if(f>s)return 'Bullish';
+ if(f<s)return 'Bearish';
+ return 'Sideways';
+}
 
 function analyse(m){
  const c=m.candles;
- if(c.length<35){
-  m.signal='NODATA';
-  m.reason='Insufficient closed 1m candles ('+c.length+'/35)';
-  m.raw='Not enough history';
+ if(c.length<30){
+  m.signal='NO-DATA';
+  m.reason='Only '+c.length+' usable closed 1m candles; more history required';
   return;
  }
  const closes=c.map(x=>x.c);
- const a5=aggregate5(c);
- m.bars5=a5.length;
- if(a5.length<8){
-  m.signal='NODATA';
-  m.reason='Insufficient valid 5m bars ('+a5.length+'/8)';
-  m.raw='5m history insufficient';
-  return;
- }
- const close5=a5.map(x=>x.c);
- const fast=ema(close5,3),slow=ema(close5,6);
- const fastPrev=ema(close5.slice(0,-1),3);
- const slowPrev=ema(close5.slice(0,-1),6);
- const r=rsi(closes,14);
- const last=closes.at(-1),prev=closes.at(-4);
- const mom=(last-prev)/prev*100;
- const bull=fast>slow&&fast>=fastPrev;
- const bear=fast<slow&&fast<=fastPrev;
- const trend=bull?'Bullish':bear?'Bearish':'Sideways';
- m.price=last;m.rsi=r;m.mom=mom;
- m.emaFast=fast;m.emaSlow=slow;m.trend=trend;
- const long=bull&&mom>0.025&&r>=45&&r<=70;
- const short=bear&&mom< -0.025&&r>=30&&r<=55;
- const raw=long?'LONG':short?'SHORT':'WAIT';
- m.raw=raw;
- if(raw==='WAIT'){
-  m.confirmations=0;
-  m.signal='WAIT';
-  if(trend==='Sideways')m.reason='5m EMA trend is sideways; no confirmed direction';
-  else if(trend==='Bullish')m.reason='Bullish trend, but momentum / RSI confirmation is missing';
-  else m.reason='Bearish trend, but momentum / RSI confirmation is missing';
-  return;
- }
- const candleId=c.at(-1).t;
- if(m.lastSignalCandle!==candleId){
-  m.confirmations=m._previousRaw===raw?(m.confirmations||0)+1:1;
-  m.lastSignalCandle=candleId;
-  m._previousRaw=raw;
- }
- if(m.confirmations>=2){
-  m.signal=raw;
-  m.reason='Two closed-candle confirmations; trend, momentum and RSI aligned';
- }else{
-  m.signal='WAIT';
-  m.reason=raw+' setup detected; waiting for second closed-candle confirmation';
- }
-}
+ const bars5=aggregate(c,5,3);
+ const bars15=aggregate(c,15,8);
+ m.bars5=bars5.length;m.bars15=bars15.length;
 
-function getTimeRange(){
- const end=Math.floor(Date.now()/1000);
- return {start:end-4*60*60,end};
+ if(bars5.length<12){
+  m.signal='NO-DATA';
+  m.reason='Not enough 5m candle history ('+bars5.length+' bars)';
+  return;
+ }
+
+ const trend1=direction(c,9,21);
+ const trend5=direction(bars5,5,13);
+ const trend15=bars15.length>=8?direction(bars15,3,6):'—';
+ const r=calcRSI(closes,14);
+ const price=closes.at(-1);
+ const old=closes.at(-4);
+ const mom=old?(price-old)/old*100:0;
+
+ m.trend1=trend1;m.trend5=trend5;m.trend15=trend15;
+ m.rsi=r;m.mom=mom;m.price=price;
+
+ const up1=trend1==='Bullish';
+ const down1=trend1==='Bearish';
+ const up5=trend5==='Bullish';
+ const down5=trend5==='Bearish';
+ const up15=trend15==='Bullish';
+ const down15=trend15==='Bearish';
+
+ /* Strong: 1m and 5m agree; early: 1m agrees and 5m is not opposite.
+    15m trend is a quality modifier, not an absolute blocker. */
+ let raw='NO-TRADE',reason='No aligned setup at the latest closed candle';
+
+ const longEarly=up1&&mom>0&&r>=44&&r<=74&&!down5;
+ const shortEarly=down1&&mom<0&&r>=26&&r<=56&&!up5;
+
+ const longStrong=up1&&up5&&mom>0.008&&r>=47&&r<=70;
+ const shortStrong=down1&&down5&&mom< -0.008&&r>=30&&r<=53;
+
+ if(longStrong){
+  raw='STRONG-LONG';
+  reason='1m + 5m bullish, momentum positive and RSI confirms';
+  if(down15)reason+=' · Caution: 15m trend is bearish';
+  else if(up15)reason+=' · 15m trend also bullish';
+ }else if(shortStrong){
+  raw='STRONG-SHORT';
+  reason='1m + 5m bearish, momentum negative and RSI confirms';
+  if(up15)reason+=' · Caution: 15m trend is bullish';
+  else if(down15)reason+=' · 15m trend also bearish';
+ }else if(longEarly){
+  raw='EARLY-LONG';
+  reason='Early bullish setup: 1m trend + momentum aligned; 5m not bearish';
+ }else if(shortEarly){
+  raw='EARLY-SHORT';
+  reason='Early bearish setup: 1m trend + momentum aligned; 5m not bullish';
+ }else{
+  if(trend1==='Sideways'||trend5==='Sideways')
+   reason='Sideways trend; no clear directional setup';
+  else if(up1&&down5)
+   reason='1m bullish but 5m bearish: conflicting trends';
+  else if(down1&&up5)
+   reason='1m bearish but 5m bullish: conflicting trends';
+  else if(r>74||r<26)
+   reason='RSI extreme; avoid chasing the move';
+  else if(Math.abs(mom)<0.008)
+   reason='Momentum too weak for a reliable entry';
+  else
+   reason='EMA, RSI and momentum conditions are not aligned';
+ }
+ m.raw=raw;
+
+ const candleId=c.at(-1).t;
+ /* Update the signal only when a new closed candle appears.
+    This prevents rapid signal flipping on every screen refresh. */
+ if(m.lastCandle!==candleId){
+  m.lastCandle=candleId;
+  m.signal=raw;
+  m.reason=reason;
+  if(raw==='STRONG-LONG'||raw==='EARLY-LONG'){
+   m.entry=price;
+   m.stop=price*(1-number($('sl').value||0.4)/100);
+   m.target=price*(1+number($('tp').value||0.8)/100);
+  }else if(raw==='STRONG-SHORT'||raw==='EARLY-SHORT'){
+   m.entry=price;
+   m.stop=price*(1+number($('sl').value||0.4)/100);
+   m.target=price*(1-number($('tp').value||0.8)/100);
+  }else{
+   m.entry=0;m.stop=0;m.target=0;
+  }
+ }
 }
 
 async function fetchBatch(batch){
- const range=getTimeRange();
+ const end=Math.floor(now()/1000);
+ const start=end-4*60*60;
  const params=new URLSearchParams({
   assets:batch.map(x=>x.sym).join(','),
   aggregation:'1m',
-  start_time:String(range.start),
-  end_time:String(range.end)
+  start_time:String(start),
+  end_time:String(end)
  });
- const url=API+'?'+params.toString();
  const controller=new AbortController();
- const timeout=setTimeout(()=>controller.abort(),18000);
+ const timeout=setTimeout(()=>controller.abort(),15000);
  try{
-  const response=await fetch(url,{method:'GET',cache:'no-store',signal:controller.signal});
-  if(!response.ok)throw new Error('HTTP '+response.status);
-  const json=await response.json();
-  const map=extractAssetMap(json);
-  if(!map)throw new Error('Unrecognised Mudrex response format');
+  const r=await fetch(REST+'?'+params.toString(),{
+   method:'GET',cache:'no-store',signal:controller.signal
+  });
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  const j=await r.json();
+  const map=getAssetMap(j);
+  if(!map)throw new Error('Unexpected response format');
   for(const m of batch){
-   const rows=findRows(map,m);
-   const parsed=rows.map(normalizeCandle).filter(validCandle)
+   const rows=rowsFor(map,m);
+   const parsed=rows.map(parseCandle).filter(goodCandle)
     .sort((a,b)=>a.t-b.t);
    const unique=[];
    for(const x of parsed){
     if(!unique.length||unique.at(-1).t!==x.t)unique.push(x);
    }
-   const closed=unique.filter(x=>x.t+60000<=Date.now()).slice(-220);
+   const closed=unique.filter(x=>x.t+60000<=now()).slice(-220);
    if(closed.length){
     m.candles=closed;
-    m.updated=Date.now();
+    m.updated=now();
     m.error='';
     analyse(m);
    }else{
-    m.signal='NODATA';
-    m.reason='Mudrex returned no usable closed candles for this symbol';
+    m.signal='NO-DATA';
+    m.reason='No valid closed candles returned by Mudrex for this pair';
     m.error='Empty candle response';
-    m.raw='No candle data';
    }
   }
  }finally{
@@ -357,147 +396,210 @@ async function fetchBatch(batch){
  }
 }
 
-async function refresh(){
+async function refreshCandles(){
  if(busy||paused)return;
  busy=true;
- $('status').textContent='Fetching Mudrex Futures candles in batches...';
- let success=0,failed=0;
+ let good=0,bad=0;
+ $('status').textContent='Fetching Mudrex Futures candle batches...';
  try{
   for(let i=0;i<coins.length;i+=25){
    const batch=coins.slice(i,i+25);
    try{
     await fetchBatch(batch);
-    success++;
+    good++;
    }catch(e){
-    failed++;
+    bad++;
     for(const m of batch){
      if(!m.candles.length){
-      m.signal='NODATA';
-      m.reason='Data request failed: '+e.message;
+      m.signal='NO-DATA';
+      m.reason='Request error: '+e.message;
       m.error=e.message;
      }
     }
    }
+   $('status').textContent='Candle batches: '+Math.min(i+25,coins.length)+'/'+coins.length+
+    ' · successful '+good+' · failed '+bad;
    render();
-   $('status').textContent='Processed '+Math.min(i+25,coins.length)+' / '+coins.length+
-    ' coins · Successful batches: '+success+' · Failed batches: '+failed;
   }
-  lastRefresh=Date.now();
-  const ready=coins.filter(x=>x.candles.length>=35).length;
-  $('status').textContent='Refresh complete · '+ready+'/'+coins.length+
-   ' coins have usable closed candles · Last update '+new Date().toLocaleTimeString();
+  lastRest=now();
+  $('status').textContent='Candle refresh complete · '+good+' batches OK · '+bad+' failed · '+new Date().toLocaleTimeString();
  }finally{
   busy=false;
   render();
  }
 }
 
+/* Live ticker stream. REST remains the source for closed indicator candles. */
+function updateTicker(o){
+ if(!o||typeof o!=='object')return;
+ const symbol=o.asset??o.symbol??o.s??o.instrument??o.pair;
+ const price=number(o.price??o.last_price??o.lastPrice??o.close??o.c??o.p);
+ if(!symbol||price<=0)return;
+ const key=clean(symbol);
+ const m=coins.find(x=>key===clean(x.sym)||key===clean(x.b+'USDT')||key===clean(x.ws));
+ if(m){
+  m.price=price;
+  m.wsTime=now();
+ }
+}
+function scanTickerObject(o){
+ if(!o||typeof o!=='object')return;
+ if(Array.isArray(o)){
+  for(const x of o)scanTickerObject(x);
+  return;
+ }
+ updateTicker(o);
+ for(const [k,v] of Object.entries(o)){
+  if(v&&typeof v==='object')scanTickerObject(v);
+ }
+}
+function connectSocket(){
+ if(paused)return;
+ try{
+  socket=new WebSocket(SOCKET);
+  socket.onopen=()=>{
+   socketRetry=2000;
+   try{
+    socket.send(JSON.stringify({
+     id:1,
+     method:'SUBSCRIBE',
+     params:['ticker@1s'],
+     assets:coins.map(x=>x.ws)
+    }));
+    $('status').textContent='WebSocket connected · Live ticker subscription sent';
+   }catch(e){
+    $('status').textContent='WebSocket subscription error: '+e.message;
+   }
+  };
+  socket.onmessage=e=>{
+   try{scanTickerObject(JSON.parse(e.data));}catch(_){}
+  };
+  socket.onerror=()=>{};
+  socket.onclose=()=>{
+   if(!paused){
+    $('status').textContent='WebSocket disconnected · Reconnecting...';
+    clearTimeout(socketTimer);
+    socketTimer=setTimeout(connectSocket,socketRetry);
+    socketRetry=Math.min(socketRetry*2,30000);
+   }
+  };
+ }catch(e){
+  $('status').textContent='WebSocket unavailable · REST candle mode';
+ }
+}
+
+function card(m){
+ const sig=m.signal;
+ const p=m.price;
+ const entry=m.entry;
+ const stop=m.stop;
+ const target=m.target;
+ const age=m.wsTime?Math.floor((now()-m.wsTime)/1000):null;
+ const priceText=p?fmt(p):'—';
+ const cls=sig;
+ const statusText=sig==='NO-DATA'?'NO DATA':sig.replace('-',' ');
+ return `<div class="coin">
+ <div class="coinhead">
+  <div><div class="symbol">${m.b}/USDT</div>
+  <div class="small">${m.candles.length} closed 1m candles · ${m.bars5||0} 5m bars</div></div>
+  <div class="price">${priceText}</div>
+  <span class="tag ${cls}">${statusText}</span>
+ </div>
+ <div class="metrics">
+  <div class="metric"><span>1m TREND</span><b>${m.trend1}</b></div>
+  <div class="metric"><span>5m TREND</span><b>${m.trend5}</b></div>
+  <div class="metric"><span>15m TREND</span><b>${m.trend15}</b></div>
+  <div class="metric"><span>RSI 1m</span><b>${m.rsi===null?'—':m.rsi.toFixed(2)}</b></div>
+  <div class="metric"><span>MOMENTUM</span><b>${m.mom===null?'—':m.mom.toFixed(3)+'%'}</b></div>
+  <div class="metric"><span>RAW SETUP</span><b>${m.raw}</b></div>
+  <div class="metric"><span>ENTRY</span><b>${entry?fmt(entry):'—'}</b></div>
+  <div class="metric"><span>SL / TARGET</span><b>${stop?fmt(stop)+' / '+fmt(target):'—'}</b></div>
+ </div>
+ <div class="reason">${m.reason}</div>
+ <div class="small" style="margin-top:7px">
+ Candle update: ${m.updated?new Date(m.updated).toLocaleTimeString():'—'}
+ · Live ticker: ${age===null?'Not received':age+'s ago'}
+ </div>
+ </div>`;
+}
+
 function render(){
- const ready=coins.filter(x=>x.candles.length>=35&&x.bars5>=8).length;
- const longs=coins.filter(x=>x.signal==='LONG').length;
- const shorts=coins.filter(x=>x.signal==='SHORT').length;
- const noData=coins.filter(x=>x.signal==='NODATA').length;
+ const ready=coins.filter(m=>m.candles.length>=30&&m.bars5>=12).length;
+ const longs=coins.filter(m=>m.signal.endsWith('LONG')).length;
+ const shorts=coins.filter(m=>m.signal.endsWith('SHORT')).length;
+ const noData=coins.filter(m=>m.signal==='NO-DATA').length;
  $('total').textContent=coins.length;
  $('ready').textContent=ready;
  $('longs').textContent=longs;
  $('shorts').textContent=shorts;
- $('waits').textContent=coins.length-longs-shorts;
+ $('waits').textContent=coins.length-longs-shorts-noData;
  $('diagnostics').textContent=
- 'Usable 1m + 5m history: '+ready+
- ' · LONG: '+longs+' · SHORT: '+shorts+
- ' · WAIT: '+coins.filter(x=>x.signal==='WAIT').length+
- ' · NO DATA: '+noData+
- ' · Last REST refresh: '+(lastRefresh?new Date(lastRefresh).toLocaleTimeString():'Not completed');
+ 'Ready '+ready+'/'+coins.length+
+ ' · LONG '+longs+' · SHORT '+shorts+
+ ' · No trade '+(coins.length-longs-shorts-noData)+
+ ' · No data '+noData+
+ ' · Last candle refresh '+(lastRest?new Date(lastRest).toLocaleTimeString():'pending');
 
- const filter=$('filter').value;
- const search=$('search').value.trim().toUpperCase();
- const list=coins.filter(m=>{
-  const filterOK=filter==='ALL'||m.signal===filter;
-  const searchOK=!search||m.b.includes(search);
-  return filterOK&&searchOK;
+ const f=$('filter').value;
+ const q=$('search').value.trim().toUpperCase();
+ const filtered=coins.filter(m=>{
+  const filterOK=f==='ALL'||
+   (f==='LONG'&&m.signal.endsWith('LONG'))||
+   (f==='SHORT'&&m.signal.endsWith('SHORT'))||
+   (f==='NO-TRADE'&&m.signal==='NO-TRADE')||
+   (f==='NO-DATA'&&m.signal==='NO-DATA');
+  return filterOK&&(!q||m.b.includes(q));
  });
- $('coins').innerHTML=list.map(m=>coinHTML(m)).join('');
+ $('coins').innerHTML=filtered.map(card).join('');
  updateCalc();
 }
 
-function coinHTML(m){
- const s=m.signal;
- const c=m.candles;
- const last=c.length?c.at(-1):null;
- const entry=(s==='LONG'||s==='SHORT')?m.price:0;
- const slp=Number($('sl').value)||0.35;
- const tpp=Number($('tp').value)||0.70;
- let stop='—',target='—';
- if(entry&&s==='LONG'){
-  stop=fmt(entry*(1-slp/100));
-  target=fmt(entry*(1+tpp/100));
- }
- if(entry&&s==='SHORT'){
-  stop=fmt(entry*(1+slp/100));
-  target=fmt(entry*(1-tpp/100));
- }
- return `<div class="coin">
- <div class="coinhead">
-  <div><div class="symbol">${m.b}/USDT</div>
-  <div class="small">Mudrex Futures · ${c.length} closed 1m candles</div></div>
-  <div class="price">${last?fmt(last.c):'—'}</div>
-  <span class="signal ${s}">${s==='NODATA'?'NO DATA':s}</span>
- </div>
- <div class="metrics">
-  <div class="metric"><span>5m TREND</span><b>${m.trend}</b></div>
-  <div class="metric"><span>RSI 1m</span><b>${m.rsi?m.rsi.toFixed(2):'—'}</b></div>
-  <div class="metric"><span>MOMENTUM</span><b>${m.mom?m.mom.toFixed(3)+'%':'—'}</b></div>
-  <div class="metric"><span>5m BARS</span><b>${m.bars5||0}</b></div>
-  <div class="metric"><span>RAW SETUP</span><b>${m.raw}</b></div>
-  <div class="metric"><span>CONFIRMATION</span><b>${m.confirmations||0}/2</b></div>
-  <div class="metric"><span>ENTRY REFERENCE</span><b>${entry?fmt(entry):'—'}</b></div>
-  <div class="metric"><span>STOP / TARGET</span><b>${entry?stop+' / '+target:'—'}</b></div>
- </div>
- <div class="reason">${m.reason}</div>
- <div class="small" style="margin-top:7px">Last candle: ${last?new Date(last.t).toLocaleString():'No candle'} · Updated: ${m.updated?new Date(m.updated).toLocaleTimeString():'—'}</div>
- </div>`;
-}
-
 function updateCalc(){
- const amount=Math.max(0,Number($('amount').value)||0);
- const fee=Math.max(0,Number($('fee').value)||0);
- const slp=Math.max(0,Number($('sl').value)||0);
- const tpp=Math.max(0,Number($('tp').value)||0);
- const roundFee=amount*(fee/100)*2;
- const stopLoss=amount*(slp/100);
- const target=amount*(tpp/100);
+ const amount=Math.max(0,number($('amount').value));
+ const fee=Math.max(0,number($('fee').value));
+ const sl=Math.max(0,number($('sl').value));
+ const tp=Math.max(0,number($('tp').value));
+ const costs=amount*fee/100*2;
+ const loss=amount*sl/100;
+ const gain=amount*tp/100;
  $('calc').textContent=
- 'Illustrative round-trip fee: '+roundFee.toFixed(4)+' USDT · '+
- 'Estimated loss at SL before fees: '+stopLoss.toFixed(4)+' USDT · '+
- 'Estimated gain at target before fees: '+target.toFixed(4)+' USDT · '+
- 'Gross reward:risk '+(slp>0?(tpp/slp).toFixed(2):'—')+':1';
+ 'Illustrative round-trip fee '+costs.toFixed(4)+' USDT · '+
+ 'SL loss before fees '+loss.toFixed(4)+' USDT · '+
+ 'Target gain before fees '+gain.toFixed(4)+' USDT · '+
+ 'Gross reward/risk '+(sl? (tp/sl).toFixed(2):'—')+':1';
 }
 
-$('refresh').addEventListener('click',refresh);
-$('pause').addEventListener('click',()=>{
+$('refresh').onclick=refreshCandles;
+$('pause').onclick=()=>{
  paused=!paused;
  $('pause').textContent=paused?'Resume':'Pause';
- $('status').textContent=paused?'Scanner paused':'Scanner resumed';
- if(!paused)refresh();
-});
-$('reset').addEventListener('click',()=>{
+ if(paused){
+  if(socket)socket.close();
+  $('status').textContent='Scanner paused';
+ }else{
+  connectSocket();
+  refreshCandles();
+ }
+};
+$('reset').onclick=()=>{
  for(const m of coins){
-  m.confirmations=0;
-  m.lastSignalCandle=0;
-  m._previousRaw='';
+  m.lastCandle=0;m.entry=0;m.stop=0;m.target=0;
   if(m.candles.length)analyse(m);
  }
  render();
-});
-$('filter').addEventListener('change',render);
-$('search').addEventListener('input',render);
-['amount','fee','sl','tp'].forEach(id=>$(id).addEventListener('input',render));
+};
+$('filter').onchange=render;
+$('search').oninput=render;
+['amount','fee','sl','tp'].forEach(id=>$(id).oninput=render);
 
+/* UI refresh once per second; REST candle requests every 20 seconds. */
 render();
-refresh();
-timer=setInterval(()=>{
- if(!paused&&!busy)refresh();
-},30000);
+connectSocket();
+refreshCandles();
+setInterval(()=>{
+ render();
+ if(!paused&&!busy&&now()-lastRest>=20000)refreshCandles();
+},1000);
 </script>
 </body>
 </html>
