@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mudrex Smart Paper Trader V18</title>
+<title>Mudrex Smart Paper Trader V19</title>
 <style>
 :root{color-scheme:dark;--bg:#08111f;--panel:#111e31;--panel2:#0b1728;--line:#263b56;--text:#eef4ff;--muted:#9fb0c8;--green:#42dfa5;--red:#ff7182;--yellow:#ffd477}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,sans-serif}
@@ -29,7 +29,7 @@ table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}td,t
 </head>
 <body>
 <header><div class="wrap" style="padding:0">
-<h1>₿ Mudrex Smart Paper Trader V18</h1>
+<h1>₿ Mudrex Smart Paper Trader V19</h1>
 <div class="small">Mudrex Futures public data · Paper trading only · No API keys</div>
 <span class="pill" id="status">Connecting...</span> <span class="pill">PAPER ONLY · REAL ORDERS DISABLED</span>
 </div></header>
@@ -214,7 +214,7 @@ function analyze(m){
  else reason='Confirmation score below threshold · UP '+ls+' / DOWN '+ss;
  m.ready=true;m.ind={t1,t5,t15,t60,rsi:rv,mom,ls,ss,body,bodyPct,closeLocation,dist,lastTime:last.t};m.signal=raw;m.reason=reason;m.lastAnalyzedTime=last.t;
 }
-function fresh(m){return !!m&&m.ready&&m.candles.length>0&&Date.now()-m.candles[m.candles.length-1].t<150000&&m.price>0&&Date.now()-m.tickerAt<30000}
+function fresh(m){if(!m||!m.ready||!m.candles.length||!(m.price>0)||!m.tickerAt)return false;const last=m.candles[m.candles.length-1];const candleAge=Date.now()-(last.t+60000);const tickerAge=Date.now()-m.tickerAt;return candleAge>=-60000&&candleAge<150000&&tickerAge>=0&&tickerAge<30000}
 function livePrice(m){if(!m)return 0;if(m.price>0&&Date.now()-m.tickerAt<30000)return m.price;return m.candles[m.candles.length-1]?.c||0}
 function calcPosition(p,price){const move=p.side==='LONG'?(price/p.entry-1):(p.entry/price-1),gross=p.margin*move,exitFee=p.margin*(p.feeRate??settings.fee)/100;return {gross,net:gross-p.entryFee-exitFee,exitFee,move}}
 function allocate(m){
@@ -358,7 +358,7 @@ function renderCoins(){
   <div class="price">${fmt(p)} <span class="small">USDT</span></div>
   <div class="small">1m ${m.ind?.t1||'—'} · 5m ${m.ind?.t5||'—'} · 15m ${m.ind?.t15||'—'} · 1h ${m.ind?.t60||'—'}</div>
   <div class="small">RSI ${finite(m.ind?.rsi)?m.ind.rsi.toFixed(1):'—'} · Momentum ${finite(m.ind?.mom)?m.ind.mom.toFixed(3):'—'}%</div>
-  <div class="reason">${reason}</div><div class="small">${isFresh?'LIVE DATA · ENTRY ELIGIBLE':'DATA STALE / NOT READY · ENTRY BLOCKED'}</div></article>`;
+  <div class="reason">${reason}</div><div class="small">${!isFresh?'DATA STALE / NOT READY · ENTRY BLOCKED':(s==='WAIT'?'LIVE DATA · NO ENTRY SIGNAL':'LIVE DATA · SIGNAL CONFIRMED · PAPER ENGINE REQUIRED')}</div></article>`;
  }).join('')||'<div class="panel">No matching coins.</div>';
 }
 function renderPositions(){
@@ -380,7 +380,7 @@ function renderAll(){renderStats();renderPositions();renderHistory();renderCoins
 function exportCSV(){
  const rows=[['Time','Coin','Side','Entry','Exit','Margin','Net PnL','Reason'],...state.history.map(h=>[h.time,h.base,h.side,h.entry,h.exit,h.margin,h.net,h.reason])];
  const csv=rows.map(r=>r.map(x=>'"'+String(x??'').replace(/"/g,'""')+'"').join(',')).join('\n'),blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a'),url=URL.createObjectURL(blob);
- a.href=url;a.download='Mudrex_Paper_Trades_V18.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+ a.href=url;a.download='Mudrex_Paper_Trades_V19.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 function clearHistory(){if(!confirm('Trade history और performance reset करें?'))return;if(state.positions.length){alert('पहले सभी open positions बंद करें।');return}state.history=[];state.realized=0;state.fees=0;state.dailyPnl=0;state.dailyBlocked=false;save();renderAll()}
 $('saveSettings').onclick=saveSettings;$('resetSettings').onclick=defaults;
