@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mudrex Futures Signal Scanner — V7 Pending Setup & WAIT Audit</title>
+<title>Mudrex Futures Direction Scanner — V9</title>
 <style>
 :root{color-scheme:dark;--bg:#08111f;--panel:#111e31;--panel2:#0b1728;--line:#263b56;--text:#eef4ff;--muted:#9fb0c8;--green:#42dfa5;--red:#ff7182;--yellow:#ffd477;--blue:#80bdff}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
@@ -34,20 +34,20 @@ footer{padding:16px 0;color:var(--muted);font-size:11px}
 <body>
 <header><div class="wrap" style="padding:0">
 <h1>₿ Mudrex Futures Signal Scanner</h1>
-<div class="muted small">Mudrex Futures public data · V8 WAIT audit fix · Manual paper analysis only · No API keys / No real orders</div>
-<span class="pill" id="status">Connecting…</span><span class="pill" id="wsstatus">WebSocket: connecting…</span><span class="pill" id="substatus">Subscription: awaiting acknowledgement</span><span class="pill" id="wsage">Last WS event: —</span><span class="pill" id="refreshAge">Candle refresh: —</span>
+<div class="muted small">Mudrex Futures live prices + closed-candle analysis · Manual only · No API keys / No real orders</div>
+<span class="pill" id="status">Connecting…</span>
 </div></header>
 <main class="wrap">
 <div class="warning"><b>Risk warning:</b> Ye scanner guaranteed prediction nahi hai. Futures mein capital ka bada hissa ya poora margin lose ho sakta hai. Ye sirf public market data aur paper analysis use karta hai; Mudrex par koi real order nahi lagata. Fee, spread, slippage, funding, leverage aur contract minimum app mein alag ho sakte hain. Real funds se pehle paper test zaroor karein.</div>
 
 <div class="toolbar">
 <input id="search" placeholder="Coin search: BTC, SOL, XRP…">
-<select id="filter"><option value="ALL">All coins</option><option value="LONG">LONG only</option><option value="SHORT">SHORT only</option><option value="WAIT">NO TRADE only</option><option value="NODATA">No data only</option></select>
+<select id="filter"><option value="ALL">All coins</option><option value="LONG">UP only</option><option value="SHORT">DOWN only</option><option value="WAIT">WAIT only</option></select>
 <button class="primary" id="refresh">Refresh candles now</button>
 <button id="pause">Pause updates</button>
 </div>
 
-<div class="stats">
+<div class="stats" style="display:none">
 <div class="stat"><span>Total candidate coins</span><b id="total">0</b></div>
 <div class="stat"><span>Data ready</span><b id="ready">0</b></div>
 <div class="stat"><span>Fresh LONG</span><b class="good" id="longs">0</b></div>
@@ -58,9 +58,9 @@ footer{padding:16px 0;color:var(--muted);font-size:11px}
 <div class="stat"><span>NO DATA</span><b id="nodata">0</b></div>
 <div class="stat"><span>Price updates received</span><b id="tickers">0</b></div>
 </div>
-<div class="small" id="diagnostics">Mudrex public market data loading…</div>
+<div class="small" id="diagnostics" style="display:none">Mudrex public market data loading…</div>
 
-<section class="panel">
+<section class="panel" style="display:none">
 <h2>Position & fee calculator</h2>
 <div class="settings">
 <div><label for="notional">Position notional (USDT)</label><input id="notional" type="number" min="1" value="20"></div>
@@ -71,15 +71,16 @@ footer{padding:16px 0;color:var(--muted);font-size:11px}
 <p class="small" id="feeSummary">Estimated costs loading…</p>
 </section>
 
-<h2>Market signals</h2>
+<h2>All tracked Futures pairs</h2>
+<div class="small" style="margin:-5px 0 10px">Price updates live; direction changes only after closed-candle confirmation. WAIT means no confirmed setup.</div>
 <div class="grid" id="markets"><div class="panel">Market data load ho raha hai…</div></div>
 
-<section class="panel">
+<section class="panel" style="display:none">
 <h2>Scanner rules & diagnostics</h2>
 <div class="small" id="rules">V7 keeps every entry filter unchanged. It separates first-candle LONG/SHORT candidates from confirmed signals and HELD paper positions. WAIT reasons are assigned to one first blocker per coin, so category totals do not double-count. Bullish pullback / bearish breakdown rules have not been loosened or declared profitable; live-feed diagnostics are not a historical backtest.</div>
 <div class="small" id="debug" style="margin-top:8px">Diagnostics: waiting…</div>
 </section>
-<footer>Watchlist is a broad candidate list, not a guaranteed complete Mudrex contract directory. Only pairs returning valid Mudrex ticker/candle data are counted as verified. 1m candles are grouped into aligned 5m and 15m bars. Entry reference is frozen at signal confirmation; live ticker is shown separately. Forecasts and risk levels are estimates, not promises. V7 improves pending-setup visibility and WAIT-reason accounting only; it does NOT claim that the entry rules or profit performance are validated. A ticker asset may be absent from a WS update when its price has not changed; per-coin age is therefore labelled “last price change”, not proof of a broken feed.</footer>
+<footer>This scanner uses a broad tracked-symbol list, not a verified complete Mudrex contract directory. Mudrex documentation describes public price klines and ticker streams; the authenticated Futures asset-list endpoint is not used here. Missing candles never create invented signals. Price updates can arrive around 1 second; signals use closed candles and confirmation to reduce flicker. Funding, open interest and live news are not included unless a reliable public feed is available. Manual paper analysis only; no orders are placed.</footer>
 </main>
 <script>
 'use strict';
@@ -195,12 +196,12 @@ function classifyWaitReason(reason){
  return 'other';
 }
 function analyze(m){
- const c=m.candles,c5=aggregate(c,5),c15=aggregate(c,15);
+ const c=m.candles,c5=aggregate(c,5),c15=aggregate(c,15),c60=aggregate(c,60);
  if(c.length<100||c5.length<18||c15.length<8){
   m.ready=false;m.raw='WAIT';m.lastRawReason='Insufficient closed candle history (1m '+c.length+', 5m '+c5.length+', 15m '+c15.length+')';m.waitCategory='history/data';m.ind=null;return;
  }
  const one=c.slice(),cl=one.map(x=>x.c),last=one[one.length-1],prev=one[one.length-2];
- const t1=trend(one,9,21),t5=trend(c5,5,13),t15=trend(c15,5,13);
+ const t1=trend(one,9,21),t5=trend(c5,5,13),t15=trend(c15,5,13),t60=trend(c60,5,13);
  const rv=rsi(cl,14),a=atr(one,14),mom=(last.c/cl[cl.length-6]-1)*100;
  const avgVol=one.slice(-21,-1).reduce((s,x)=>s+x.v,0)/20;
  const volRatio=avgVol>0&&last.v>0?last.v/avgVol:NaN;
@@ -241,7 +242,7 @@ function analyze(m){
 
  m.ready=true;m.raw=raw;m.lastRawReason=reason;
  m.waitCategory=raw==='WAIT'?classifyWaitReason(reason):'';
- m.ind={t1,t5,t15,rsi:rv,atr:a,mom,momMin,volRatio,body,lastTime:last.t,oneCount:c.length,fiveCount:c5.length,fifteenCount:c15.length,e9,e21};
+ m.ind={t1,t5,t15,t60,rsi:rv,atr:a,mom,momMin,volRatio,body,lastTime:last.t,oneCount:c.length,fiveCount:c5.length,fifteenCount:c15.length,e9,e21};
  if(last.t>m.lastProcessed){
   m.lastProcessed=last.t;
   if(raw===m.candidate)m.candidateCount++;else{m.candidate=raw;m.candidateCount=raw==='WAIT'?0:1}
@@ -284,27 +285,24 @@ function analyze(m){
  }
 }
 function renderCoin(m){
- const sig=m.ready?(m.signal||'WAIT'):'NO DATA',cls=sig==='LONG'?'long':sig==='SHORT'?'short':sig==='NO DATA'?'nodata':'wait';
- const liveAge=m.tickerAt?Math.max(0,Math.round((Date.now()-m.tickerAt)/1000)):null;
+ const sig=m.ready?(m.signal||'WAIT'):'WAIT',cls=sig==='LONG'?'long':sig==='SHORT'?'short':'wait';
  const ind=m.ind;
+ const price=m.price||m.candles.at(-1)?.c;
+ const label=sig==='LONG'?'UP':sig==='SHORT'?'DOWN':'WAIT';
+ const trendText=ind?`1m ${ind.t1} · 5m ${ind.t5} · 15m ${ind.t15} · 1h ${ind.t60}`:'Candles loading';
+ const why=m.ready?(m.reason||m.lastRawReason):'Price may appear when ticker is available; direction waits for enough closed candles';
  return `<article class="coin">
- <div class="top"><b class="symbol">${m.base}/USDT</b><span class="badge ${cls}">${sig}${m.activeSide&&m.signal===m.activeSide?' · HELD':''}</span></div>
- <div class="price">${fmt(m.price||m.candles.at(-1)?.c)} <span class="small">USDT</span></div>
- <div class="reason">${m.ready?(m.reason||m.lastRawReason):m.lastRawReason}${m.ready&&m.signal==='WAIT'&&(m.candidate==='LONG'||m.candidate==='SHORT')&&m.candidateCount===1?' · PENDING '+m.candidate+' 1/2':''}</div>
- <div class="metrics">
- <div class="metric"><span>1m trend</span><b>${ind?.t1||'—'}</b></div><div class="metric"><span>5m trend</span><b>${ind?.t5||'—'}</b></div>
- <div class="metric"><span>15m trend</span><b>${ind?.t15||'—'}</b></div><div class="metric"><span>RSI 1m</span><b>${finite(ind?.rsi)?ind.rsi.toFixed(2):'—'}</b></div>
- <div class="metric"><span>5-candle return / minimum</span><b>${finite(ind?.mom)?(ind.mom>0?'+':'')+ind.mom.toFixed(3)+'% / '+ind.momMin.toFixed(3)+'%':'—'}</b></div><div class="metric"><span>Volume / avg</span><b>${finite(ind?.volRatio)?ind.volRatio.toFixed(2)+'x':'Unavailable · neutral'}</b></div>
- <div class="metric"><span>Entry reference</span><b>${m.activeSide?fmt(m.entry):'—'}</b></div><div class="metric"><span>Last price change</span><b>${liveAge!==null?fmt(m.price)+' · '+liveAge+'s':'No price update yet'}</b></div>
- <div class="metric"><span>Stop loss</span><b>${m.activeSide?fmt(m.sl):'—'}</b></div><div class="metric"><span>Target</span><b>${m.activeSide?fmt(m.tp):'—'}</b></div>
- </div>
- <div class="small">Closed candles: ${m.candles.length} · 5m bars: ${ind?.fiveCount??'—'} · 15m bars: ${ind?.fifteenCount??'—'} · Raw setup: ${m.raw||'WAIT'} · Last price change: ${liveAge===null?'—':liveAge+'s ago'}</div>
+ <div class="top"><b class="symbol">${m.base}/USDT</b><span class="badge ${cls}">${label}</span></div>
+ <div class="price">${fmt(price)} <span class="small">USDT</span></div>
+ <div class="small">${trendText}</div>
+ <div class="reason" style="margin-top:7px">${why}</div>
+ ${m.activeSide?`<div class="small" style="margin-top:6px">Paper reference: Entry ${fmt(m.entry)} · SL ${fmt(m.sl)} · Target ${fmt(m.tp)}</div>`:''}
  </article>`;
 }
 function render(){
  const q=$('search').value.trim().toUpperCase(),f=$('filter').value;
  const visible=coins.filter(m=>(!q||m.base.includes(q))&&(f==='ALL'||(f==='NODATA'?!m.ready:f==='WAIT'?m.ready&&m.signal==='WAIT':m.ready&&m.signal===f)));
- visible.sort((a,b)=>{const rank=m=>m.activeSide?3:m.ready?2:0;return rank(b)-rank(a)||Math.abs(b.ind?.mom||0)-Math.abs(a.ind?.mom||0)});
+ visible.sort((a,b)=>{const rank=m=>m.signal==='LONG'||m.signal==='SHORT'?3:(m.candidate==='LONG'||m.candidate==='SHORT')?2:1;return rank(b)-rank(a)||Math.abs(b.ind?.mom||0)-Math.abs(a.ind?.mom||0)});
  $('markets').innerHTML=visible.map(renderCoin).join('')||'<div class="panel">No matching coins.</div>';
  const ready=coins.filter(m=>m.ready).length,
  held=coins.filter(m=>m.ready&&m.activeSide&&String(m.reason||'').startsWith('HELD')).length,
@@ -356,11 +354,11 @@ async function refreshCandles(){
      catch(err){empty++;m.ready=false;m.ind=null;m.lastRawReason='Mudrex candle error: '+String(err.message||err).slice(0,90);if(!m.activeSide)m.signal='WAIT'}
     }
    }
-   setText('status',`Candle refresh ${Math.min(i+25,coins.length)}/${coins.length} · ${good} ready · ${failed} batch fallback`);
+   setText('status',`Loading market history · ${Math.min(i+25,coins.length)} symbols`);
    render();
   }
   lastCandleRefresh=Date.now();
-  setText('status',`Mudrex candle refresh complete · ${good} ready · ${empty} unavailable/insufficient · ${failed} batch fallback`);
+  setText('status',`Mudrex data updated · ${clock()}`);
   setText('diagnostics',`Latest refresh: ${good} symbols have usable candle history; ${empty} are unavailable/insufficient. READY · WAIT is counted separately from NO DATA. Historical strategy performance is NOT yet validated.`);
   setText('debug',errors.length?errors.join(' | '):'All REST batches returned. Individual candle arrays are validated; missing symbols are not assigned invented prices or signals. WebSocket event age tracks any incoming message; per-coin age tracks the last price change.');
  }catch(e){setText('status','Refresh error: '+e.message);setText('debug',e.stack||e.message)}
