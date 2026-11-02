@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mudrex Futures Direction Scanner — V9</title>
+<title>Mudrex Futures Direction Scanner — V10</title>
 <style>
 :root{color-scheme:dark;--bg:#08111f;--panel:#111e31;--panel2:#0b1728;--line:#263b56;--text:#eef4ff;--muted:#9fb0c8;--green:#42dfa5;--red:#ff7182;--yellow:#ffd477;--blue:#80bdff}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
@@ -34,7 +34,7 @@ footer{padding:16px 0;color:var(--muted);font-size:11px}
 <body>
 <header><div class="wrap" style="padding:0">
 <h1>₿ Mudrex Futures Signal Scanner</h1>
-<div class="muted small">Mudrex Futures live prices + closed-candle analysis · Manual only · No API keys / No real orders</div>
+<div class="muted small">Mudrex Futures live prices + closed-candle analysis · V10 · Manual only · No API keys / No real orders</div>
 <span class="pill" id="status">Connecting…</span>
 </div></header>
 <main class="wrap">
@@ -103,7 +103,7 @@ function nval(id,def){const x=Number($(id).value);return $(id).value.trim()!==''
 function cfg(){return {fee:Math.max(0,Math.min(1,nval('fee',.05)))/100,slip:Math.max(0,Math.min(1,nval('slip',.03)))/100,notional:Math.max(1,nval('notional',20)),expiry:Math.max(2,Math.min(20,Math.floor(nval('expiry',8))))}}
 function fmt(x,max=5){if(!finite(x)||x<=0)return '—';return x>=1000?x.toLocaleString('en-US',{maximumFractionDigits:2}):x>=1?x.toFixed(4):x.toPrecision(max)}
 function clock(t=Date.now()){return new Date(t).toLocaleTimeString('en-IN',{hour12:false})}
-function setText(id,v){$(id).textContent=v}
+function setText(id,v){const el=$(id);if(el)el.textContent=v}
 function parseCandle(x){
  let t,o,h,l,c,v;
  if(Array.isArray(x)){[t,o,h,l,c,v]=x}
@@ -354,15 +354,15 @@ async function refreshCandles(){
      catch(err){empty++;m.ready=false;m.ind=null;m.lastRawReason='Mudrex candle error: '+String(err.message||err).slice(0,90);if(!m.activeSide)m.signal='WAIT'}
     }
    }
-   setText('status',`Loading market history · ${Math.min(i+25,coins.length)} symbols`);
+   setText('status',`Loading market history · ${Math.min(i+25,coins.length)}/${coins.length}`);
    render();
   }
   lastCandleRefresh=Date.now();
-  setText('status',`Mudrex data updated · ${clock()}`);
+  setText('status',`Mudrex data updated · ${clock()} · ${good} candle-ready`);
   setText('diagnostics',`Latest refresh: ${good} symbols have usable candle history; ${empty} are unavailable/insufficient. READY · WAIT is counted separately from NO DATA. Historical strategy performance is NOT yet validated.`);
   setText('debug',errors.length?errors.join(' | '):'All REST batches returned. Individual candle arrays are validated; missing symbols are not assigned invented prices or signals. WebSocket event age tracks any incoming message; per-coin age tracks the last price change.');
  }catch(e){setText('status','Refresh error: '+e.message);setText('debug',e.stack||e.message)}
- finally{busy=false;$('refresh').disabled=false;render()}
+ finally{busy=false;const btn=$('refresh');if(btn)btn.disabled=false;try{render()}catch(renderErr){setText('status','Display error: '+renderErr.message)}}
 }
 function checkLiveExit(m){
  if(!m.activeSide||!(m.price>0)||!m.tickerAt||Date.now()-m.tickerAt>15000)return;
