@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mudrex Futures Signal Scanner — V5 Diagnostics Fix</title>
+<title>Mudrex Futures Signal Scanner — V6 Feed & Signal Diagnostics</title>
 <style>
 :root{color-scheme:dark;--bg:#08111f;--panel:#111e31;--panel2:#0b1728;--line:#263b56;--text:#eef4ff;--muted:#9fb0c8;--green:#42dfa5;--red:#ff7182;--yellow:#ffd477;--blue:#80bdff}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
@@ -34,8 +34,8 @@ footer{padding:16px 0;color:var(--muted);font-size:11px}
 <body>
 <header><div class="wrap" style="padding:0">
 <h1>₿ Mudrex Futures Signal Scanner</h1>
-<div class="muted small">Mudrex Futures public data · V5 diagnostics correction · Manual paper analysis only · No API keys / No real orders</div>
-<span class="pill" id="status">Connecting…</span><span class="pill" id="wsstatus">Ticker: connecting…</span><span class="pill" id="refreshAge">Candle refresh: —</span>
+<div class="muted small">Mudrex Futures public data · V6 feed/signal diagnostics · Manual paper analysis only · No API keys / No real orders</div>
+<span class="pill" id="status">Connecting…</span><span class="pill" id="wsstatus">WebSocket: connecting…</span><span class="pill" id="substatus">Subscription: awaiting acknowledgement</span><span class="pill" id="wsage">Last WS event: —</span><span class="pill" id="refreshAge">Candle refresh: —</span>
 </div></header>
 <main class="wrap">
 <div class="warning"><b>Risk warning:</b> Ye scanner guaranteed prediction nahi hai. Futures mein capital ka bada hissa ya poora margin lose ho sakta hai. Ye sirf public market data aur paper analysis use karta hai; Mudrex par koi real order nahi lagata. Fee, spread, slippage, funding, leverage aur contract minimum app mein alag ho sakte hain. Real funds se pehle paper test zaroor karein.</div>
@@ -50,10 +50,12 @@ footer{padding:16px 0;color:var(--muted);font-size:11px}
 <div class="stats">
 <div class="stat"><span>Total candidate coins</span><b id="total">0</b></div>
 <div class="stat"><span>Data ready</span><b id="ready">0</b></div>
-<div class="stat"><span>LONG</span><b class="good" id="longs">0</b></div>
-<div class="stat"><span>SHORT</span><b class="bad" id="shorts">0</b></div>
+<div class="stat"><span>Fresh LONG</span><b class="good" id="longs">0</b></div>
+<div class="stat"><span>Fresh SHORT</span><b class="bad" id="shorts">0</b></div>
+<div class="stat"><span>HELD positions</span><b id="held">0</b></div>
 <div class="stat"><span>READY · WAIT</span><b class="yellow" id="waits">0</b></div>
 <div class="stat"><span>NO DATA</span><b id="nodata">0</b></div>
+<div class="stat"><span>Price updates received</span><b id="tickers">0</b></div>
 </div>
 <div class="small" id="diagnostics">Mudrex public market data loading…</div>
 
@@ -73,10 +75,10 @@ footer{padding:16px 0;color:var(--muted);font-size:11px}
 
 <section class="panel">
 <h2>Scanner rules & diagnostics</h2>
-<div class="small" id="rules">Signals use closed 1m candles, aligned 5m/15m context, adaptive momentum, RSI, candle confirmation, optional volume confirmation and ATR risk. A sideways 1m trend may qualify only when price holds the EMA21 in the higher-timeframe direction. Two closed candles are required. A single WAIT candle does not erase an active signal.</div>
+<div class="small" id="rules">V6 does not loosen entry filters. Fresh LONG/SHORT setups are counted separately from HELD paper positions. WebSocket open, SUBSCRIBE acknowledgement, incoming WS events and per-coin last price-change age are shown separately. WAIT reason audit is diagnostic only; it does not prove strategy profitability. Two closed candles remain required.</div>
 <div class="small" id="debug" style="margin-top:8px">Diagnostics: waiting…</div>
 </section>
-<footer>Watchlist is a broad candidate list, not a guaranteed complete Mudrex contract directory. Only pairs returning valid Mudrex ticker/candle data are counted as verified. 1m candles are grouped into aligned 5m and 15m bars. Entry reference is frozen at signal confirmation; live ticker is shown separately. Forecasts and risk levels are estimates, not promises. V5 fixes reporting/data-window issues only; it does NOT claim that the entry rules or profit performance are validated.</footer>
+<footer>Watchlist is a broad candidate list, not a guaranteed complete Mudrex contract directory. Only pairs returning valid Mudrex ticker/candle data are counted as verified. 1m candles are grouped into aligned 5m and 15m bars. Entry reference is frozen at signal confirmation; live ticker is shown separately. Forecasts and risk levels are estimates, not promises. V6 fixes signal counting and feed diagnostics only; it does NOT claim that the entry rules or profit performance are validated. A ticker asset may be absent from a WS update when its price has not changed; per-coin age is therefore labelled “last price change”, not proof of a broken feed.</footer>
 </main>
 <script>
 'use strict';
@@ -91,7 +93,7 @@ const coins=BASES.map(base=>({
  exitReason:'',lastRawReason:'Waiting for closed candles'
 }));
 const $=id=>document.getElementById(id);
-let ws=null,paused=false,busy=false,lastCandleRefresh=0,lastTick=0,reconnectTimer=null;
+let ws=null,paused=false,busy=false,lastCandleRefresh=0,lastTick=0,lastWsMessage=0,wsSubscribeAck=false,wsSubscribeAckAt=0,wsMessageCount=0,tickerUpdateCount=0,reconnectTimer=null;
 const FEE_DEFAULT=0.0005;
 const norm=s=>String(s??'').toUpperCase().replace(/[^A-Z0-9]/g,'');
 const finite=n=>Number.isFinite(n);
@@ -276,10 +278,10 @@ function renderCoin(m){
  <div class="metric"><span>1m trend</span><b>${ind?.t1||'—'}</b></div><div class="metric"><span>5m trend</span><b>${ind?.t5||'—'}</b></div>
  <div class="metric"><span>15m trend</span><b>${ind?.t15||'—'}</b></div><div class="metric"><span>RSI 1m</span><b>${finite(ind?.rsi)?ind.rsi.toFixed(2):'—'}</b></div>
  <div class="metric"><span>5-candle return / minimum</span><b>${finite(ind?.mom)?(ind.mom>0?'+':'')+ind.mom.toFixed(3)+'% / '+ind.momMin.toFixed(3)+'%':'—'}</b></div><div class="metric"><span>Volume / avg</span><b>${finite(ind?.volRatio)?ind.volRatio.toFixed(2)+'x':'Unavailable · neutral'}</b></div>
- <div class="metric"><span>Entry reference</span><b>${m.activeSide?fmt(m.entry):'—'}</b></div><div class="metric"><span>Live ticker</span><b>${liveAge!==null?fmt(m.price)+' · '+liveAge+'s':'No fresh tick'}</b></div>
+ <div class="metric"><span>Entry reference</span><b>${m.activeSide?fmt(m.entry):'—'}</b></div><div class="metric"><span>Last price change</span><b>${liveAge!==null?fmt(m.price)+' · '+liveAge+'s':'No price update yet'}</b></div>
  <div class="metric"><span>Stop loss</span><b>${m.activeSide?fmt(m.sl):'—'}</b></div><div class="metric"><span>Target</span><b>${m.activeSide?fmt(m.tp):'—'}</b></div>
  </div>
- <div class="small">Closed candles: ${m.candles.length} · 5m bars: ${ind?.fiveCount??'—'} · 15m bars: ${ind?.fifteenCount??'—'} · Raw setup: ${m.raw||'WAIT'} · Data age: ${liveAge===null?'—':liveAge+'s'}</div>
+ <div class="small">Closed candles: ${m.candles.length} · 5m bars: ${ind?.fiveCount??'—'} · 15m bars: ${ind?.fifteenCount??'—'} · Raw setup: ${m.raw||'WAIT'} · Last price change: ${liveAge===null?'—':liveAge+'s ago'}</div>
  </article>`;
 }
 function render(){
@@ -288,12 +290,28 @@ function render(){
  visible.sort((a,b)=>{const rank=m=>m.activeSide?3:m.ready?2:0;return rank(b)-rank(a)||Math.abs(b.ind?.mom||0)-Math.abs(a.ind?.mom||0)});
  $('markets').innerHTML=visible.map(renderCoin).join('')||'<div class="panel">No matching coins.</div>';
  const ready=coins.filter(m=>m.ready).length,
- longs=coins.filter(m=>m.ready&&m.signal==='LONG').length,
- shorts=coins.filter(m=>m.ready&&m.signal==='SHORT').length,
+ held=coins.filter(m=>m.ready&&m.activeSide&&String(m.reason||'').startsWith('HELD')).length,
+ longs=coins.filter(m=>m.ready&&m.signal==='LONG'&&!(m.activeSide&&String(m.reason||'').startsWith('HELD'))).length,
+ shorts=coins.filter(m=>m.ready&&m.signal==='SHORT'&&!(m.activeSide&&String(m.reason||'').startsWith('HELD'))).length,
  waits=coins.filter(m=>m.ready&&m.signal==='WAIT').length,
  noData=coins.length-ready;
  setText('total',coins.length);setText('ready',ready);setText('longs',longs);
- setText('shorts',shorts);setText('waits',waits);setText('nodata',noData);
+ setText('shorts',shorts);setText('held',held);setText('waits',waits);setText('nodata',noData);
+ setText('tickers',tickerUpdateCount);
+ setText('wsage',lastWsMessage?'Last WS event: '+Math.max(0,Math.floor((Date.now()-lastWsMessage)/1000))+'s ago':'Last WS event: —');
+ setText('substatus',wsSubscribeAck?'Subscription: acknowledged '+clock(wsSubscribeAckAt):'Subscription: '+(ws&&ws.readyState===1?'awaiting acknowledgement':'not confirmed'));
+ const waiting=coins.filter(m=>m.ready&&m.signal==='WAIT');
+ const reasons=[
+  ['15m conflict',/15m .* conflict/i],
+  ['RSI range',/RSI outside/i],
+  ['momentum',/momentum/i],
+  ['volume',/volume/i],
+  ['candle confirmation',/closed-candle confirmation|2 bullish|2 bearish|second closed candle/i]
+ ];
+ const reasonCounts=reasons.map(([name,re])=>name+' '+waiting.filter(m=>re.test(m.lastRawReason||'')).length);
+ const known=reasons.reduce((sum,[,re])=>sum+waiting.filter(m=>re.test(m.lastRawReason||'')).length,0);
+ reasonCounts.push('other '+Math.max(0,waiting.length-known));
+ setText('diagnostics','WAIT reason audit (first displayed blocker only): '+reasonCounts.join(' · ')+'. Coins can fail multiple rules; this is not a backtest.');
  setText('feeSummary',`Illustrative round-trip fee: ${(cfg().notional*cfg().fee*2).toFixed(4)} USDT · Slippage estimate: ${(cfg().notional*cfg().slip).toFixed(4)} USDT · Total estimated cost: ${(cfg().notional*(cfg().fee*2+cfg().slip)).toFixed(4)} USDT. Excludes funding and spread.`);
  setText('refreshAge',lastCandleRefresh?'Candle refresh: '+clock(lastCandleRefresh):'Candle refresh: —');
 }
@@ -332,7 +350,7 @@ async function refreshCandles(){
   lastCandleRefresh=Date.now();
   setText('status',`Mudrex candle refresh complete · ${good} ready · ${empty} unavailable/insufficient · ${failed} batch fallback`);
   setText('diagnostics',`Latest refresh: ${good} symbols have usable candle history; ${empty} are unavailable/insufficient. READY · WAIT is counted separately from NO DATA. Historical strategy performance is NOT yet validated.`);
-  setText('debug',errors.length?errors.join(' | '):'All REST batches returned. Individual candle arrays are validated; missing symbols are not assigned invented prices or signals.');
+  setText('debug',errors.length?errors.join(' | '):'All REST batches returned. Individual candle arrays are validated; missing symbols are not assigned invented prices or signals. WebSocket event age tracks any incoming message; per-coin age tracks the last price change.');
  }catch(e){setText('status','Refresh error: '+e.message);setText('debug',e.stack||e.message)}
  finally{busy=false;$('refresh').disabled=false;render()}
 }
@@ -350,26 +368,47 @@ function handleTicker(x){
  const s=norm(x?.s??x?.symbol??x?.asset??'');if(!s)return;
  const m=coins.find(z=>norm(z.base+'USDT')===s);if(!m)return;
  const p=Number(x.p??x.price??x.lastPrice),mp=Number(x.mp??x.markPrice);
- if(p>0&&finite(p)){m.price=p;m.tickerAt=Date.now();lastTick=Date.now();checkLiveExit(m)}
+ if(p>0&&finite(p)){
+  m.price=p;m.tickerAt=Date.now();lastTick=Date.now();tickerUpdateCount++;
+  checkLiveExit(m);
+ }
  if(mp>0&&finite(mp))m.mark=mp;
 }
 function connectWS(){
  try{
+  wsSubscribeAck=false;wsSubscribeAckAt=0;
   if(ws){try{ws.close()}catch(e){}}
   ws=new WebSocket(WS);
   ws.onopen=()=>{
-   setText('wsstatus','Ticker: connected');
-   try{ws.send(JSON.stringify({id:1,method:'SUBSCRIBE',params:['ticker@1s'],assets:coins.map(m=>m.ws)}))}catch(e){setText('wsstatus','Ticker: subscribe failed')}
+   setText('wsstatus','WebSocket: open');
+   setText('substatus','Subscription: awaiting acknowledgement');
+   try{ws.send(JSON.stringify({id:1,method:'SUBSCRIBE',params:['ticker@1s'],assets:coins.map(m=>m.ws)}))}
+   catch(e){setText('substatus','Subscription: send failed')}
   };
   ws.onmessage=e=>{
+   lastWsMessage=Date.now();wsMessageCount++;
    let j;try{j=JSON.parse(e.data)}catch{return}
-   if(j.error){setText('wsstatus','Ticker error: '+(j.error.msg||'subscription error'));return}
+   if(j.error){
+    setText('substatus','Subscription error: '+String(j.error.msg||'request error').slice(0,70));
+    return;
+   }
+   // Socket open is not treated as proof that Mudrex accepted the subscription.
+   if(j.method==='SUBSCRIBE'&&Number(j.id)===1&&j.result==='success'){
+    wsSubscribeAck=true;wsSubscribeAckAt=Date.now();
+    setText('substatus','Subscription: acknowledged '+clock(wsSubscribeAckAt));
+   }else if(j.method==='SUBSCRIBE'&&Number(j.id)===1){
+    setText('substatus','Subscription: response received · '+String(j.result||'unknown').slice(0,45));
+   }
    const d=j.data,items=Array.isArray(d)?d:(d?[d]:[]);
    for(const x of items)handleTicker(x);
   };
-  ws.onerror=()=>setText('wsstatus','Ticker: connection error');
-  ws.onclose=()=>{setText('wsstatus','Ticker: disconnected · reconnecting');if(!paused){clearTimeout(reconnectTimer);reconnectTimer=setTimeout(connectWS,5000)}};
- }catch(e){setText('wsstatus','Ticker unavailable')}
+  ws.onerror=()=>setText('wsstatus','WebSocket: connection error');
+  ws.onclose=()=>{
+   setText('wsstatus','WebSocket: disconnected');
+   setText('substatus','Subscription: not confirmed');
+   if(!paused){clearTimeout(reconnectTimer);reconnectTimer=setTimeout(connectWS,5000)}
+  };
+ }catch(e){setText('wsstatus','WebSocket: unavailable')}
 }
 function heartbeat(){if(ws&&ws.readyState===1){try{ws.send(JSON.stringify({id:Date.now(),method:'LIST_SUBSCRIPTIONS'}))}catch(e){}}}
 function resetAll(){
