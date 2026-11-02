@@ -34,7 +34,7 @@ footer{padding:16px 0;color:var(--muted);font-size:11px}
 <body>
 <header><div class="wrap" style="padding:0">
 <h1>₿ Mudrex Futures Signal Scanner</h1>
-<div class="muted small">Mudrex Futures public data · V7 pending setup & WAIT audit · Manual paper analysis only · No API keys / No real orders</div>
+<div class="muted small">Mudrex Futures public data · V8 WAIT audit fix · Manual paper analysis only · No API keys / No real orders</div>
 <span class="pill" id="status">Connecting…</span><span class="pill" id="wsstatus">WebSocket: connecting…</span><span class="pill" id="substatus">Subscription: awaiting acknowledgement</span><span class="pill" id="wsage">Last WS event: —</span><span class="pill" id="refreshAge">Candle refresh: —</span>
 </div></header>
 <main class="wrap">
@@ -181,9 +181,11 @@ function riskLevels(m,side,entry,ind){
 }
 function classifyWaitReason(reason){
  const s=String(reason||'').toLowerCase();
- if(/insufficient closed candle|not enough closed|candle error|unavailable/.test(s))return 'history/data';
- if(/15m .* conflict|5m bearish but 15m bullish|5m bullish but 15m bearish/.test(s))return 'timeframe conflict';
+ // Check the specific 5m-sideways reason BEFORE generic data/unavailable wording.
+ // Otherwise "5m trend is sideways/unavailable" is incorrectly counted as history/data.
  if(/5m trend is sideways|5m sideways|5m trend.*unavailable/.test(s))return '5m trend';
+ if(/15m .* conflict|5m bearish but 15m bullish|5m bullish but 15m bearish/.test(s))return 'timeframe conflict';
+ if(/insufficient closed candle|not enough closed|candle error|history.*unavailable|data unavailable/.test(s))return 'history/data';
  if(/rsi outside/.test(s))return 'RSI';
  if(/momentum/.test(s))return 'momentum';
  if(/volume/.test(s))return 'volume';
