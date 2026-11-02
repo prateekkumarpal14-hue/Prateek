@@ -307,7 +307,8 @@ function scanTickerPayload(d,depth=0){
   if(v&&typeof v==='object')scanTickerPayload(v,depth+1);
  }
 }
-let wsKeepAlive=null;\nfunction connect(){
+let wsKeepAlive=null;
+function connect(){
  try{
   if(ws){try{ws.onclose=null;ws.close()}catch(e){}}
   clearInterval(wsKeepAlive);
