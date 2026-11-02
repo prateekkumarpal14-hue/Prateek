@@ -200,18 +200,22 @@ function analyze(m){
  if(longCtx&&longTrigger&&notChasing&&ls>=8&&ls>ss){raw='LONG';reason='All timeframes bullish + confirmed 1m candle and momentum · score '+ls}
  else if(shortCtx&&shortTrigger&&notChasing&&ss>=8&&ss>ls){raw='SHORT';reason='All timeframes bearish + confirmed 1m candle and momentum · score '+ss}
  else if(t1==='UNAVAILABLE'||t5==='UNAVAILABLE'||t15==='UNAVAILABLE'||t60==='UNAVAILABLE')reason='Required timeframe history unavailable';
- else if(t1!=='BULLISH'||t5!=='BULLISH'||t15!=='BULLISH'||t60!=='BULLISH'){
-  if(t1==='BEARISH'||t5==='BEARISH'||t15==='BEARISH'||t60==='BEARISH')reason='Timeframe conflict; 1m/5m/15m/1h must align';
-  else reason='Trend not fully aligned';
+ else if([t1,t5,t15,t60].some(x=>x==='UNAVAILABLE'))reason='Required timeframe history unavailable';
+ else if([t1,t5,t15,t60].some(x=>x==='SIDEWAYS'))reason='One or more timeframes are sideways';
+ else if(!longCtx&&!shortCtx){
+  const dirs=[t1,t5,t15,t60];
+  reason=dirs.some(x=>x==='BULLISH')&&dirs.some(x=>x==='BEARISH')
+   ?'Timeframe conflict; 1m/5m/15m/1h must align'
+   :'Trend not fully aligned';
  }
  else if(!notChasing)reason='Price extended from EMA21; avoiding late entry';
- else if(t5==='BULLISH'&&!longTrigger)reason='LONG needs bullish 1m close, candle strength, RSI and positive momentum';
- else if(t5==='BEARISH'&&!shortTrigger)reason='SHORT needs bearish 1m close, candle strength, RSI and negative momentum';
+ else if(longCtx&&!longTrigger)reason='LONG setup incomplete: needs bullish 1m close, candle strength, RSI and positive momentum';
+ else if(shortCtx&&!shortTrigger)reason='SHORT setup incomplete: needs bearish 1m close, candle strength, RSI and negative momentum';
  else reason='Confirmation score below threshold · UP '+ls+' / DOWN '+ss;
  m.ready=true;m.ind={t1,t5,t15,t60,rsi:rv,mom,ls,ss,body,bodyPct,closeLocation,dist,lastTime:last.t};m.signal=raw;m.reason=reason;m.lastAnalyzedTime=last.t;
 }
-function fresh(m){return !!m&&m.ready&&m.candles.length>0&&Date.now()-m.candles[m.candles.length-1].t<150000&&m.price>0&&Date.now()-m.tickerAt<15000}
-function livePrice(m){if(!m)return 0;if(m.price>0&&Date.now()-m.tickerAt<15000)return m.price;return m.candles[m.candles.length-1]?.c||0}
+function fresh(m){return !!m&&m.ready&&m.candles.length>0&&Date.now()-m.candles[m.candles.length-1].t<150000&&m.price>0&&Date.now()-m.tickerAt<30000}
+function livePrice(m){if(!m)return 0;if(m.price>0&&Date.now()-m.tickerAt<30000)return m.price;return m.candles[m.candles.length-1]?.c||0}
 function calcPosition(p,price){const move=p.side==='LONG'?(price/p.entry-1):(p.entry/price-1),gross=p.margin*move,exitFee=p.margin*(p.feeRate??settings.fee)/100;return {gross,net:gross-p.entryFee-exitFee,exitFee,move}}
 function allocate(m){
  if(!running||paused||state.dailyBlocked||!fresh(m)||!['LONG','SHORT'].includes(m.signal))return false;
@@ -231,7 +235,7 @@ function allocate(m){
 function attemptEntries(){if(!running||paused||state.dailyBlocked)return;for(const m of coins){if(state.positions.length>=settings.maxPositions)break;allocate(m)}}
 function closePosition(id,reason='Manual Paper Exit'){
  const i=state.positions.findIndex(p=>p.id===id);if(i<0)return;const p=state.positions[i],m=coins.find(x=>x.base===p.base);
- const tickerIsFresh=!!m&&m.price>0&&Date.now()-m.tickerAt<15000;
+ const tickerIsFresh=!!m&&m.price>0&&Date.now()-m.tickerAt<30000;
  const price=tickerIsFresh?m.price:(p.current>0?p.current:p.entry);
  if(!tickerIsFresh&&reason==='Manual Exit')reason='Manual Exit · last known tick (data stale)';
  const result=calcPosition(p,price),net=result.net;
@@ -286,23 +290,62 @@ async function refresh(){
  finally{busy=false;$('refresh').disabled=false;renderAll();attemptEntries()}
 }
 function ticker(x){
- if(!x||typeof x!=='object')return false;const s=norm(x.s??x.symbol??x.asset??x.a??'');
- const m=coins.find(z=>norm(z.base+'USDT')===s);if(!m)return false;
- const p=Number(x.p??x.price??x.lastPrice??x.c??x.last_price);if(p>0&&finite(p)){m.price=p;m.tickerAt=Date.now();return true}return false;
+ if(!x||typeof x!=='object')return false;
+ const raw=x.s??x.symbol??x.asset??x.a??x.symbol_name??x.instrument??'';
+ const s=norm(String(raw).replace(/[\\/_-]/g,''));
+ const m=coins.find(z=>norm(z.base+'USDT')===s||norm(z.ws)===s);if(!m)return false;
+ const p=Number(x.p??x.price??x.lastPrice??x.c??x.last_price??x.last);
+ if(p>0&&finite(p)){m.price=p;m.tickerAt=Date.now();return true}return false;
 }
 function scanTickerPayload(d,depth=0){
- if(!d||depth>7)return;if(Array.isArray(d)){d.forEach(x=>scanTickerPayload(x,depth+1));return}if(typeof d!=='object')return;
- if(ticker(d))return;for(const k of ['data','ticks','result','assets','asset_ticks','tickers'])if(d[k])scanTickerPayload(d[k],depth+1);
+ if(!d||depth>10)return;
+ if(Array.isArray(d)){for(const x of d)scanTickerPayload(x,depth+1);return}
+ if(typeof d!=='object')return;
+ ticker(d);
+ for(const k of Object.keys(d)){
+  const v=d[k];
+  if(v&&typeof v==='object')scanTickerPayload(v,depth+1);
+ }
 }
-function connect(){
+let wsKeepAlive=null;\nfunction connect(){
  try{
   if(ws){try{ws.onclose=null;ws.close()}catch(e){}}
+  clearInterval(wsKeepAlive);
   ws=new WebSocket(WSURL);
-  ws.onopen=()=>{try{ws.send(JSON.stringify({id:1,method:'SUBSCRIBE',params:['ticker@1s'],assets:coins.map(x=>x.ws)}))}catch(e){}$('status').textContent='WebSocket open · awaiting ticker data'};
-  ws.onmessage=e=>{let j;try{j=JSON.parse(e.data)}catch{return}scanTickerPayload(j);attemptEntries();updatePositions()};
-  ws.onclose=()=>{if(!paused){clearTimeout(reconnectTimer);reconnectTimer=setTimeout(connect,5000)}};
+  ws.onopen=()=>{
+   try{
+    ws.send(JSON.stringify({id:1,method:'SUBSCRIBE',params:['ticker@1s'],assets:coins.map(x=>x.ws)}));
+    $('status').textContent='WebSocket open · ticker subscription requested';
+   }catch(e){$('status').textContent='Ticker subscribe send failed: '+e.message}
+  };
+  ws.onmessage=e=>{
+   let j;try{j=JSON.parse(e.data)}catch{return}
+   if(j&&j.id===1){
+    if(j.error){$('status').textContent='Ticker subscription rejected: '+(j.error.msg||j.error.message||JSON.stringify(j.error));return}
+    if(j.result==='success'||j.result==='SUCCESS'){
+     $('status').textContent='Ticker subscribed · waiting for first tick';
+     try{ws.send(JSON.stringify({id:2,method:'LIST_SUBSCRIPTIONS'}))}catch(err){}
+    }
+   }else if(j&&j.id===2){
+    const subs=Array.isArray(j.result)?j.result.join(', '):JSON.stringify(j.result??'');
+    $('status').textContent='WebSocket subscriptions: '+subs+' · waiting for live ticker';
+   }
+   scanTickerPayload(j);
+   const liveCount=coins.filter(m=>m.tickerAt&&Date.now()-m.tickerAt<30000).length;
+   if(liveCount>0)$('status').textContent='Mudrex live ticker OK · '+liveCount+'/'+coins.length+' coins updated · '+clock();
+   attemptEntries();updatePositions();renderCoins();
+  };
+  wsKeepAlive=setInterval(()=>{
+   if(ws&&ws.readyState===WebSocket.OPEN){
+    try{ws.send(JSON.stringify({id:2,method:'LIST_SUBSCRIPTIONS'}))}catch(e){}
+   }
+  },20000);
+  ws.onclose=()=>{
+   clearInterval(wsKeepAlive);
+   if(!paused){$('status').textContent='WebSocket disconnected · reconnecting';clearTimeout(reconnectTimer);reconnectTimer=setTimeout(connect,5000)}
+  };
   ws.onerror=()=>{$('status').textContent='WebSocket error · reconnect pending'};
- }catch(e){$('status').textContent='WebSocket unavailable'}
+ }catch(e){$('status').textContent='WebSocket unavailable: '+e.message}
 }
 function renderCoins(){
  const q=$('search').value.trim().toUpperCase(),f=$('filter').value,list=coins.filter(m=>(!q||m.base.includes(q))&&(f==='ALL'||(fresh(m)?m.signal:'WAIT')===f));
