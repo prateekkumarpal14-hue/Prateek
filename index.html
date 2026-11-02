@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mudrex Futures Direction Scanner — V10</title>
+<title>Mudrex Futures Direction Scanner — V11</title>
 <style>
 :root{color-scheme:dark;--bg:#08111f;--panel:#111e31;--panel2:#0b1728;--line:#263b56;--text:#eef4ff;--muted:#9fb0c8;--green:#42dfa5;--red:#ff7182;--yellow:#ffd477;--blue:#80bdff}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
@@ -34,7 +34,7 @@ footer{padding:16px 0;color:var(--muted);font-size:11px}
 <body>
 <header><div class="wrap" style="padding:0">
 <h1>₿ Mudrex Futures Signal Scanner</h1>
-<div class="muted small">Mudrex Futures live prices + closed-candle analysis · V10 · Manual only · No API keys / No real orders</div>
+<div class="muted small">Mudrex Futures live prices + closed-candle analysis · V11 · Adaptive score analysis · Manual only · No API keys / No real orders</div>
 <span class="pill" id="status">Connecting…</span>
 </div></header>
 <main class="wrap">
@@ -200,49 +200,79 @@ function analyze(m){
  if(c.length<100||c5.length<18||c15.length<8){
   m.ready=false;m.raw='WAIT';m.lastRawReason='Insufficient closed candle history (1m '+c.length+', 5m '+c5.length+', 15m '+c15.length+')';m.waitCategory='history/data';m.ind=null;return;
  }
- const one=c.slice(),cl=one.map(x=>x.c),last=one[one.length-1],prev=one[one.length-2];
- const t1=trend(one,9,21),t5=trend(c5,5,13),t15=trend(c15,5,13),t60=trend(c60,5,13);
- const rv=rsi(cl,14),a=atr(one,14),mom=(last.c/cl[cl.length-6]-1)*100;
- const avgVol=one.slice(-21,-1).reduce((s,x)=>s+x.v,0)/20;
+ const cl=c.map(x=>x.c),last=c[c.length-1],prev=c[c.length-2];
+ const t1=trend(c,9,21),t5=trend(c5,5,13),t15=trend(c15,5,13),t60=trend(c60,5,13);
+ const rv=rsi(cl,14),a=atr(c,14),mom=(last.c/cl[cl.length-6]-1)*100;
+ const avgVol=c.slice(-21,-1).reduce((s,x)=>s+x.v,0)/20;
  const volRatio=avgVol>0&&last.v>0?last.v/avgVol:NaN;
- const e9=ema(cl,9),e21=ema(cl,21),prevE9=ema(cl.slice(0,-1),9);
+ const e9=ema(cl,9),e21=ema(cl,21);
  const body=last.c>last.o?'UP':last.c<last.o?'DOWN':'FLAT';
- const candleConfirmLong=body==='UP'&&last.c>e9&&prev.c>prevE9;
- const candleConfirmShort=body==='DOWN'&&last.c<e9&&prev.c<prevE9;
- const longMicro=(t1==='BULLISH'||(t1==='SIDEWAYS'&&last.c>e21&&last.c>e9));
- const shortMicro=(t1==='BEARISH'||(t1==='SIDEWAYS'&&last.c<e21&&last.c<e9));
- const momMin=Math.max(.004,(a/last.c)*100*.12);
- const notChasing=Math.abs(last.c/e9-1)<.0028;
- const volumeOK=!finite(volRatio)||volRatio>=.45;
+ const atrPct=finite(a)&&last.c>0?a/last.c*100:0;
+ const momMin=Math.max(.003,atrPct*.08);
+ const distancePct=Math.abs(last.c/e9-1)*100;
+ const notChasing=distancePct<=Math.max(.35,atrPct*1.15);
+ const volScore= !finite(volRatio)?0:(volRatio>=.75?1:(volRatio<.30?-1:0));
+
+ // A directional setup needs the 5m trend and must not fight the 15m trend.
+ // The 1h trend is a soft context factor, not an automatic veto.
  const longContext=t5==='BULLISH'&&t15!=='BEARISH';
  const shortContext=t5==='BEARISH'&&t15!=='BULLISH';
- const longOK=longContext&&longMicro&&mom>=momMin&&rv>=46&&rv<=68&&candleConfirmLong&&notChasing&&volumeOK;
- const shortOK=shortContext&&shortMicro&&mom<=-momMin&&rv>=32&&rv<=54&&candleConfirmShort&&notChasing&&volumeOK;
- const strongLong=longOK&&t15==='BULLISH'&&finite(volRatio)&&volRatio>=.9&&rv>=51;
- const strongShort=shortOK&&t15==='BEARISH'&&finite(volRatio)&&volRatio>=.9&&rv<=49;
- const raw=longOK?'LONG':shortOK?'SHORT':'WAIT';
- let reason='Closed-candle confirmation incomplete';
- if(!longOK&&!shortOK){
+ const longTrigger=last.c>e9&&(body==='UP'||last.c>prev.c);
+ const shortTrigger=last.c<e9&&(body==='DOWN'||last.c<prev.c);
+
+ let longScore=0,shortScore=0;
+ if(t5==='BULLISH')longScore+=2;
+ if(t15==='BULLISH')longScore+=2;
+ if(t1==='BULLISH')longScore+=1;
+ if(t60==='BULLISH')longScore+=1;
+ if(t60==='BEARISH')longScore-=1;
+ if(last.c>e9)longScore+=1;
+ if(last.c>e21)longScore+=1;
+ if(rv>=48&&rv<=72)longScore+=1;
+ if(mom>=momMin)longScore+=1;
+ if(body==='UP')longScore+=1;
+ longScore+=volScore;
+ if(!notChasing)longScore-=1;
+
+ if(t5==='BEARISH')shortScore+=2;
+ if(t15==='BEARISH')shortScore+=2;
+ if(t1==='BEARISH')shortScore+=1;
+ if(t60==='BEARISH')shortScore+=1;
+ if(t60==='BULLISH')shortScore-=1;
+ if(last.c<e9)shortScore+=1;
+ if(last.c<e21)shortScore+=1;
+ if(rv>=28&&rv<=52)shortScore+=1;
+ if(mom<=-momMin)shortScore+=1;
+ if(body==='DOWN')shortScore+=1;
+ shortScore+=volScore;
+ if(!notChasing)shortScore-=1;
+
+ // Six points require trend agreement plus multiple independent confirmations.
+ const longOK=longContext&&longTrigger&&notChasing&&longScore>=6;
+ const shortOK=shortContext&&shortTrigger&&notChasing&&shortScore>=6;
+ const strongLong=longOK&&t15==='BULLISH'&&t60!=='BEARISH'&&longScore>=8&&(!finite(volRatio)||volRatio>=.75);
+ const strongShort=shortOK&&t15==='BEARISH'&&t60!=='BULLISH'&&shortScore>=8&&(!finite(volRatio)||volRatio>=.75);
+ const raw=longOK&&(!shortOK||longScore>=shortScore)?'LONG':shortOK?'SHORT':'WAIT';
+ let reason='No directional setup has enough independent confirmations';
+ if(raw==='WAIT'){
   if(t5!=='BULLISH'&&t5!=='BEARISH')reason='5m trend is sideways/unavailable';
   else if(t5==='BULLISH'&&t15==='BEARISH')reason='5m bullish but 15m bearish conflict';
   else if(t5==='BEARISH'&&t15==='BULLISH')reason='5m bearish but 15m bullish conflict';
-  else if(t5==='BULLISH'&&!longMicro)reason='1m price has not reclaimed EMA9/EMA21 for LONG';
-  else if(t5==='BEARISH'&&!shortMicro)reason='1m price has not stayed below EMA9/EMA21 for SHORT';
-  else if(t5==='BULLISH'&&mom<momMin)reason='Insufficient 1m momentum for LONG (need '+momMin.toFixed(3)+'%)';
-  else if(t5==='BEARISH'&&mom>-momMin)reason='Insufficient 1m momentum for SHORT (need -'+momMin.toFixed(3)+'%)';
-  else if(t5==='BULLISH'&&(rv<46||rv>68))reason='RSI outside LONG range (46–68)';
-  else if(t5==='BEARISH'&&(rv<32||rv>54))reason='RSI outside SHORT range (32–54)';
-  else if(t5==='BULLISH'&&!candleConfirmLong)reason='Waiting for 2 bullish closed-candle confirmations';
-  else if(t5==='BEARISH'&&!candleConfirmShort)reason='Waiting for 2 bearish closed-candle confirmations';
-  else if(!notChasing)reason='Price too far from EMA9; late entry avoided';
-  else if(!volumeOK)reason='Available volume is unusually weak';
-  else reason='Closed-candle confirmation incomplete';
- }else if(raw==='LONG')reason=strongLong?'STRONG LONG · 1m/5m/15m aligned':'LONG · higher-timeframe and 1m confirmation';
- else reason=strongShort?'STRONG SHORT · 1m/5m/15m aligned':'SHORT · higher-timeframe and 1m confirmation';
+  else if(!notChasing)reason='Price extended from EMA; avoiding late entry';
+  else if(t5==='BULLISH'&&!longTrigger)reason='1m bullish trigger not confirmed above EMA9';
+  else if(t5==='BEARISH'&&!shortTrigger)reason='1m bearish trigger not confirmed below EMA9';
+  else if(t5==='BULLISH'&&rv>72)reason='RSI overheated; avoiding late LONG';
+  else if(t5==='BEARISH'&&rv<28)reason='RSI oversold; avoiding late SHORT';
+  else if(t5==='BULLISH'&&mom<momMin)reason='1m momentum is not yet positive enough';
+  else if(t5==='BEARISH'&&mom>-momMin)reason='1m momentum is not yet negative enough';
+  else if(finite(volRatio)&&volRatio<.30)reason='Volume is very weak';
+  else reason='Directional score below confirmation threshold (LONG '+longScore+'/10 · SHORT '+shortScore+'/10)';
+ }else if(raw==='LONG')reason=(strongLong?'STRONG ':'')+'LONG · score '+longScore+' · 5m/15m trend + 1m trigger';
+ else reason=(strongShort?'STRONG ':'')+'SHORT · score '+shortScore+' · 5m/15m trend + 1m trigger';
 
  m.ready=true;m.raw=raw;m.lastRawReason=reason;
  m.waitCategory=raw==='WAIT'?classifyWaitReason(reason):'';
- m.ind={t1,t5,t15,t60,rsi:rv,atr:a,mom,momMin,volRatio,body,lastTime:last.t,oneCount:c.length,fiveCount:c5.length,fifteenCount:c15.length,e9,e21};
+ m.ind={t1,t5,t15,t60,rsi:rv,atr:a,mom,momMin,volRatio,body,lastTime:last.t,oneCount:c.length,fiveCount:c5.length,fifteenCount:c15.length,e9,e21,longScore,shortScore};
  if(last.t>m.lastProcessed){
   m.lastProcessed=last.t;
   if(raw===m.candidate)m.candidateCount++;else{m.candidate=raw;m.candidateCount=raw==='WAIT'?0:1}
