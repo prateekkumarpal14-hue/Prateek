@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mudrex Futures Signal Scanner — V6 Feed & Signal Diagnostics</title>
+<title>Mudrex Futures Signal Scanner — V7 Pending Setup & WAIT Audit</title>
 <style>
 :root{color-scheme:dark;--bg:#08111f;--panel:#111e31;--panel2:#0b1728;--line:#263b56;--text:#eef4ff;--muted:#9fb0c8;--green:#42dfa5;--red:#ff7182;--yellow:#ffd477;--blue:#80bdff}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
@@ -34,7 +34,7 @@ footer{padding:16px 0;color:var(--muted);font-size:11px}
 <body>
 <header><div class="wrap" style="padding:0">
 <h1>₿ Mudrex Futures Signal Scanner</h1>
-<div class="muted small">Mudrex Futures public data · V6 feed/signal diagnostics · Manual paper analysis only · No API keys / No real orders</div>
+<div class="muted small">Mudrex Futures public data · V7 pending setup & WAIT audit · Manual paper analysis only · No API keys / No real orders</div>
 <span class="pill" id="status">Connecting…</span><span class="pill" id="wsstatus">WebSocket: connecting…</span><span class="pill" id="substatus">Subscription: awaiting acknowledgement</span><span class="pill" id="wsage">Last WS event: —</span><span class="pill" id="refreshAge">Candle refresh: —</span>
 </div></header>
 <main class="wrap">
@@ -52,6 +52,7 @@ footer{padding:16px 0;color:var(--muted);font-size:11px}
 <div class="stat"><span>Data ready</span><b id="ready">0</b></div>
 <div class="stat"><span>Fresh LONG</span><b class="good" id="longs">0</b></div>
 <div class="stat"><span>Fresh SHORT</span><b class="bad" id="shorts">0</b></div>
+<div class="stat"><span>Pending confirmation</span><b id="pending">0</b></div>
 <div class="stat"><span>HELD positions</span><b id="held">0</b></div>
 <div class="stat"><span>READY · WAIT</span><b class="yellow" id="waits">0</b></div>
 <div class="stat"><span>NO DATA</span><b id="nodata">0</b></div>
@@ -75,10 +76,10 @@ footer{padding:16px 0;color:var(--muted);font-size:11px}
 
 <section class="panel">
 <h2>Scanner rules & diagnostics</h2>
-<div class="small" id="rules">V6 does not loosen entry filters. Fresh LONG/SHORT setups are counted separately from HELD paper positions. WebSocket open, SUBSCRIBE acknowledgement, incoming WS events and per-coin last price-change age are shown separately. WAIT reason audit is diagnostic only; it does not prove strategy profitability. Two closed candles remain required.</div>
+<div class="small" id="rules">V7 keeps every entry filter unchanged. It separates first-candle LONG/SHORT candidates from confirmed signals and HELD paper positions. WAIT reasons are assigned to one first blocker per coin, so category totals do not double-count. Bullish pullback / bearish breakdown rules have not been loosened or declared profitable; live-feed diagnostics are not a historical backtest.</div>
 <div class="small" id="debug" style="margin-top:8px">Diagnostics: waiting…</div>
 </section>
-<footer>Watchlist is a broad candidate list, not a guaranteed complete Mudrex contract directory. Only pairs returning valid Mudrex ticker/candle data are counted as verified. 1m candles are grouped into aligned 5m and 15m bars. Entry reference is frozen at signal confirmation; live ticker is shown separately. Forecasts and risk levels are estimates, not promises. V6 fixes signal counting and feed diagnostics only; it does NOT claim that the entry rules or profit performance are validated. A ticker asset may be absent from a WS update when its price has not changed; per-coin age is therefore labelled “last price change”, not proof of a broken feed.</footer>
+<footer>Watchlist is a broad candidate list, not a guaranteed complete Mudrex contract directory. Only pairs returning valid Mudrex ticker/candle data are counted as verified. 1m candles are grouped into aligned 5m and 15m bars. Entry reference is frozen at signal confirmation; live ticker is shown separately. Forecasts and risk levels are estimates, not promises. V7 improves pending-setup visibility and WAIT-reason accounting only; it does NOT claim that the entry rules or profit performance are validated. A ticker asset may be absent from a WS update when its price has not changed; per-coin age is therefore labelled “last price change”, not proof of a broken feed.</footer>
 </main>
 <script>
 'use strict';
@@ -178,10 +179,23 @@ function riskLevels(m,side,entry,ind){
  m.sl=side==='LONG'?entry-risk:entry+risk;
  m.tp=side==='LONG'?entry+reward:entry-reward;
 }
+function classifyWaitReason(reason){
+ const s=String(reason||'').toLowerCase();
+ if(/insufficient closed candle|not enough closed|candle error|unavailable/.test(s))return 'history/data';
+ if(/15m .* conflict|5m bearish but 15m bullish|5m bullish but 15m bearish/.test(s))return 'timeframe conflict';
+ if(/5m trend is sideways|5m sideways|5m trend.*unavailable/.test(s))return '5m trend';
+ if(/rsi outside/.test(s))return 'RSI';
+ if(/momentum/.test(s))return 'momentum';
+ if(/volume/.test(s))return 'volume';
+ if(/ema9|ema21|reclaimed|stayed below/.test(s))return '1m EMA';
+ if(/closed-candle confirmation|2 bullish|2 bearish/.test(s))return 'candle confirmation';
+ if(/too far from ema|late entry/.test(s))return 'chasing filter';
+ return 'other';
+}
 function analyze(m){
  const c=m.candles,c5=aggregate(c,5),c15=aggregate(c,15);
  if(c.length<100||c5.length<18||c15.length<8){
-  m.ready=false;m.raw='WAIT';m.lastRawReason='Insufficient closed candle history (1m '+c.length+', 5m '+c5.length+', 15m '+c15.length+')';m.ind=null;return;
+  m.ready=false;m.raw='WAIT';m.lastRawReason='Insufficient closed candle history (1m '+c.length+', 5m '+c5.length+', 15m '+c15.length+')';m.waitCategory='history/data';m.ind=null;return;
  }
  const one=c.slice(),cl=one.map(x=>x.c),last=one[one.length-1],prev=one[one.length-2];
  const t1=trend(one,9,21),t5=trend(c5,5,13),t15=trend(c15,5,13);
@@ -224,6 +238,7 @@ function analyze(m){
  else reason=strongShort?'STRONG SHORT · 1m/5m/15m aligned':'SHORT · higher-timeframe and 1m confirmation';
 
  m.ready=true;m.raw=raw;m.lastRawReason=reason;
+ m.waitCategory=raw==='WAIT'?classifyWaitReason(reason):'';
  m.ind={t1,t5,t15,rsi:rv,atr:a,mom,momMin,volRatio,body,lastTime:last.t,oneCount:c.length,fiveCount:c5.length,fifteenCount:c15.length,e9,e21};
  if(last.t>m.lastProcessed){
   m.lastProcessed=last.t;
@@ -273,7 +288,7 @@ function renderCoin(m){
  return `<article class="coin">
  <div class="top"><b class="symbol">${m.base}/USDT</b><span class="badge ${cls}">${sig}${m.activeSide&&m.signal===m.activeSide?' · HELD':''}</span></div>
  <div class="price">${fmt(m.price||m.candles.at(-1)?.c)} <span class="small">USDT</span></div>
- <div class="reason">${m.ready?(m.reason||m.lastRawReason):m.lastRawReason}</div>
+ <div class="reason">${m.ready?(m.reason||m.lastRawReason):m.lastRawReason}${m.ready&&m.signal==='WAIT'&&(m.candidate==='LONG'||m.candidate==='SHORT')&&m.candidateCount===1?' · PENDING '+m.candidate+' 1/2':''}</div>
  <div class="metrics">
  <div class="metric"><span>1m trend</span><b>${ind?.t1||'—'}</b></div><div class="metric"><span>5m trend</span><b>${ind?.t5||'—'}</b></div>
  <div class="metric"><span>15m trend</span><b>${ind?.t15||'—'}</b></div><div class="metric"><span>RSI 1m</span><b>${finite(ind?.rsi)?ind.rsi.toFixed(2):'—'}</b></div>
@@ -293,25 +308,20 @@ function render(){
  held=coins.filter(m=>m.ready&&m.activeSide&&String(m.reason||'').startsWith('HELD')).length,
  longs=coins.filter(m=>m.ready&&m.signal==='LONG'&&!(m.activeSide&&String(m.reason||'').startsWith('HELD'))).length,
  shorts=coins.filter(m=>m.ready&&m.signal==='SHORT'&&!(m.activeSide&&String(m.reason||'').startsWith('HELD'))).length,
- waits=coins.filter(m=>m.ready&&m.signal==='WAIT').length,
+ pending=coins.filter(m=>m.ready&&m.signal==='WAIT'&&(m.candidate==='LONG'||m.candidate==='SHORT')&&m.candidateCount===1).length,
+ waits=coins.filter(m=>m.ready&&m.signal==='WAIT'&&!(m.candidate==='LONG'||m.candidate==='SHORT') ).length,
  noData=coins.length-ready;
  setText('total',coins.length);setText('ready',ready);setText('longs',longs);
- setText('shorts',shorts);setText('held',held);setText('waits',waits);setText('nodata',noData);
+ setText('shorts',shorts);setText('pending',pending);setText('held',held);setText('waits',waits);setText('nodata',noData);
  setText('tickers',tickerUpdateCount);
  setText('wsage',lastWsMessage?'Last WS event: '+Math.max(0,Math.floor((Date.now()-lastWsMessage)/1000))+'s ago':'Last WS event: —');
  setText('substatus',wsSubscribeAck?'Subscription: acknowledged '+clock(wsSubscribeAckAt):'Subscription: '+(ws&&ws.readyState===1?'awaiting acknowledgement':'not confirmed'));
- const waiting=coins.filter(m=>m.ready&&m.signal==='WAIT');
- const reasons=[
-  ['15m conflict',/15m .* conflict/i],
-  ['RSI range',/RSI outside/i],
-  ['momentum',/momentum/i],
-  ['volume',/volume/i],
-  ['candle confirmation',/closed-candle confirmation|2 bullish|2 bearish|second closed candle/i]
- ];
- const reasonCounts=reasons.map(([name,re])=>name+' '+waiting.filter(m=>re.test(m.lastRawReason||'')).length);
- const known=reasons.reduce((sum,[,re])=>sum+waiting.filter(m=>re.test(m.lastRawReason||'')).length,0);
- reasonCounts.push('other '+Math.max(0,waiting.length-known));
- setText('diagnostics','WAIT reason audit (first displayed blocker only): '+reasonCounts.join(' · ')+'. Coins can fail multiple rules; this is not a backtest.');
+ const waiting=coins.filter(m=>m.ready&&m.signal==='WAIT'&&!(m.candidate==='LONG'||m.candidate==='SHORT'));
+ const categories=['timeframe conflict','5m trend','RSI','momentum','volume','1m EMA','candle confirmation','chasing filter','other'];
+ const counts=Object.fromEntries(categories.map(k=>[k,0]));
+ for(const m of waiting){const k=categories.includes(m.waitCategory)?m.waitCategory:'other';counts[k]++}
+ const audit=categories.map(k=>k+' '+counts[k]).join(' · ');
+ setText('diagnostics','WAIT first-blocker audit: '+audit+'. Separate pending LONG/SHORT candidates: '+pending+'. Each READY·WAIT coin is counted in exactly one category; this is a diagnostic, not a backtest.');
  setText('feeSummary',`Illustrative round-trip fee: ${(cfg().notional*cfg().fee*2).toFixed(4)} USDT · Slippage estimate: ${(cfg().notional*cfg().slip).toFixed(4)} USDT · Total estimated cost: ${(cfg().notional*(cfg().fee*2+cfg().slip)).toFixed(4)} USDT. Excludes funding and spread.`);
  setText('refreshAge',lastCandleRefresh?'Candle refresh: '+clock(lastCandleRefresh):'Candle refresh: —');
 }
@@ -325,7 +335,7 @@ async function fetchBatch(batch){
  for(const m of batch){
   const arr=candlesFor(j,m.symbol,m.base).filter(x=>x.t+60000<=Date.now()).slice(-1440);
   if(arr.length>=100){m.candles=arr;analyze(m);good++}
-  else{m.candles=arr;m.ready=false;m.raw='WAIT';m.ind=null;m.lastRawReason='Not enough closed Mudrex candles ('+arr.length+')';if(!m.activeSide){m.signal='WAIT';m.entry=m.sl=m.tp=0}empty++}
+  else{m.candles=arr;m.ready=false;m.raw='WAIT';m.ind=null;m.lastRawReason='Not enough closed Mudrex candles ('+arr.length+')';m.waitCategory='history/data';if(!m.activeSide){m.signal='WAIT';m.entry=m.sl=m.tp=0}empty++}
  }
  return {good,empty};
 }
