@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mudrex Smart Paper Trader — Final</title>
+<title>Mudrex Smart Paper Trader — V23 Checked</title>
 <style>
 :root{color-scheme:dark;--bg:#08111f;--panel:#111e31;--panel2:#0b1728;--line:#263b56;--text:#eef4ff;--muted:#9fb0c8;--green:#42dfa5;--red:#ff7182;--yellow:#ffd477}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,sans-serif}
@@ -52,7 +52,7 @@ table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}td,t
 <div class="field"><label class="small">Minimum paper margin (₹)</label><input id="minMargin" type="number" min="1" value="25"></div>
 </div>
 <div class="actions"><button class="primary" id="saveSettings">Save Settings</button><button id="resetSettings">Default Settings</button></div>
-<div class="small" style="margin-top:8px">Paper position size और risk estimate simulated हैं; वास्तविक exchange margin/leverage नहीं। Capital बदलने पर पुराने positions का आकार नहीं बदलेगा।</div>
+<div class="small" style="margin-top:8px">Paper position size और risk estimate simulated हैं; वास्तविक exchange margin/leverage नहीं। कुल capital का अधिकतम 70% ही positions में lock होगा; कम-से-कम 30% reserve रहेगा। Risk % अधिकतम अनुमानित loss सीमा है, margin प्रतिशत नहीं। Capital बदलने पर पुराने positions का आकार नहीं बदलेगा।</div>
 </div>
 <div class="panel"><div class="row"><h3>Paper Trading Engine</h3><span class="badge wait" id="engineBadge">STOPPED</span></div>
 <div class="actions"><button class="primary" id="start">Start Auto Paper</button><button class="danger" id="stop">Stop Auto</button><button id="closeAll">Close All Paper</button></div>
@@ -71,7 +71,7 @@ table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}td,t
 <div class="grid" id="markets"><div class="panel">Loading market data...</div></div>
 <h2>Paper Trade History</h2>
 <div class="panel tablewrap"><table><thead><tr><th>Time</th><th>Coin</th><th>Side</th><th>Entry</th><th>Exit</th><th>Margin</th><th>Net P&amp;L</th><th>Reason</th></tr></thead><tbody id="history"><tr><td colspan="8">No completed trades</td></tr></tbody></table><div class="actions"><button id="export">Export CSV</button><button class="danger" id="clearHistory">Clear History</button></div></div>
-<footer>Mudrex public Futures data. Paper trades only. No API keys. No real orders. Browser storage इसी device/browser में है। Page बंद होने या browser रुकने पर simulation भी रुक जाएगा। Coin list candidate list है, verified complete contract directory नहीं।</footer>
+<footer>Mudrex public Futures data. V23 checked build. Paper trades only. No API keys. No real orders. Browser storage इसी device/browser में है। Page बंद होने या browser रुकने पर simulation भी रुक जाएगा। Coin list candidate list है, verified complete contract directory नहीं।</footer>
 </main>
 <script>
 'use strict';
@@ -183,6 +183,24 @@ function analyze(m){
  const shortBias=t15==='BEARISH'&&t5!=='BULLISH'&&(t60==='BEARISH'||(t60==='SIDEWAYS'&&t5==='BEARISH'));
  const longTrigger=t1==='BULLISH'&&last.c>e9&&last.c>prev.c&&body==='UP'&&bodyPct>=.025&&closeLoc>=.58&&mom>=.015&&finite(rv)&&rv>=43&&rv<=70;
  const shortTrigger=t1==='BEARISH'&&last.c<e9&&last.c<prev.c&&body==='DOWN'&&bodyPct>=.025&&closeLoc<=.42&&mom<=-.015&&finite(rv)&&rv>=30&&rv<=57;
+ const longFails=[];
+ if(t1!=='BULLISH')longFails.push('1m EMA not bullish');
+ if(!(last.c>e9))longFails.push('close not above EMA9');
+ if(!(last.c>prev.c))longFails.push('close not above previous close');
+ if(body!=='UP')longFails.push('last candle is not bullish');
+ if(bodyPct<.025)longFails.push('candle body below 0.025%');
+ if(closeLoc<.58)longFails.push('close location below 58%');
+ if(!(mom>=.015))longFails.push('momentum below +0.015%');
+ if(!finite(rv)||rv<43||rv>70)longFails.push('RSI outside 43–70');
+ const shortFails=[];
+ if(t1!=='BEARISH')shortFails.push('1m EMA not bearish');
+ if(!(last.c<e9))shortFails.push('close not below EMA9');
+ if(!(last.c<prev.c))shortFails.push('close not below previous close');
+ if(body!=='DOWN')shortFails.push('last candle is not bearish');
+ if(bodyPct<.025)shortFails.push('candle body below 0.025%');
+ if(closeLoc>.42)shortFails.push('close location above 42%');
+ if(!(mom<=-.015))shortFails.push('momentum above -0.015%');
+ if(!finite(rv)||rv<30||rv>57)shortFails.push('RSI outside 30–57');
  let ls=0,ss=0;
  if(t60==='BULLISH')ls+=3;if(t15==='BULLISH')ls+=2;if(t5==='BULLISH')ls+=2;if(t1==='BULLISH')ls++;
  if(last.c>e9)ls++;if(last.c>e21)ls++;if(finite(rv)&&rv>=43&&rv<=70)ls++;if(mom>=.015)ls++;if(body==='UP'&&closeLoc>=.58)ls++;
@@ -198,10 +216,12 @@ function analyze(m){
  else if(t60==='BULLISH'&&t15==='BEARISH')reason='15m trend opposes bullish 1h bias';
  else if(t60==='BEARISH'&&t15==='BULLISH')reason='15m trend opposes bearish 1h bias';
  else if(t60==='SIDEWAYS'&&!longBias&&!shortBias)reason='1h sideways; waiting for 15m + 5m agreement';
- else if(longBias&&!longTrigger)reason='LONG bias valid; 1m EMA trend is separate from entry trigger — waiting for candle / momentum / RSI';
- else if(shortBias&&!shortTrigger)reason='SHORT bias valid; 1m EMA trend is separate from entry trigger — waiting for candle / momentum / RSI';
+ else if(longBias&&!longTrigger)reason='LONG bias valid · blocked: '+longFails.slice(0,4).join('; ');
+ else if(shortBias&&!shortTrigger)reason='SHORT bias valid · blocked: '+shortFails.slice(0,4).join('; ');
+ else if(longBias&&longTrigger&&ls<longThreshold)reason='LONG trigger met, but confirmation score too low · '+ls+'/'+longThreshold;
+ else if(shortBias&&shortTrigger&&ss<shortThreshold)reason='SHORT trigger met, but confirmation score too low · '+ss+'/'+shortThreshold;
  else reason='Trend alignment or confirmation score insufficient · UP '+ls+' / DOWN '+ss;
- m.ready=true;m.ind={t1,t5,t15,t60,rsi:rv,mom,ls,ss,body,bodyPct,closeLocation:closeLoc,dist,lastTime:last.t,longBias,shortBias,longTrigger,shortTrigger,notChasing};
+ m.ready=true;m.ind={t1,t5,t15,t60,rsi:rv,mom,ls,ss,body,bodyPct,closeLocation:closeLoc,dist,lastTime:last.t,longBias,shortBias,longTrigger,shortTrigger,longFails,shortFails,notChasing};
  m.signal=signal;m.reason=reason;m.lastAnalyzedTime=last.t;return true;
 }
 function candleFresh(m){
@@ -227,8 +247,19 @@ function allocate(m){
  const candleTime=bias.lastTime||0;if(!candleTime||Number(state.processed[m.base])===candleTime)return false;
  if(state.positions.some(p=>p.base===m.base)||state.positions.length>=settings.maxPositions)return false;
  if(dailyRiskPnl()<=-settings.dailyLimit){state.dailyBlocked=true;running=false;save();renderAll();return false}
- const free=available(),slots=settings.maxPositions-state.positions.length,budget=free/slots;
- const riskBudget=state.capital*settings.risk/100,lossRate=(settings.sl+2*settings.fee)/100,riskSized=riskBudget/Math.max(lossRate,.0001),margin=Math.min(budget,riskSized,free/(1+settings.fee/100));
+ const free=available();
+ // Reserve at least 30% of the account; do not spread 100% of free cash across open slots.
+ // Existing positions are never resized. The 70% ceiling only affects future entries.
+ const locked=state.positions.reduce((sum,p)=>sum+(Number(p.margin)||0)+(Number(p.entryFee)||0),0);
+ const accountBase=Math.max(0,state.capital+state.realized);
+ const totalExposureCap=accountBase*.70;
+ const remainingExposure=Math.max(0,totalExposureCap-locked);
+ const perTradeCap=totalExposureCap/settings.maxPositions;
+ const riskBudget=accountBase*settings.risk/100;
+ const lossRate=(settings.sl+2*settings.fee)/100;
+ const riskSized=riskBudget/Math.max(lossRate,.0001);
+ const feeFactor=1+settings.fee/100;
+ const margin=Math.min(perTradeCap/feeFactor,remainingExposure/feeFactor,riskSized,free/feeFactor);
  if(margin<settings.minMargin)return false;
  const price=m.price;if(!price||!fresh(m))return false;
  const side=m.signal,stop=side==='LONG'?price*(1-settings.sl/100):price*(1+settings.sl/100);
@@ -366,7 +397,7 @@ function renderCoins(){
   if(!cFresh){dataLabel='LATEST CLOSED CANDLE NOT ANALYZED / STALE · ENTRY BLOCKED';reason='Latest closed 1m candle has not completed fresh multi-timeframe analysis. Last signal: '+escHTML(m.signal)+' · '+escHTML(m.reason)}
   else if(!tFresh){dataLabel='TICKER STALE · SIGNAL RETAINED · NEW ENTRY BLOCKED';reason='Live ticker delayed. Closed-candle signal retained: '+escHTML(m.signal)+' · '+escHTML(m.reason)}
   else{dataLabel=s==='WAIT'?'LIVE DATA · NO ENTRY SIGNAL':'LIVE DATA · SIGNAL CONFIRMED · PAPER ENGINE REQUIRED'}
-  const triggerLabel=m.signal==='LONG'?'LONG entry confirmed':m.signal==='SHORT'?'SHORT entry confirmed':m.ind?.longTrigger?'1m bullish trigger met · higher-timeframe filter/score blocked':m.ind?.shortTrigger?'1m bearish trigger met · higher-timeframe filter/score blocked':m.ind?.t1==='BULLISH'?'1m EMA bullish · candle trigger waiting':m.ind?.t1==='BEARISH'?'1m EMA bearish · candle trigger waiting':'1m candle trigger waiting';
+  const triggerLabel=m.signal==='LONG'?'LONG entry confirmed':m.signal==='SHORT'?'SHORT entry confirmed':m.ind?.longTrigger?'1m bullish trigger met · higher-timeframe filter/score blocked':m.ind?.shortTrigger?'1m bearish trigger met · higher-timeframe filter/score blocked':m.ind?.longBias?'LONG entry checks below':m.ind?.shortBias?'SHORT entry checks below':m.ind?.t1==='BULLISH'?'1m EMA bullish · entry checks below':m.ind?.t1==='BEARISH'?'1m EMA bearish · entry checks below':'1m candle entry checks below';
   return `<article class="coin"><div class="top"><b class="symbol">${escHTML(m.base)}/USDT</b><span class="badge ${cls}">${s}</span></div><div class="price">${fmt(p)} <span class="small">USDT</span></div><div class="small">1m EMA ${m.ind?.t1||'—'} · 5m ${m.ind?.t5||'—'} · 15m ${m.ind?.t15||'—'} · 1h ${m.ind?.t60||'—'}</div><div class="small">${triggerLabel}</div><div class="small">RSI ${finite(m.ind?.rsi)?m.ind.rsi.toFixed(1):'—'} · Momentum ${finite(m.ind?.mom)?m.ind.mom.toFixed(3):'—'}%</div><div class="reason">${reason}</div><div class="small ${(!cFresh||!tFresh)?'yellow':''}">${dataLabel}</div></article>`
  }).join('')||'<div class="panel">No matching coins.</div>'
 }
