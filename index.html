@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mudrex Smart Paper Trader — V23 Checked</title>
+<title>Mudrex Smart Paper Trader — Final Audited</title>
 <style>
 :root{color-scheme:dark;--bg:#08111f;--panel:#111e31;--panel2:#0b1728;--line:#263b56;--text:#eef4ff;--muted:#9fb0c8;--green:#42dfa5;--red:#ff7182;--yellow:#ffd477}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,sans-serif}
@@ -31,7 +31,7 @@ table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}td,t
 <header><div class="wrap" style="padding:0">
 <h1>₿ Mudrex Smart Paper Trader</h1>
 <div class="small">Mudrex Futures public data · Paper trading only · No API keys</div>
-<span class="pill" id="status">Connecting...</span> <span class="pill">PAPER ONLY · REAL ORDERS DISABLED</span>
+<span class="pill" id="status">Connecting ticker...</span> <span class="pill" id="storageStatus">Account storage checking...</span> <span class="pill">PAPER ONLY · REAL ORDERS DISABLED</span>
 </div></header>
 <main class="wrap">
 <div class="warning"><b>महत्वपूर्ण:</b> यह केवल simulated paper trading है। Mudrex पर कोई असली ऑर्डर नहीं लगाया जाता। P&amp;L अनुमानित है। वास्तविक spread, slippage, funding, liquidation और execution का पूरा simulation नहीं होता। मुनाफे की कोई गारंटी नहीं है। पहले लंबे समय तक paper testing करें।</div>
@@ -62,16 +62,16 @@ table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}td,t
 <div class="stat"><span class="small">Total Trades</span><b id="totalTrades">0</b></div><div class="stat"><span class="small">Winning Trades</span><b id="wins" class="green">0</b></div><div class="stat"><span class="small">Losing Trades</span><b id="losses" class="red">0</b></div><div class="stat"><span class="small">Win Rate</span><b id="winRate">0%</b></div>
 </div>
 <div class="stats" style="margin-top:8px">
-<div class="stat"><span class="small">Unrealized P&amp;L</span><b id="unrealized">₹0</b></div><div class="stat"><span class="small">Total Fees</span><b id="feesPaid">₹0</b></div><div class="stat"><span class="small">Daily P&amp;L</span><b id="dailyPnl">₹0</b></div><div class="stat"><span class="small">Profit Factor</span><b id="profitFactor">—</b></div>
+<div class="stat"><span class="small">Unrealized P&amp;L</span><b id="unrealized">₹0</b></div><div class="stat"><span class="small">Fees Paid</span><b id="feesPaid">₹0</b></div><div class="stat"><span class="small">Est. Exit Fees (open)</span><b id="exitFeesEst">₹0</b></div><div class="stat"><span class="small">Daily P&amp;L</span><b id="dailyPnl">₹0</b></div><div class="stat"><span class="small">Profit Factor</span><b id="profitFactor">—</b></div>
 </div>
 <h2>Open Paper Positions</h2><div class="panel tablewrap"><table><thead><tr><th>Coin</th><th>Side</th><th>Entry</th><th>Current</th><th>Margin</th><th>Net P&amp;L</th><th>SL</th><th>TP</th><th>Action</th></tr></thead><tbody id="positions"><tr><td colspan="9">No open positions</td></tr></tbody></table></div>
 <h2>Market Scanner</h2>
 <div class="toolbar"><input id="search" placeholder="Search BTC, ETH, SOL..."><select id="filter"><option value="ALL">All coins</option><option value="LONG">LONG only</option><option value="SHORT">SHORT only</option><option value="WAIT">WAIT only</option></select><button class="primary" id="refresh">Refresh Candles</button><button id="pause">Pause Data</button></div>
-<div class="small" style="margin-bottom:10px">Signal केवल बंद 1m candle पर calculate होता है। 1h दिशा, 15m/5m confirmation और 1m entry trigger उपयोग होते हैं। Ticker freshness अलग है: Mudrex ticker price change होने पर ही push करता है, इसलिए unchanged market में ticker status कुछ देर बाद stale हो सकता है। पुराने valid candles खराब refresh से delete नहीं होंगे।</div>
+<div class="small" id="candleStatus" style="margin-bottom:5px">Candle data loading...</div><div class="small" style="margin-bottom:10px">Signal केवल पूरी तरह बंद 1m candle पर calculate होता है। 1h दिशा, 15m/5m confirmation और 1m entry trigger उपयोग होते हैं। Mudrex ticker केवल बदली हुई कीमतें भेजता है; subscribe snapshot और live WebSocket heartbeat से unchanged price को valid रखा जाता है। Socket heartbeat खोने पर नए entries और position monitoring रुकेंगे। पुराने valid candles खराब refresh से delete नहीं होंगे।</div>
 <div class="grid" id="markets"><div class="panel">Loading market data...</div></div>
 <h2>Paper Trade History</h2>
-<div class="panel tablewrap"><table><thead><tr><th>Time</th><th>Coin</th><th>Side</th><th>Entry</th><th>Exit</th><th>Margin</th><th>Net P&amp;L</th><th>Reason</th></tr></thead><tbody id="history"><tr><td colspan="8">No completed trades</td></tr></tbody></table><div class="actions"><button id="export">Export CSV</button><button class="danger" id="clearHistory">Clear History</button></div></div>
-<footer>Mudrex public Futures data. V23 checked build. Paper trades only. No API keys. No real orders. Browser storage इसी device/browser में है। Page बंद होने या browser रुकने पर simulation भी रुक जाएगा। Coin list candidate list है, verified complete contract directory नहीं।</footer>
+<div class="panel tablewrap"><table><thead><tr><th>Time</th><th>Coin</th><th>Side</th><th>Entry</th><th>Exit</th><th>Margin</th><th>Net P&amp;L</th><th>Reason</th></tr></thead><tbody id="history"><tr><td colspan="8">No completed trades</td></tr></tbody></table><div class="actions"><button id="export">Export CSV</button><button id="backup">Backup Account JSON</button><button id="restore">Restore Backup</button><button class="danger" id="clearHistory">Clear History</button></div><div class="small">Clear History केवल completed-trade rows हटाता है; account capital, realized P&amp;L और fees सुरक्षित रहते हैं।</div><input id="restoreFile" type="file" accept="application/json,.json" style="display:none"></div>
+<footer>Mudrex public Futures data. Final audited build. Paper trades only. No API keys. No real orders. Browser storage इसी device/browser में है। Page बंद होने या browser रुकने पर simulation भी रुक जाएगा। Coin list candidate list है, verified complete contract directory नहीं।</footer>
 </main>
 <script>
 'use strict';
@@ -81,28 +81,45 @@ const STORE='mudrexSmartPaperV15';
 const BASES=('BTC ETH BNB SOL XRP ADA DOGE TRX AVAX LINK DOT LTC BCH UNI ETC FIL ATOM NEAR APT ARB OP SUI SEI INJ TIA TON WIF PEPE SHIB FLOKI BONK FTM RENDER FET TAO IMX GALA SAND MANA AAVE MKR CRV COMP SNX DYDX LDO ENS JUP JTO PYTH WLD ONDO NOT ZK ZRO STRK BLUR ENA ETHFI PENDLE POL XLM XMR HBAR VET ALGO ICP QNT AXS CHZ FLOW THETA EGLD KAVA ZEC DASH NEO GMT MASK LRC ONE ZIL ROSE COTI ANKR BAT YFI SUSHI 1INCH MINA KSM RUNE STX KAS').split(/\s+/);
 const $=id=>document.getElementById(id),finite=Number.isFinite;
 let coins=BASES.map(base=>({base,symbol:base+'/USDT',ws:base.toLowerCase()+'usdt',candles:[],price:0,tickerAt:0,signal:'WAIT',reason:'Candles loading',ready:false,ind:null,lastAnalyzedTime:0}));
-let ws=null,paused=false,busy=false,running=false,reconnectTimer=null,lastRefresh=0,wsKeepAlive=null,reconnectAttempts=0;
+let ws=null,paused=false,busy=false,running=false,reconnectTimer=null,lastRefresh=0,wsKeepAlive=null,wsHealthTimer=null,wsHandshakeTimer=null,reconnectAttempts=0,wsHealthy=false,lastWsMessageAt=0;
 let settings={},state={capital:500,realized:0,fees:0,positions:[],history:[],dailyStart:'',dailyPnl:0,dailyBlocked:false,processed:{}};
+let storageSafe=true,storageProblem='';
 const DEFAULTS={capital:500,risk:1,maxPositions:3,sl:.5,tp:1,quick:.5,fee:.05,dailyLimit:15,minMargin:25};
 function number(id,def){const x=Number($(id).value);return finite(x)?x:def}
 function money(x){return '₹'+Number(x||0).toFixed(2)}
 function fmt(x){if(!finite(x)||x<=0)return '—';return x>=1000?x.toLocaleString('en-US',{maximumFractionDigits:2}):x>=1?x.toFixed(4):x.toPrecision(5)}
 function clock(){return new Date().toLocaleTimeString('en-IN',{hour12:false})}
 function dayKey(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
-function save(){try{localStorage.setItem(STORE,JSON.stringify({settings,state}))}catch(e){console.warn('Storage unavailable',e)}}
+function storageLabel(){const el=$('storageStatus');if(!el)return;el.textContent=storageSafe?'ACCOUNT SAVED IN THIS BROWSER':'ACCOUNT STORAGE ERROR · RESTORE BACKUP';el.style.color=storageSafe?'var(--green)':'var(--yellow)'}
+function save(){if(!storageSafe)return false;try{localStorage.setItem(STORE,JSON.stringify({settings,state}));return true}catch(e){storageSafe=false;storageProblem='Browser storage write failed: '+e.message;running=false;console.warn(storageProblem);storageLabel();return false}}
+function normalizeSettings(raw){
+ const n=(k,d)=>finite(Number(raw?.[k]))?Number(raw[k]):d;
+ return {capital:Math.min(1000000,Math.max(100,n('capital',500))),risk:Math.min(5,Math.max(.25,n('risk',1))),maxPositions:[2,3,4,5].includes(Math.round(n('maxPositions',3)))?Math.round(n('maxPositions',3)):3,sl:Math.min(5,Math.max(.1,n('sl',.5))),tp:Math.min(10,Math.max(.2,n('tp',1))),quick:Math.max(0,n('quick',.5)),fee:Math.min(1,Math.max(0,n('fee',.05))),dailyLimit:Math.max(1,n('dailyLimit',15)),minMargin:Math.max(1,n('minMargin',25))};
+}
+function validateAccount(d){
+ if(!d||typeof d!=='object'||!d.settings||typeof d.settings!=='object'||!d.state||typeof d.state!=='object')throw Error('Saved account structure is incomplete');
+ const st=d.state;if(!Array.isArray(st.positions)||!Array.isArray(st.history))throw Error('Saved positions/history are not valid arrays');
+ for(const p of st.positions){if(!p||typeof p.base!=='string'||!['LONG','SHORT'].includes(p.side)||![p.entry,p.margin,p.stop,p.target].every(v=>finite(Number(v))&&Number(v)>0))throw Error('An open position has invalid price/size fields');if(p.side==='LONG'&&!(Number(p.stop)<Number(p.entry)&&Number(p.target)>Number(p.entry)))throw Error('A LONG position has invalid stop/target levels');if(p.side==='SHORT'&&!(Number(p.stop)>Number(p.entry)&&Number(p.target)<Number(p.entry)))throw Error('A SHORT position has invalid stop/target levels')}
+ for(const h of st.history){if(!h||typeof h.base!=='string'||!['LONG','SHORT'].includes(h.side)||![h.entry,h.exit,h.margin,h.net].every(v=>finite(Number(v)))||Number(h.entry)<=0||Number(h.exit)<=0||Number(h.margin)<=0)throw Error('A trade-history row has invalid numeric fields')}
+ for(const k of ['capital','realized','fees','dailyPnl'])if(st[k]!==undefined&&!finite(Number(st[k])))throw Error('Saved account contains invalid '+k);if(st.capital!==undefined&&Number(st.capital)<=0)throw Error('Saved account capital must be positive');
+ return true;
+}
+function normalizeState(src,conf){
+ const out={...state,...src};out.capital=finite(Number(out.capital))&&Number(out.capital)>0?Number(out.capital):conf.capital;out.realized=Number(out.realized)||0;out.fees=Number(out.fees)||0;out.dailyPnl=Number(out.dailyPnl)||0;
+ out.positions=out.positions.map(p=>({...p,entry:Number(p.entry),current:finite(Number(p.current))&&Number(p.current)>0?Number(p.current):Number(p.entry),margin:Number(p.margin),stop:Number(p.stop),target:Number(p.target),entryFee:finite(Number(p.entryFee))?Number(p.entryFee):Number(p.margin)*conf.fee/100,feeRate:finite(Number(p.feeRate))?Number(p.feeRate):conf.fee,net:finite(Number(p.net))?Number(p.net):0,peak:finite(Number(p.peak))?Number(p.peak):0}));
+ out.history=out.history.map(h=>({...h,entry:Number(h.entry),exit:Number(h.exit),margin:Number(h.margin),net:Number(h.net)}));out.processed=out.processed&&typeof out.processed==='object'&&!Array.isArray(out.processed)?out.processed:{};out.dailyStart=typeof out.dailyStart==='string'&&out.dailyStart?out.dailyStart:dayKey();out.dailyBlocked=!!out.dailyBlocked;return out;
+}
 function load(){
- try{const d=JSON.parse(localStorage.getItem(STORE)||'null');if(d){if(d.settings)settings=d.settings;if(d.state)state={...state,...d.state}}}catch(e){console.warn('Could not read saved paper data',e)}
- if(!Array.isArray(state.positions))state.positions=[];if(!Array.isArray(state.history))state.history=[];
- if(!state.processed||typeof state.processed!=='object')state.processed={};
- for(const k of ['capital','realized','fees','dailyPnl'])state[k]=finite(Number(state[k]))?Number(state[k]):(k==='capital'?500:0);
- state.capital=Number(state.capital)||500;state.realized=Number(state.realized)||0;state.fees=Number(state.fees)||0;
- if(!state.dailyStart)state.dailyStart=dayKey();resetDailyIfNeeded();
+ let raw;try{raw=localStorage.getItem(STORE)}catch(e){storageSafe=false;storageProblem='Browser storage cannot be read: '+e.message;storageLabel();return false}
+ if(raw===null){settings={...DEFAULTS};state={capital:500,realized:0,fees:0,positions:[],history:[],dailyStart:dayKey(),dailyPnl:0,dailyBlocked:false,processed:{}};storageLabel();return true}
+ try{const d=JSON.parse(raw);validateAccount(d);settings=normalizeSettings(d.settings);state=normalizeState(d.state,settings);if(settings.quick===2)settings.quick=.5;resetDailyIfNeeded();storageLabel();return true}
+ catch(e){storageSafe=false;storageProblem='Saved account data was not changed because it failed validation: '+e.message;settings={...DEFAULTS};state={capital:500,realized:0,fees:0,positions:[],history:[],dailyStart:dayKey(),dailyPnl:0,dailyBlocked:false,processed:{}};console.warn(storageProblem);storageLabel();return false}
 }
 function resetDailyIfNeeded(){if(state.dailyStart!==dayKey()){state.dailyStart=dayKey();state.dailyPnl=0;state.dailyBlocked=false}}
 function readSettings(){return {capital:Math.min(1000000,Math.max(100,number('capital',500))),risk:Math.min(5,Math.max(.25,number('risk',1))),maxPositions:Math.min(5,Math.max(2,number('maxPositions',3))),sl:Math.min(5,Math.max(.1,number('sl',.5))),tp:Math.min(10,Math.max(.2,number('tp',1))),quick:Math.max(0,number('quick',.5)),fee:Math.min(1,Math.max(0,number('fee',.05))),dailyLimit:Math.max(1,number('dailyLimit',15)),minMargin:Math.max(1,number('minMargin',25))}}
 function loadInputs(){for(const k of Object.keys(DEFAULTS))if($(k))$(k).value=settings[k]??DEFAULTS[k]}
-function saveSettings(){const next=readSettings(),locked=state.positions.reduce((s,p)=>s+(Number(p.margin)||0)+(Number(p.entryFee)||0),0);if(next.capital+state.realized<locked){alert('Virtual Capital इतना कम नहीं कर सकते: open positions में इससे अधिक margin locked है।');$('capital').value=state.capital;return}settings=next;state.capital=settings.capital;save();renderAll();$('engineMessage').textContent='Settings saved.'}
-function defaults(){settings={...DEFAULTS};loadInputs();saveSettings()}
+function saveSettings(){if(!storageSafe){alert('Account storage सुरक्षित नहीं है। पहले valid JSON backup restore करें; अभी settings save नहीं होंगी।');return}const next=readSettings(),locked=state.positions.reduce((s,p)=>s+(Number(p.margin)||0)+(Number(p.entryFee)||0),0);if(next.capital+state.realized<locked){alert('Virtual Capital इतना कम नहीं कर सकते: open positions में इससे अधिक margin locked है।');$('capital').value=state.capital;return}settings=next;state.capital=settings.capital;save();renderAll();$('engineMessage').textContent='Settings saved.'}
+function defaults(){settings={...DEFAULTS,capital:state.positions.length?state.capital:DEFAULTS.capital};loadInputs();saveSettings()}
 function available(){return Math.max(0,state.capital+state.realized-state.positions.reduce((s,p)=>s+(Number(p.margin)||0)+(Number(p.entryFee)||0),0))}
 function escHTML(v){return String(v??'').replace(/[&<>\"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]))}
 function unrealized(){return state.positions.reduce((s,p)=>s+(Number(p.net)||0),0)}
@@ -111,7 +128,7 @@ function dailyRiskPnl(){return state.dailyPnl+unrealized()}
 function parseCandle(x){
  let t,o,h,l,c,v;
  if(Array.isArray(x))[t,o,h,l,c,v]=x;
- else if(x&&typeof x==='object'){t=x.t??x.time??x.timestamp??x.open_time??x.openTime??x.start;o=x.o??x.open;h=x.h??x.high;l=x.l??x.low;c=x.c??x.close;v=x.v??x.volume??0}
+ else if(x&&typeof x==='object'){t=x.t??x.time??x.timestamp??x.open_time??x.openTime??x.start??x.id;o=x.o??x.open??x.open_price;h=x.h??x.high??x.high_price;l=x.l??x.low??x.low_price;c=x.c??x.close??x.close_price;v=x.v??x.volume??x.vol??0}
  if(typeof t==='string'&&!/^\d+(\.\d+)?$/.test(t))t=Date.parse(t);
  t=Number(t);if(t>0&&t<1e12)t*=1000;o=Number(o);h=Number(h);l=Number(l);c=Number(c);v=Number(v)||0;
  if(!finite(t)||!finite(o)||!finite(h)||!finite(l)||!finite(c)||c<=0||h<l||t<=0||h<Math.max(o,c)||l>Math.min(o,c))return null;
@@ -120,7 +137,7 @@ function parseCandle(x){
 function norm(s){return String(s??'').toUpperCase().replace(/[^A-Z0-9]/g,'')}
 function findCandleArray(value,depth=0){
  if(depth>7||!value)return null;
- if(Array.isArray(value)){if(!value.length)return value;if(Array.isArray(value[0])||typeof value[0]==='object'){const parsed=value.map(parseCandle).filter(Boolean);if(parsed.length)return parsed}return null}
+ if(Array.isArray(value)){if(!value.length)return null;if(Array.isArray(value[0])||typeof value[0]==='object'){const parsed=value.map(parseCandle).filter(Boolean);if(parsed.length)return parsed}return null}
  if(typeof value!=='object')return null;
  for(const key of ['ticks','candles','klines','items','data','result'])if(value[key]!==undefined){const found=findCandleArray(value[key],depth+1);if(found)return found}
  return null
@@ -129,8 +146,8 @@ function candlesFor(j,m,allowUnkeyed=false){
  const wanted=new Set([norm(m.symbol),norm(m.base+'USDT'),norm(m.ws)]),seen=new Set();
  function walk(node,depth=0){
   if(!node||typeof node!=='object'||depth>8||seen.has(node))return null;seen.add(node);
-  if(Array.isArray(node)){for(const item of node){if(item&&typeof item==='object'&&!Array.isArray(item)){const sym=norm(item.asset??item.symbol??item.s??item.a??'');if(wanted.has(sym)){const found=findCandleArray(item);if(found)return found}}}return null}
-  for(const key of Object.keys(node))if(wanted.has(norm(key))){const found=findCandleArray(node[key]);if(found)return found}
+  if(Array.isArray(node)){for(const item of node){if(item&&typeof item==='object'&&!Array.isArray(item)){const sym=norm(item.asset??item.symbol??item.s??item.a??'');if(wanted.has(sym)){const found=findCandleArray(item);if(found?.length)return found}}}return null}
+  for(const key of Object.keys(node))if(wanted.has(norm(key))){const found=findCandleArray(node[key]);if(found?.length)return found}
   for(const key of ['data','result','assets','asset_ticks','ticks','candles'])if(node[key]!==undefined){const found=walk(node[key],depth+1);if(found)return found}
   return null
  }
@@ -229,10 +246,12 @@ function candleFresh(m){
  const last=m.candles[m.candles.length-1],age=Date.now()-(last.t+60000);
  // A newly received candle is not "freshly analyzed" until all timeframe indicators
  // have been recalculated for that exact closed 1m candle.
- return m.ind.lastTime===last.t&&age>=-60000&&age<180000
+ return m.ind.lastTime===last.t&&age>=0&&age<90000
 }
 // Mudrex ticker pushes only when a tracked asset's price changes; allow a 60s quiet-market window.
-function tickerFresh(m){return !!m&&m.price>0&&!!m.tickerAt&&Date.now()-m.tickerAt>=0&&Date.now()-m.tickerAt<60000}
+// Mudrex ticker sends updates ONLY when price changes; quiet assets do not emit heartbeats.
+// Treat a received ticker snapshot as usable while the socket itself is healthy.
+function tickerFresh(m){return !!m&&m.price>0&&!!m.tickerAt&&wsHealthy&&Date.now()-lastWsMessageAt<45000}
 function fresh(m){return candleFresh(m)&&tickerFresh(m)}
 function livePrice(m){if(!m)return 0;if(tickerFresh(m))return m.price;return m.candles[m.candles.length-1]?.c||0}
 function calcPosition(p,price){
@@ -245,6 +264,8 @@ function allocate(m){
  if(m.signal==='LONG'&&!(bias.t15==='BULLISH'&&bias.t5!=='BEARISH'&&(bias.t60==='BULLISH'||(bias.t60==='SIDEWAYS'&&bias.t5==='BULLISH'))))return false;
  if(m.signal==='SHORT'&&!(bias.t15==='BEARISH'&&bias.t5!=='BULLISH'&&(bias.t60==='BEARISH'||(bias.t60==='SIDEWAYS'&&bias.t5==='BEARISH'))))return false;
  const candleTime=bias.lastTime||0;if(!candleTime||Number(state.processed[m.base])===candleTime)return false;
+ // Consume each confirmed candle once, even if capacity/risk prevents entry; never enter late on an old signal.
+ state.processed[m.base]=candleTime;save();
  if(state.positions.some(p=>p.base===m.base)||state.positions.length>=settings.maxPositions)return false;
  if(dailyRiskPnl()<=-settings.dailyLimit){state.dailyBlocked=true;running=false;save();renderAll();return false}
  const free=available();
@@ -265,13 +286,14 @@ function allocate(m){
  const side=m.signal,stop=side==='LONG'?price*(1-settings.sl/100):price*(1+settings.sl/100);
  const target=side==='LONG'?price*(1+settings.tp/100):price*(1-settings.tp/100),feeRate=settings.fee,entryFee=margin*feeRate/100;
  state.positions.push({id:Date.now()+'_'+m.base,base:m.base,side,entry:price,current:price,margin,stop,target,feeRate,entryFee,net:-entryFee,peak:0,opened:new Date().toISOString(),lastSignal:candleTime});
- state.processed[m.base]=candleTime;save();renderAll();return true
+ save();renderAll();return true
 }
-function attemptEntries(){if(!running||paused||state.dailyBlocked)return;for(const m of coins){if(state.positions.length>=settings.maxPositions)break;allocate(m)}}
+function attemptEntries(){if(!running||paused||state.dailyBlocked)return;for(const m of coins)allocate(m)}
 function closePosition(id,reason='Manual Paper Exit'){
  const i=state.positions.findIndex(p=>p.id===id);if(i<0)return;
  const p=state.positions[i],m=coins.find(x=>x.base===p.base),tickerIsFresh=tickerFresh(m);
  const price=tickerIsFresh?m.price:(p.current>0?p.current:p.entry);
+ if(!tickerIsFresh&&reason==='Manual Exit'&&!confirm('Ticker data stale है। यह position last known price पर बंद होगी, current market price पर नहीं। जारी रखें?'))return;
  if(!tickerIsFresh)reason+=' · last known tick (data stale)';
  const result=calcPosition(p,price),net=result.net;
  state.realized+=net;state.fees+=p.entryFee+result.exitFee;state.dailyPnl+=net;
@@ -280,7 +302,7 @@ function closePosition(id,reason='Manual Paper Exit'){
  if(dailyRiskPnl()<=-settings.dailyLimit){state.dailyBlocked=true;running=false}
  save();renderAll()
 }
-function closeAll(){if(!confirm('सभी Paper Positions बंद करें?'))return;[...state.positions].forEach(p=>closePosition(p.id,'Close All'))}
+function closeAll(){if(!state.positions.length)return;const stale=state.positions.some(p=>!tickerFresh(coins.find(x=>x.base===p.base)));const msg='सभी Paper Positions बंद करें?'+(stale?' कुछ ticker stale हैं; वे last known price पर close होंगे।':'');if(!confirm(msg))return;[...state.positions].forEach(p=>closePosition(p.id,'Close All'))}
 function updatePositions(){
  if(!state.positions.length)return;let changed=false;
  for(const p of [...state.positions]){
@@ -331,31 +353,31 @@ async function runPool(items,limit,fn){
  await Promise.all(workers)
 }
 async function refresh(){
- if(busy||paused)return;busy=true;$('refresh').disabled=true;let failed=0,done=0,retried=0,rateLimited=false;
+ if(busy||paused)return;busy=true;$('refresh').disabled=true;let failed=0,done=0,retried=0,rateLimited=false;$('candleStatus').textContent='Refreshing Mudrex Futures candles...';
  try{
   const batches=[];for(let i=0;i<coins.length;i+=20)batches.push(coins.slice(i,i+20));
   await runPool(batches,3,async batch=>{
-   let result;
+   let result,bulkSucceeded=true;
    try{result=await fetchBatch(batch)}
    catch(e){
-    failed++;
-    if(e.status===429){rateLimited=true;result={missing:[]}}
-    else result={missing:batch};
+    failed++;bulkSucceeded=false;result={missing:[]};
+    if(e.status===429)rateLimited=true;
    }
-   // A bulk response can omit unsupported or temporarily empty assets. Retry only those assets individually.
-   if(result.missing?.length&&!rateLimited){
+   // Retry individual symbols only after a successful bulk response omitted them;
+   // never fan out 94 requests when the bulk endpoint itself is offline/rate-limited.
+   if(bulkSucceeded&&result.missing?.length&&!rateLimited){
     await runPool(result.missing,4,async m=>{
      try{await fetchBatch([m]);retried++}
      catch(err){if(!(m.candles.length>=60&&m.ind)){m.ready=false;m.signal='WAIT';m.reason='Candle fetch unavailable · '+err.message}}
     });
    }
-   done+=batch.length;$('status').textContent='Candle scan '+done+'/'+coins.length+' · ready '+coins.filter(m=>m.ready).length;renderCoins();
+   done+=batch.length;$('candleStatus').textContent='Candle scan '+done+'/'+coins.length+' · analyzed '+coins.filter(m=>m.ready).length+'/'+coins.length;renderCoins();
   });
   lastRefresh=Date.now();
   const ready=coins.filter(m=>m.ready).length;
-  $('status').textContent=rateLimited?'Mudrex REST rate limit (429) · keeping last valid candles · retrying next cycle':'Mudrex REST candles · '+ready+'/'+coins.length+' ready · '+clock()+(retried?' · '+retried+' individual retries':'')+(failed?' · '+failed+' bulk retries':'');
- }catch(e){$('status').textContent='Refresh error: '+e.message}
- finally{busy=false;$('refresh').disabled=false;renderAll();attemptEntries()}
+  $('candleStatus').textContent=rateLimited?'Mudrex REST rate limit (429) · last valid candles retained · retry scheduled':'Mudrex REST candles analyzed · '+ready+'/'+coins.length+' · '+clock()+(retried?' · '+retried+' individual retries':'')+(failed?' · '+failed+' bulk errors':'');
+ }catch(e){$('candleStatus').textContent='Candle refresh error: '+e.message}
+ finally{lastRefresh=Date.now();busy=false;$('refresh').disabled=false;renderAll();attemptEntries()}
 }
 function ticker(x){
  if(!x||typeof x!=='object')return false;
@@ -370,34 +392,39 @@ function scanTickerPayload(d,depth=0){
 }
 function connect(){
  try{
+  wsHealthy=false;lastWsMessageAt=0;for(const m of coins)m.tickerAt=0;
   if(ws){try{ws.onclose=null;ws.close()}catch(e){}}
-  clearInterval(wsKeepAlive);ws=new WebSocket(WSURL);
-  ws.onopen=()=>{reconnectAttempts=0;try{ws.send(JSON.stringify({id:1,method:'SUBSCRIBE',params:['ticker@1s'],assets:coins.map(x=>x.ws)}));$('status').textContent='WebSocket open · ticker subscription requested'}catch(e){$('status').textContent='Ticker subscribe send failed: '+e.message}};
+  clearInterval(wsKeepAlive);clearInterval(wsHealthTimer);clearTimeout(wsHandshakeTimer);ws=new WebSocket(WSURL);
+  ws.onopen=()=>{try{ws.send(JSON.stringify({id:1,method:'SUBSCRIBE',params:['ticker@1s'],assets:coins.map(x=>x.ws)}));$('status').textContent='WebSocket open · ticker subscription requested';
+    clearTimeout(wsHandshakeTimer);wsHandshakeTimer=setTimeout(()=>{if(!lastWsMessageAt&&!paused){$('status').textContent='No Mudrex subscription acknowledgement · reconnecting';try{ws.close(4001,'subscription acknowledgement timeout')}catch(e){clearTimeout(reconnectTimer);reconnectTimer=setTimeout(connect,3000)}}},12000);
+   }catch(e){$('status').textContent='Ticker subscribe send failed: '+e.message;try{ws.close()}catch(err){}}};
   ws.onmessage=e=>{
    let j;try{j=JSON.parse(e.data)}catch{return}
+   clearTimeout(wsHandshakeTimer);reconnectAttempts=0;lastWsMessageAt=Date.now();wsHealthy=true;
    if(j&&j.id===1){if(j.error){$('status').textContent='Ticker subscription rejected: '+(j.error.msg||j.error.message||JSON.stringify(j.error));return}
     if(j.result==='success'||j.result==='SUCCESS'){$('status').textContent='Ticker subscribed · waiting for first tick';try{ws.send(JSON.stringify({id:2,method:'LIST_SUBSCRIPTIONS'}))}catch(err){}}}
    else if(j&&j.id===2){const subs=j.result?.subscriptions||j.result||[];$('status').textContent='WebSocket subscriptions: '+(Array.isArray(subs)?subs.join(', '):JSON.stringify(subs))+' · waiting for live ticker'}
    scanTickerPayload(j);const liveCount=coins.filter(tickerFresh).length;
-   if(liveCount>0)$('status').textContent='Mudrex live ticker OK · '+liveCount+'/'+coins.length+' coins updated · '+clock();
+   if(liveCount>0)$('status').textContent='Mudrex ticker live · initial snapshots '+liveCount+'/'+coins.length+' · heartbeat '+(wsHealthy?'OK':'LOST')+' · '+clock();
    attemptEntries();updatePositions()
   };
   wsKeepAlive=setInterval(()=>{if(ws&&ws.readyState===WebSocket.OPEN){try{ws.send(JSON.stringify({id:2,method:'LIST_SUBSCRIPTIONS'}))}catch(e){}}},20000);
-  ws.onclose=()=>{clearInterval(wsKeepAlive);if(!paused){const delay=Math.min(30000,5000*Math.pow(2,Math.min(reconnectAttempts++,3)));$('status').textContent='WebSocket disconnected · reconnecting in '+Math.round(delay/1000)+'s';clearTimeout(reconnectTimer);reconnectTimer=setTimeout(connect,delay)}};
-  ws.onerror=()=>{$('status').textContent='WebSocket error · reconnect pending'}
- }catch(e){$('status').textContent='WebSocket unavailable: '+e.message}
+  wsHealthTimer=setInterval(()=>{if(wsHealthy&&Date.now()-lastWsMessageAt>45000){wsHealthy=false;$('status').textContent='Mudrex WebSocket heartbeat lost · forcing reconnect';renderCoins();try{if(ws&&ws.readyState===WebSocket.OPEN)ws.close(4000,'heartbeat timeout')}catch(e){clearTimeout(reconnectTimer);reconnectTimer=setTimeout(connect,3000)}}},5000);
+  ws.onclose=()=>{wsHealthy=false;clearTimeout(wsHandshakeTimer);clearInterval(wsKeepAlive);clearInterval(wsHealthTimer);if(!paused){const delay=Math.min(30000,5000*Math.pow(2,Math.min(reconnectAttempts++,3)));$('status').textContent='WebSocket disconnected · reconnecting in '+Math.round(delay/1000)+'s';clearTimeout(reconnectTimer);reconnectTimer=setTimeout(connect,delay)}};
+  ws.onerror=()=>{wsHealthy=false;$('status').textContent='WebSocket error · reconnecting';renderCoins();try{if(ws&&ws.readyState!==WebSocket.CLOSED)ws.close()}catch(e){clearTimeout(reconnectTimer);reconnectTimer=setTimeout(connect,3000)}}
+ }catch(e){$('status').textContent='WebSocket unavailable: '+e.message;if(!paused){clearTimeout(reconnectTimer);reconnectTimer=setTimeout(connect,10000)}}
 }
 function renderCoins(){
  const q=$('search').value.trim().toUpperCase(),f=$('filter').value;
- const list=coins.filter(m=>(!q||m.base.includes(q))&&(f==='ALL'||(f===m.signal&&candleFresh(m))||(f==='WAIT'&&(!candleFresh(m)||m.signal==='WAIT'))));
- list.sort((a,b)=>{const rank=x=>x.signal==='LONG'||x.signal==='SHORT'?2:1;return rank(b)-rank(a)||Math.abs(b.ind?.mom||0)-Math.abs(a.ind?.mom||0)});
+ const list=coins.filter(m=>(!q||m.base.includes(q))&&(f==='ALL'||(f===m.signal&&fresh(m))||(f==='WAIT'&&(!fresh(m)||m.signal==='WAIT'))));
+ list.sort((a,b)=>{const rank=x=>fresh(x)&&(x.signal==='LONG'||x.signal==='SHORT')?2:1;return rank(b)-rank(a)||Math.abs(b.ind?.mom||0)-Math.abs(a.ind?.mom||0)});
  $('markets').innerHTML=list.map(m=>{
-  const cFresh=candleFresh(m),tFresh=tickerFresh(m),s=cFresh?m.signal:'WAIT',cls=s==='LONG'?'long':s==='SHORT'?'short':'wait',p=livePrice(m);
+  const cFresh=candleFresh(m),tFresh=tickerFresh(m),s=fresh(m)?m.signal:'WAIT',cls=s==='LONG'?'long':s==='SHORT'?'short':'wait',p=livePrice(m);
   let dataLabel='',reason=escHTML(m.reason);
   if(!cFresh){dataLabel='LATEST CLOSED CANDLE NOT ANALYZED / STALE · ENTRY BLOCKED';reason='Latest closed 1m candle has not completed fresh multi-timeframe analysis. Last signal: '+escHTML(m.signal)+' · '+escHTML(m.reason)}
-  else if(!tFresh){dataLabel='TICKER STALE · SIGNAL RETAINED · NEW ENTRY BLOCKED';reason='Live ticker delayed. Closed-candle signal retained: '+escHTML(m.signal)+' · '+escHTML(m.reason)}
+  else if(!tFresh){dataLabel='TICKER / SOCKET NOT CONFIRMED · SIGNAL RETAINED · NEW ENTRY BLOCKED';reason='Ticker snapshot unavailable or WebSocket heartbeat lost. Closed-candle signal retained: '+escHTML(m.signal)+' · '+escHTML(m.reason)}
   else{dataLabel=s==='WAIT'?'LIVE DATA · NO ENTRY SIGNAL':'LIVE DATA · SIGNAL CONFIRMED · PAPER ENGINE REQUIRED'}
-  const triggerLabel=m.signal==='LONG'?'LONG entry confirmed':m.signal==='SHORT'?'SHORT entry confirmed':m.ind?.longTrigger?'1m bullish trigger met · higher-timeframe filter/score blocked':m.ind?.shortTrigger?'1m bearish trigger met · higher-timeframe filter/score blocked':m.ind?.longBias?'LONG entry checks below':m.ind?.shortBias?'SHORT entry checks below':m.ind?.t1==='BULLISH'?'1m EMA bullish · entry checks below':m.ind?.t1==='BEARISH'?'1m EMA bearish · entry checks below':'1m candle entry checks below';
+  const triggerLabel=(cFresh&&!tFresh&&['LONG','SHORT'].includes(m.signal))?'Closed-candle '+m.signal+' signal retained · new entry blocked':s==='LONG'?'LONG entry confirmed':s==='SHORT'?'SHORT entry confirmed':m.ind?.longTrigger?'1m bullish trigger met · higher-timeframe filter/score blocked':m.ind?.shortTrigger?'1m bearish trigger met · higher-timeframe filter/score blocked':m.ind?.longBias?'LONG entry checks below':m.ind?.shortBias?'SHORT entry checks below':m.ind?.t1==='BULLISH'?'1m EMA bullish · entry checks below':m.ind?.t1==='BEARISH'?'1m EMA bearish · entry checks below':'1m candle entry checks below';
   return `<article class="coin"><div class="top"><b class="symbol">${escHTML(m.base)}/USDT</b><span class="badge ${cls}">${s}</span></div><div class="price">${fmt(p)} <span class="small">USDT</span></div><div class="small">1m EMA ${m.ind?.t1||'—'} · 5m ${m.ind?.t5||'—'} · 15m ${m.ind?.t15||'—'} · 1h ${m.ind?.t60||'—'}</div><div class="small">${triggerLabel}</div><div class="small">RSI ${finite(m.ind?.rsi)?m.ind.rsi.toFixed(1):'—'} · Momentum ${finite(m.ind?.mom)?m.ind.mom.toFixed(3):'—'}%</div><div class="reason">${reason}</div><div class="small ${(!cFresh||!tFresh)?'yellow':''}">${dataLabel}</div></article>`
  }).join('')||'<div class="panel">No matching coins.</div>'
 }
@@ -414,13 +441,13 @@ function renderStats(){
  const gp=wins.reduce((s,x)=>s+x.net,0),gl=Math.abs(losses.reduce((s,x)=>s+x.net,0));
  $('equity').textContent=money(equity());$('available').textContent=money(available());$('realized').textContent=money(state.realized);$('openCount').textContent=state.positions.length;
  $('totalTrades').textContent=total;$('wins').textContent=wins.length;$('losses').textContent=losses.length;$('winRate').textContent=total?(wins.length/total*100).toFixed(1)+'%':'0%';
- $('unrealized').textContent=money(unreal);const openFees=state.positions.reduce((s,p)=>s+p.entryFee+p.margin*(p.feeRate??settings.fee)/100,0);
- $('feesPaid').textContent=money(state.fees+openFees);$('dailyPnl').textContent=money(dailyRiskPnl());$('profitFactor').textContent=gl?(gp/gl).toFixed(2):gp?'∞':'—'
+ $('unrealized').textContent=money(unreal);const openEntryFees=state.positions.reduce((s,p)=>s+(Number(p.entryFee)||0),0),openExitFees=state.positions.reduce((s,p)=>s+(Number(p.margin)||0)*(p.feeRate??settings.fee)/100,0);
+ $('feesPaid').textContent=money(state.fees+openEntryFees);$('exitFeesEst').textContent=money(openExitFees);$('dailyPnl').textContent=money(dailyRiskPnl());$('profitFactor').textContent=gl?(gp/gl).toFixed(2):gp?'∞':'—'
 }
 function renderAll(){
- renderStats();renderPositions();renderHistory();renderCoins();$('engineBadge').textContent=running?'RUNNING':'STOPPED';
+ storageLabel();renderStats();renderPositions();renderHistory();renderCoins();$('engineBadge').textContent=running?'RUNNING':'STOPPED';
  $('engineBadge').className='badge '+(running?'long':'wait');
- $('engineMessage').textContent=state.dailyBlocked?'Daily loss limit reached. Auto Paper stopped.':running?'Auto Paper active · simulated trades only.':paused?'Data paused. Open positions are NOT being monitored until data resumes.':'Engine stopped. Existing positions are monitored while live ticker data is available.'
+ $('engineMessage').textContent=!storageSafe?'Account storage error. Trading disabled until a valid backup is restored.':state.dailyBlocked?'Daily loss limit reached. Auto Paper stopped.':running?'Auto Paper active · simulated trades only.':paused?'Data paused.':'Engine stopped. Open positions are monitored only while the Mudrex WebSocket heartbeat is healthy.'
 }
 function exportCSV(){
  const rows=[['Time','Coin','Side','Entry','Exit','Margin','Net PnL','Reason'],...state.history.map(h=>[h.time,h.base,h.side,h.entry,h.exit,h.margin,h.net,h.reason])];
@@ -428,13 +455,28 @@ function exportCSV(){
  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a'),url=URL.createObjectURL(blob);
  a.href=url;a.download='Mudrex_Paper_Trades.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
 }
+function backupAccount(){
+ if(!storageSafe){alert('Saved account data verify नहीं हुआ; पहले valid backup restore करें।');return}
+ const payload={app:'Mudrex Smart Paper Trader',version:25,exportedAt:new Date().toISOString(),settings,state};
+ const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),a=document.createElement('a'),url=URL.createObjectURL(blob);
+ a.href=url;a.download='Mudrex_Paper_Account_Backup_'+dayKey()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
+}
+function restoreAccount(file){
+ if(!file)return;const reader=new FileReader();reader.onload=()=>{
+  try{const d=JSON.parse(String(reader.result||''));validateAccount(d);const nextSettings=normalizeSettings(d.settings),nextState=normalizeState(d.state,nextSettings);
+   if(!confirm('Backup restore करने से इस browser का मौजूदा paper account replace होगा. जारी रखें?'))return;
+   running=false;settings=nextSettings;state=nextState;settings.capital=state.capital;resetDailyIfNeeded();storageSafe=true;storageProblem='';loadInputs();if(!save())throw Error(storageProblem||'Could not save restored account');renderAll();$('engineMessage').textContent='Backup restored. Engine remains STOPPED; account values verify करें.';alert('Backup restored. Engine STOPPED है।');
+  }catch(e){alert('Backup restore failed: '+e.message)}
+ };reader.onerror=()=>alert('Backup file read नहीं हो सकी।');reader.readAsText(file)
+}
 function clearHistory(){
- if(!confirm('Trade history और performance reset करें?'))return;
+ if(!confirm('Completed trade history rows हटाएँ? Account balance, realized P&L और fees सुरक्षित रहेंगे.'))return;
  if(state.positions.length){alert('पहले सभी open positions बंद करें।');return}
- state.history=[];state.realized=0;state.fees=0;state.dailyPnl=0;state.dailyBlocked=false;save();renderAll()
+ state.history=[];save();renderAll()
 }
 $('saveSettings').onclick=saveSettings;$('resetSettings').onclick=defaults;
 $('start').onclick=()=>{
+ if(!storageSafe){alert('Account storage error. Restore a valid account backup before starting.');return}
  resetDailyIfNeeded();if(state.dailyBlocked){alert('Daily loss limit reached.');return}
  if(!coins.some(fresh)){alert('पहले LIVE market data और fresh candles आने दें।');return}
  running=true;coins.forEach(m=>{if(m.ind?.lastTime)state.processed[m.base]=m.ind.lastTime});
@@ -442,18 +484,18 @@ $('start').onclick=()=>{
 };
 $('stop').onclick=()=>{running=false;save();renderAll()};$('closeAll').onclick=closeAll;$('refresh').onclick=refresh;
 $('pause').onclick=()=>{
+ if(!paused&&state.positions.length){alert('Open paper positions हैं। उन्हें monitor करने के लिए Data pause नहीं कर सकते। पहले positions close करें।');return}
  paused=!paused;$('pause').textContent=paused?'Resume Data':'Pause Data';
- if(paused){clearTimeout(reconnectTimer);if(ws){ws.onclose=null;ws.close()}$('status').textContent='Data paused'}
+ if(paused){wsHealthy=false;clearTimeout(reconnectTimer);if(ws){ws.onclose=null;ws.close()}$('status').textContent='Data paused'}
  else{connect();refresh()}
 };
-$('search').oninput=renderCoins;$('filter').onchange=renderCoins;$('export').onclick=exportCSV;$('clearHistory').onclick=clearHistory;
+$('search').oninput=renderCoins;$('filter').onchange=renderCoins;$('export').onclick=exportCSV;$('backup').onclick=backupAccount;$('restore').onclick=()=>$('restoreFile').click();$('restoreFile').onchange=e=>{restoreAccount(e.target.files?.[0]);e.target.value=''};$('clearHistory').onclick=clearHistory;
 load();settings={...DEFAULTS,...settings};if(settings.quick===2)settings.quick=.5;
-state.positions=state.positions.map(p=>({...p,margin:Number(p.margin)||0,entry:Number(p.entry)||0,current:Number(p.current)||Number(p.entry)||0,entryFee:finite(Number(p.entryFee))?Number(p.entryFee):(Number(p.margin)||0)*settings.fee/100,feeRate:finite(Number(p.feeRate))?Number(p.feeRate):settings.fee,net:finite(Number(p.net))?Number(p.net):0,peak:finite(Number(p.peak))?Number(p.peak):0}));
 loadInputs();
-state.capital=Number(settings.capital)||state.capital||500;running=false;save();connect();refresh();renderAll();
+state.capital=Number(state.capital)||Number(settings.capital)||500;settings.capital=state.capital;running=false;if(storageSafe)save();connect();refresh();renderAll();
 setInterval(()=>{if(paused)return;resetDailyIfNeeded();attemptEntries();updatePositions();renderStats();renderCoins()},1000);
 setInterval(()=>{if(!paused&&!busy&&Date.now()-lastRefresh>60000)refresh()},5000);
-window.addEventListener('beforeunload',save);
+window.addEventListener('beforeunload',()=>{if(storageSafe)save()});
 </script>
 </body>
 </html>
