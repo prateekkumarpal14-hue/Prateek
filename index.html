@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mudrex Smart Paper Trader V20</title>
+<title>Mudrex Smart Paper Trader V21</title>
 <style>
 :root{color-scheme:dark;--bg:#08111f;--panel:#111e31;--panel2:#0b1728;--line:#263b56;--text:#eef4ff;--muted:#9fb0c8;--green:#42dfa5;--red:#ff7182;--yellow:#ffd477}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,sans-serif}
@@ -29,15 +29,15 @@ table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}td,t
 </head>
 <body>
 <header><div class="wrap" style="padding:0">
-<h1>₿ Mudrex Smart Paper Trader V20</h1>
+<h1>₿ Mudrex Smart Paper Trader V21</h1>
 <div class="small">Mudrex Futures public data · Paper trading only · No API keys</div>
 <span class="pill" id="status">Connecting...</span> <span class="pill">PAPER ONLY · REAL ORDERS DISABLED</span>
 </div></header>
 <main class="wrap">
-<div class="warning"><b>महत्वपूर्ण:</b> यह केवल simulated paper trading है। Mudrex पर कोई असली ऑर्डर नहीं लगाया जाता। P&L अनुमानित है। वास्तविक spread, slippage, funding, liquidation और execution का पूरा simulation नहीं होता। मुनाफे की कोई गारंटी नहीं है। पहले लंबे समय तक paper testing करें।</div>
+<div class="warning"><b>महत्वपूर्ण:</b> यह केवल simulated paper trading है। Mudrex पर कोई असली ऑर्डर नहीं लगाया जाता। P&amp;L अनुमानित है। वास्तविक spread, slippage, funding, liquidation और execution का पूरा simulation नहीं होता। मुनाफे की कोई गारंटी नहीं है। पहले लंबे समय तक paper testing करें।</div>
 <h2>Account Overview</h2>
 <div class="stats">
-<div class="stat"><span class="small">Total Equity</span><b id="equity">₹500</b></div><div class="stat"><span class="small">Available Balance</span><b id="available">₹500</b></div><div class="stat"><span class="small">Realized P&L</span><b id="realized">₹0</b></div><div class="stat"><span class="small">Open Positions</span><b id="openCount">0</b></div>
+<div class="stat"><span class="small">Total Equity</span><b id="equity">₹500</b></div><div class="stat"><span class="small">Available Balance</span><b id="available">₹500</b></div><div class="stat"><span class="small">Realized P&amp;L</span><b id="realized">₹0</b></div><div class="stat"><span class="small">Open Positions</span><b id="openCount">0</b></div>
 </div>
 <div class="panel"><h2 style="margin-top:0">Smart Trader Settings</h2>
 <div class="formgrid">
@@ -52,7 +52,7 @@ table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}td,t
 <div class="field"><label class="small">Minimum paper margin (₹)</label><input id="minMargin" type="number" min="1" value="25"></div>
 </div>
 <div class="actions"><button class="primary" id="saveSettings">Save Settings</button><button id="resetSettings">Default Settings</button></div>
-<div class="small" style="margin-top:8px">Margin simulated position size है, वास्तविक exchange margin या leverage नहीं। Capital बदलने पर पुराने positions का आकार नहीं बदलेगा। Risk sizing में SL के आधार पर simulated notional size निकाला जाता है।</div>
+<div class="small" style="margin-top:8px">Paper position size और risk estimate simulated हैं; वास्तविक exchange margin/leverage नहीं। Capital बदलने पर पुराने positions का आकार नहीं बदलेगा।</div>
 </div>
 <div class="panel"><div class="row"><h3>Paper Trading Engine</h3><span class="badge wait" id="engineBadge">STOPPED</span></div>
 <div class="actions"><button class="primary" id="start">Start Auto Paper</button><button class="danger" id="stop">Stop Auto</button><button id="closeAll">Close All Paper</button></div>
@@ -62,119 +62,353 @@ table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}td,t
 <div class="stat"><span class="small">Total Trades</span><b id="totalTrades">0</b></div><div class="stat"><span class="small">Winning Trades</span><b id="wins" class="green">0</b></div><div class="stat"><span class="small">Losing Trades</span><b id="losses" class="red">0</b></div><div class="stat"><span class="small">Win Rate</span><b id="winRate">0%</b></div>
 </div>
 <div class="stats" style="margin-top:8px">
-<div class="stat"><span class="small">Unrealized P&L</span><b id="unrealized">₹0</b></div><div class="stat"><span class="small">Total Fees</span><b id="feesPaid">₹0</b></div><div class="stat"><span class="small">Daily P&L</span><b id="dailyPnl">₹0</b></div><div class="stat"><span class="small">Profit Factor</span><b id="profitFactor">—</b></div>
+<div class="stat"><span class="small">Unrealized P&amp;L</span><b id="unrealized">₹0</b></div><div class="stat"><span class="small">Total Fees</span><b id="feesPaid">₹0</b></div><div class="stat"><span class="small">Daily P&amp;L</span><b id="dailyPnl">₹0</b></div><div class="stat"><span class="small">Profit Factor</span><b id="profitFactor">—</b></div>
 </div>
-<h2>Open Paper Positions</h2><div class="panel tablewrap"><table><thead><tr><th>Coin</th><th>Side</th><th>Entry</th><th>Current</th><th>Margin</th><th>Net P&L</th><th>SL</th><th>TP</th><th>Action</th></tr></thead><tbody id="positions"><tr><td colspan="9">No open positions</td></tr></tbody></table></div>
+<h2>Open Paper Positions</h2><div class="panel tablewrap"><table><thead><tr><th>Coin</th><th>Side</th><th>Entry</th><th>Current</th><th>Margin</th><th>Net P&amp;L</th><th>SL</th><th>TP</th><th>Action</th></tr></thead><tbody id="positions"><tr><td colspan="9">No open positions</td></tr></tbody></table></div>
 <h2>Market Scanner</h2>
 <div class="toolbar"><input id="search" placeholder="Search BTC, ETH, SOL..."><select id="filter"><option value="ALL">All coins</option><option value="LONG">LONG only</option><option value="SHORT">SHORT only</option><option value="WAIT">WAIT only</option></select><button class="primary" id="refresh">Refresh Candles</button><button id="pause">Pause Data</button></div>
-<div class="small" style="margin-bottom:10px">Signal केवल बंद 1m candle पर calculate होता है और अगली बंद 1m candle तक स्थिर रहता है। Ticker freshness अलग दिखाई जाती है। Ticker stale होने पर पुराना candle signal मिटेगा नहीं, लेकिन नया paper trade नहीं खुलेगा।</div>
+<div class="small" style="margin-bottom:10px">Signal केवल बंद 1m candle पर calculate होता है। 1h दिशा, 15m/5m confirmation और 1m entry trigger उपयोग होते हैं। Ticker freshness अलग है। पुराने valid candles खराब refresh से delete नहीं होंगे।</div>
 <div class="grid" id="markets"><div class="panel">Loading market data...</div></div>
 <h2>Paper Trade History</h2>
-<div class="panel tablewrap"><table><thead><tr><th>Time</th><th>Coin</th><th>Side</th><th>Entry</th><th>Exit</th><th>Margin</th><th>Net P&L</th><th>Reason</th></tr></thead><tbody id="history"><tr><td colspan="8">No completed trades</td></tr></tbody></table><div class="actions"><button id="export">Export CSV</button><button class="danger" id="clearHistory">Clear History</button></div></div>
-<footer>Mudrex public Futures data. Paper trades only. No API keys. No real orders. Browser storage इसी device/browser में है। Page बंद होने या browser रुकने पर simulation भी रुक जाएगा। Coin list candidate list है, Mudrex की verified complete contract directory नहीं।</footer>
+<div class="panel tablewrap"><table><thead><tr><th>Time</th><th>Coin</th><th>Side</th><th>Entry</th><th>Exit</th><th>Margin</th><th>Net P&amp;L</th><th>Reason</th></tr></thead><tbody id="history"><tr><td colspan="8">No completed trades</td></tr></tbody></table><div class="actions"><button id="export">Export CSV</button><button class="danger" id="clearHistory">Clear History</button></div></div>
+<footer>Mudrex public Futures data. Paper trades only. No API keys. No real orders. Browser storage इसी device/browser में है। Page बंद होने या browser रुकने पर simulation भी रुक जाएगा। Coin list candidate list है, verified complete contract directory नहीं।</footer>
 </main>
 <script>
 'use strict';
 const REST='https://trade.mudrex.com/fapi/v1/price/kline',WSURL='wss://trade.mudrex.com/fapi/v1/price/ws/linear';
+/* V20 storage key जानबूझकर वही रखा गया है ताकि पुराने balance/history/settings load हों। */
 const STORE='mudrexSmartPaperV15';
 const BASES=('BTC ETH BNB SOL XRP ADA DOGE TRX AVAX LINK DOT LTC BCH UNI ETC FIL ATOM NEAR APT ARB OP SUI SEI INJ TIA TON WIF PEPE SHIB FLOKI BONK FTM RENDER FET TAO IMX GALA SAND MANA AAVE MKR CRV COMP SNX DYDX LDO ENS JUP JTO PYTH WLD ONDO NOT ZK ZRO STRK BLUR ENA ETHFI PENDLE POL XLM XMR HBAR VET ALGO ICP QNT AXS CHZ FLOW THETA EGLD KAVA ZEC DASH NEO GMT MASK LRC ONE ZIL ROSE COTI ANKR BAT YFI SUSHI 1INCH MINA KSM RUNE STX KAS').split(/\s+/);
 const $=id=>document.getElementById(id),finite=Number.isFinite;
 let coins=BASES.map(base=>({base,symbol:base+'/USDT',ws:base.toLowerCase()+'usdt',candles:[],price:0,tickerAt:0,signal:'WAIT',reason:'Candles loading',ready:false,ind:null,lastAnalyzedTime:0}));
 let ws=null,paused=false,busy=false,running=false,reconnectTimer=null,lastRefresh=0,wsKeepAlive=null;
 let settings={},state={capital:500,realized:0,fees:0,positions:[],history:[],dailyStart:'',dailyPnl:0,dailyBlocked:false,processed:{}};
+const DEFAULTS={capital:500,risk:1,maxPositions:3,sl:.5,tp:1,quick:.5,fee:.05,dailyLimit:15,minMargin:25};
 function number(id,def){const x=Number($(id).value);return finite(x)?x:def}
 function money(x){return '₹'+Number(x||0).toFixed(2)}
 function fmt(x){if(!finite(x)||x<=0)return '—';return x>=1000?x.toLocaleString('en-US',{maximumFractionDigits:2}):x>=1?x.toFixed(4):x.toPrecision(5)}
 function clock(){return new Date().toLocaleTimeString('en-IN',{hour12:false})}
 function dayKey(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function save(){try{localStorage.setItem(STORE,JSON.stringify({settings,state}))}catch(e){console.warn('Storage unavailable',e)}}
-function load(){try{const d=JSON.parse(localStorage.getItem(STORE)||'null');if(d){if(d.settings)settings=d.settings;if(d.state)state={...state,...d.state}}}catch(e){}if(!Array.isArray(state.positions))state.positions=[];if(!Array.isArray(state.history))state.history=[];if(!state.processed||typeof state.processed!=='object')state.processed={};for(const k of ['capital','realized','fees','dailyPnl'])if(!finite(state[k]))state[k]=k==='capital'?500:0;if(!state.dailyStart)state.dailyStart=dayKey();resetDailyIfNeeded()}
+function load(){
+ try{const d=JSON.parse(localStorage.getItem(STORE)||'null');if(d){if(d.settings)settings=d.settings;if(d.state)state={...state,...d.state}}}catch(e){console.warn('Could not read saved paper data',e)}
+ if(!Array.isArray(state.positions))state.positions=[];if(!Array.isArray(state.history))state.history=[];
+ if(!state.processed||typeof state.processed!=='object')state.processed={};
+ for(const k of ['capital','realized','fees','dailyPnl'])if(!finite(Number(state[k])))state[k]=k==='capital'?500:0;
+ state.capital=Number(state.capital)||500;state.realized=Number(state.realized)||0;state.fees=Number(state.fees)||0;
+ if(!state.dailyStart)state.dailyStart=dayKey();resetDailyIfNeeded();
+}
 function resetDailyIfNeeded(){if(state.dailyStart!==dayKey()){state.dailyStart=dayKey();state.dailyPnl=0;state.dailyBlocked=false}}
 function readSettings(){return {capital:Math.min(1000000,Math.max(100,number('capital',500))),risk:Math.min(5,Math.max(.25,number('risk',1))),maxPositions:Math.min(5,Math.max(2,number('maxPositions',3))),sl:Math.min(5,Math.max(.1,number('sl',.5))),tp:Math.min(10,Math.max(.2,number('tp',1))),quick:Math.max(0,number('quick',.5)),fee:Math.min(1,Math.max(0,number('fee',.05))),dailyLimit:Math.max(1,number('dailyLimit',15)),minMargin:Math.max(1,number('minMargin',25))}}
-function loadInputs(){for(const k of Object.keys(settings))if($(k))$(k).value=settings[k]}
+function loadInputs(){for(const k of Object.keys(DEFAULTS))if($(k))$(k).value=settings[k]??DEFAULTS[k]}
 function saveSettings(){settings=readSettings();state.capital=settings.capital;save();renderAll();$('engineMessage').textContent='Settings saved.'}
-function defaults(){settings={capital:500,risk:1,maxPositions:3,sl:.5,tp:1,quick:.5,fee:.05,dailyLimit:15,minMargin:25};loadInputs();saveSettings()}
+function defaults(){settings={...DEFAULTS};loadInputs();saveSettings()}
 function available(){return Math.max(0,state.capital+state.realized-state.positions.reduce((s,p)=>s+(Number(p.margin)||0),0))}
 function unrealized(){return state.positions.reduce((s,p)=>s+(Number(p.net)||0),0)}
 function equity(){return state.capital+state.realized+unrealized()}
 function dailyRiskPnl(){return state.dailyPnl+unrealized()}
-function parseCandle(x){let t,o,h,l,c,v;if(Array.isArray(x))[t,o,h,l,c,v]=x;else if(x&&typeof x==='object'){t=x.t??x.time??x.timestamp??x.open_time??x.openTime;o=x.o??x.open;h=x.h??x.high;l=x.l??x.low;c=x.c??x.close;v=x.v??x.volume??0}if(typeof t==='string'&&!/^\d+(\.\d+)?$/.test(t))t=Date.parse(t);t=Number(t);if(t>0&&t<1e12)t*=1000;o=Number(o);h=Number(h);l=Number(l);c=Number(c);v=Number(v)||0;if(!finite(t)||!finite(o)||!finite(h)||!finite(l)||!finite(c)||c<=0||h<l||t<=0)return null;return {t,o,h,l,c,v}}
-function norm(s){return String(s??'').toUpperCase().replace(/[^A-Z0-9]/g,'')}
-function findCandleArray(value,depth=0){if(depth>6||!value)return null;if(Array.isArray(value)){if(!value.length)return value;if(Array.isArray(value[0])||typeof value[0]==='object'){const parsed=value.map(parseCandle).filter(Boolean);if(parsed.length)return parsed}return null}if(typeof value!=='object')return null;for(const key of ['ticks','candles','klines','items','data','result'])if(value[key]!==undefined){const found=findCandleArray(value[key],depth+1);if(found)return found}return null}
-function candlesFor(j,m){const wanted=new Set([norm(m.symbol),norm(m.base+'USDT'),norm(m.ws)]),seen=new Set();function walk(node,depth=0){if(!node||typeof node!=='object'||depth>7||seen.has(node))return null;seen.add(node);if(Array.isArray(node)){for(const item of node){if(item&&typeof item==='object'&&!Array.isArray(item)){const sym=norm(item.asset??item.symbol??item.s??item.a??'');if(wanted.has(sym)){const found=findCandleArray(item);if(found)return found}}}return null}for(const key of Object.keys(node))if(wanted.has(norm(key))){const found=findCandleArray(node[key]);if(found)return found}for(const key of ['data','result','assets','asset_ticks','ticks','candles'])if(node[key]!==undefined){const found=walk(node[key],depth+1);if(found)return found}return null}return walk(j)||[]}
-async function fetchJSON(url,timeout=10000){const c=new AbortController(),timer=setTimeout(()=>c.abort(),timeout);try{const r=await fetch(url,{cache:'no-store',signal:c.signal});if(!r.ok)throw Error('HTTP '+r.status);return await r.json()}finally{clearTimeout(timer)}}
-function aggregate(c,mins){const groups=new Map();for(const x of c){const b=Math.floor(x.t/(mins*60000));if(!groups.has(b))groups.set(b,[]);groups.get(b).push(x)}const out=[];for(const [b,g] of groups){g.sort((a,z)=>a.t-z.t);if(g.length!==mins)continue;let ok=true;for(let i=1;i<g.length;i++)if(g[i].t-g[i-1].t!==60000)ok=false;if(!ok)continue;const start=b*mins*60000;if(g[0].t!==start||g[g.length-1].t+60000>Date.now())continue;out.push({t:start,o:g[0].o,h:Math.max(...g.map(x=>x.h)),l:Math.min(...g.map(x=>x.l)),c:g[g.length-1].c,v:g.reduce((s,x)=>s+x.v,0)})}return out.sort((a,b)=>a.t-b.t)}
-function ema(a,p){if(a.length<p)return NaN;let v=a.slice(0,p).reduce((s,x)=>s+x,0)/p;const k=2/(p+1);for(let i=p;i<a.length;i++)v=a[i]*k+v*(1-k);return v}
-function rsi(a,p=14){if(a.length<=p)return NaN;let g=0,l=0;for(let i=1;i<=p;i++){const d=a[i]-a[i-1];if(d>0)g+=d;else l-=d}let ag=g/p,al=l/p;for(let i=p+1;i<a.length;i++){const d=a[i]-a[i-1];ag=(ag*(p-1)+Math.max(0,d))/p;al=(al*(p-1)+Math.max(0,-d))/p}return al===0?(ag===0?50:100):100-100/(1+ag/al)}
-function trend(c,f,s){if(c.length<s+2)return 'UNAVAILABLE';const a=c.map(x=>x.c),x=ema(a,f),y=ema(a,s);if(!finite(x)||!finite(y)||!y)return 'UNAVAILABLE';const gap=(x-y)/y;if(Math.abs(gap)<.00010)return 'SIDEWAYS';return gap>0?'BULLISH':'BEARISH'}
-function analyze(m){
- const c=m.candles;if(c.length<60){m.ready=false;m.signal='WAIT';m.reason='Insufficient closed candle history';m.ind=null;return}
- const last=c[c.length-1];if(last.t===m.lastAnalyzedTime)return;
- const c5=aggregate(c,5),c15=aggregate(c,15),c60=aggregate(c,60);
- if(c5.length<15||c15.length<6){m.ready=false;m.signal='WAIT';m.reason='Higher timeframe candles unavailable';m.ind=null;return}
- const cl=c.map(x=>x.c),prev=c[c.length-2],t1=trend(c,9,21),t5=trend(c5,5,13),t15=trend(c15,5,13),t60=trend(c60,5,13);
- const rv=rsi(cl),e9=ema(cl,9),e21=ema(cl,21),mom=(last.c/cl[cl.length-6]-1)*100,body=last.c>last.o?'UP':last.c<last.o?'DOWN':'FLAT';
- const candleRange=Math.max(0,last.h-last.l),closeLocation=candleRange>0?(last.c-last.l)/candleRange:.5,bodyPct=Math.abs(last.c-last.o)/last.c*100;
- const recent=c.slice(-14),atrPct=(Math.max(...recent.map(x=>x.h))-Math.min(...recent.map(x=>x.l)))/last.c*100,dist=Math.abs(last.c/e21-1)*100,notChasing=finite(dist)&&dist<=Math.max(.45,atrPct*1.2);
- const longCtx=t1==='BULLISH'&&t5==='BULLISH'&&t15==='BULLISH'&&t60==='BULLISH',shortCtx=t1==='BEARISH'&&t5==='BEARISH'&&t15==='BEARISH'&&t60==='BEARISH';
- const longTrigger=last.c>e9&&last.c>prev.c&&body==='UP'&&bodyPct>=.04&&closeLocation>=.65&&mom>=.03&&finite(rv)&&rv>=45&&rv<=65;
- const shortTrigger=last.c<e9&&last.c<prev.c&&body==='DOWN'&&bodyPct>=.04&&closeLocation<=.35&&mom<=-.03&&finite(rv)&&rv>=35&&rv<=55;
- let ls=0,ss=0;if(t1==='BULLISH')ls++;if(t5==='BULLISH')ls+=2;if(t15==='BULLISH')ls+=2;if(t60==='BULLISH')ls+=2;if(last.c>e9)ls++;if(last.c>e21)ls++;if(finite(rv)&&rv>=45&&rv<=65)ls++;if(mom>=.03)ls++;if(body==='UP'&&closeLocation>=.65)ls++;
- if(t1==='BEARISH')ss++;if(t5==='BEARISH')ss+=2;if(t15==='BEARISH')ss+=2;if(t60==='BEARISH')ss+=2;if(last.c<e9)ss++;if(last.c<e21)ss++;if(finite(rv)&&rv>=35&&rv<=55)ss++;if(mom<=-.03)ss++;if(body==='DOWN'&&closeLocation<=.35)ss++;if(!notChasing){ls-=2;ss-=2}
- let raw='WAIT',reason='Trend confirmation insufficient';
- if(longCtx&&longTrigger&&notChasing&&ls>=8&&ls>ss){raw='LONG';reason='All timeframes bullish + confirmed 1m candle and momentum · score '+ls}
- else if(shortCtx&&shortTrigger&&notChasing&&ss>=8&&ss>ls){raw='SHORT';reason='All timeframes bearish + confirmed 1m candle and momentum · score '+ss}
- else if([t1,t5,t15,t60].some(x=>x==='UNAVAILABLE'))reason='Required timeframe history unavailable';
- else if([t1,t5,t15,t60].some(x=>x==='SIDEWAYS'))reason='One or more timeframes are sideways';
- else if(!longCtx&&!shortCtx){const dirs=[t1,t5,t15,t60];reason=dirs.some(x=>x==='BULLISH')&&dirs.some(x=>x==='BEARISH')?'Timeframe conflict; 1m/5m/15m/1h must align':'Trend not fully aligned'}
- else if(!notChasing)reason='Price extended from EMA21; avoiding late entry';
- else if(longCtx&&!longTrigger)reason='LONG setup incomplete: needs bullish 1m close, candle strength, RSI and positive momentum';
- else if(shortCtx&&!shortTrigger)reason='SHORT setup incomplete: needs bearish 1m close, candle strength, RSI and negative momentum';
- else reason='Confirmation score below threshold · UP '+ls+' / DOWN '+ss;
- m.ready=true;m.ind={t1,t5,t15,t60,rsi:rv,mom,ls,ss,body,bodyPct,closeLocation,dist,lastTime:last.t};m.signal=raw;m.reason=reason;m.lastAnalyzedTime=last.t;
+function parseCandle(x){
+ let t,o,h,l,c,v;
+ if(Array.isArray(x))[t,o,h,l,c,v]=x;
+ else if(x&&typeof x==='object'){t=x.t??x.time??x.timestamp??x.open_time??x.openTime??x.start;o=x.o??x.open;h=x.h??x.high;l=x.l??x.low;c=x.c??x.close;v=x.v??x.volume??0}
+ if(typeof t==='string'&&!/^\d+(\.\d+)?$/.test(t))t=Date.parse(t);
+ t=Number(t);if(t>0&&t<1e12)t*=1000;o=Number(o);h=Number(h);l=Number(l);c=Number(c);v=Number(v)||0;
+ if(!finite(t)||!finite(o)||!finite(h)||!finite(l)||!finite(c)||c<=0||h<l||t<=0||h<Math.max(o,c)||l>Math.min(o,c))return null;
+ return {t,o,h,l,c,v}
 }
-// Candle signal validity and live ticker freshness are deliberately separate.
-function candleFresh(m){if(!m||!m.ready||!m.candles.length)return false;const last=m.candles[m.candles.length-1],age=Date.now()-(last.t+60000);return age>=-60000&&age<150000}
+function norm(s){return String(s??'').toUpperCase().replace(/[^A-Z0-9]/g,'')}
+function findCandleArray(value,depth=0){
+ if(depth>7||!value)return null;
+ if(Array.isArray(value)){if(!value.length)return value;if(Array.isArray(value[0])||typeof value[0]==='object'){const parsed=value.map(parseCandle).filter(Boolean);if(parsed.length)return parsed}return null}
+ if(typeof value!=='object')return null;
+ for(const key of ['ticks','candles','klines','items','data','result'])if(value[key]!==undefined){const found=findCandleArray(value[key],depth+1);if(found)return found}
+ return null
+}
+function candlesFor(j,m){
+ const wanted=new Set([norm(m.symbol),norm(m.base+'USDT'),norm(m.ws)]),seen=new Set();
+ function walk(node,depth=0){
+  if(!node||typeof node!=='object'||depth>8||seen.has(node))return null;seen.add(node);
+  if(Array.isArray(node)){for(const item of node){if(item&&typeof item==='object'&&!Array.isArray(item)){const sym=norm(item.asset??item.symbol??item.s??item.a??'');if(wanted.has(sym)){const found=findCandleArray(item);if(found)return found}}}return null}
+  for(const key of Object.keys(node))if(wanted.has(norm(key))){const found=findCandleArray(node[key]);if(found)return found}
+  for(const key of ['data','result','assets','asset_ticks','ticks','candles'])if(node[key]!==undefined){const found=walk(node[key],depth+1);if(found)return found}
+  return null
+ }
+ return walk(j)||[];
+}
+async function fetchJSON(url,timeout=12000){
+ const c=new AbortController(),timer=setTimeout(()=>c.abort(),timeout);
+ try{const r=await fetch(url,{cache:'no-store',signal:c.signal});if(!r.ok)throw Error('HTTP '+r.status);return await r.json()}finally{clearTimeout(timer)}
+}
+function aggregate(c,mins){
+ const groups=new Map();
+ for(const x of c){const b=Math.floor(x.t/(mins*60000));if(!groups.has(b))groups.set(b,[]);groups.get(b).push(x)}
+ const out=[];
+ for(const [b,g] of groups){
+  g.sort((a,z)=>a.t-z.t);if(g.length!==mins)continue;
+  let ok=true;for(let i=1;i<g.length;i++)if(g[i].t-g[i-1].t!==60000)ok=false;
+  const start=b*mins*60000;
+  if(!ok||g[0].t!==start||g[g.length-1].t+60000>Date.now())continue;
+  out.push({t:start,o:g[0].o,h:Math.max(...g.map(x=>x.h)),l:Math.min(...g.map(x=>x.l)),c:g[g.length-1].c,v:g.reduce((s,x)=>s+x.v,0)});
+ }
+ return out.sort((a,b)=>a.t-b.t)
+}
+function ema(a,p){if(a.length<p)return NaN;let v=a.slice(0,p).reduce((s,x)=>s+x,0)/p;const k=2/(p+1);for(let i=p;i<a.length;i++)v=a[i]*k+v*(1-k);return v}
+function rsi(a,p=14){
+ if(a.length<=p)return NaN;let g=0,l=0;
+ for(let i=1;i<=p;i++){const d=a[i]-a[i-1];if(d>0)g+=d;else l-=d}
+ let ag=g/p,al=l/p;
+ for(let i=p+1;i<a.length;i++){const d=a[i]-a[i-1];ag=(ag*(p-1)+Math.max(0,d))/p;al=(al*(p-1)+Math.max(0,-d))/p}
+ return al===0?(ag===0?50:100):100-100/(1+ag/al)
+}
+function trend(c,f,s){
+ if(c.length<s+2)return 'UNAVAILABLE';const a=c.map(x=>x.c),x=ema(a,f),y=ema(a,s);
+ if(!finite(x)||!finite(y)||!y)return 'UNAVAILABLE';const gap=(x-y)/y;
+ if(Math.abs(gap)<.00008)return 'SIDEWAYS';return gap>0?'BULLISH':'BEARISH'
+}
+function analyze(m){
+ const c=m.candles;if(c.length<60)return false;
+ const last=c[c.length-1];if(last.t===m.lastAnalyzedTime&&m.ind)return true;
+ const c5=aggregate(c,5),c15=aggregate(c,15),c60=aggregate(c,60);
+ if(c5.length<15||c15.length<6||c60.length<15)return false;
+ const cl=c.map(x=>x.c),prev=c[c.length-2],t1=trend(c,9,21),t5=trend(c5,5,13),t15=trend(c15,5,13),t60=trend(c60,5,13);
+ const rv=rsi(cl),e9=ema(cl,9),e21=ema(cl,21),mom=(last.c/cl[cl.length-6]-1)*100;
+ const body=last.c>last.o?'UP':last.c<last.o?'DOWN':'FLAT',range=Math.max(0,last.h-last.l);
+ const closeLoc=range>0?(last.c-last.l)/range:.5,bodyPct=Math.abs(last.c-last.o)/last.c*100;
+ const recent=c.slice(-14),atrPct=(Math.max(...recent.map(x=>x.h))-Math.min(...recent.map(x=>x.l)))/last.c*100;
+ const dist=Math.abs(last.c/e21-1)*100,notChasing=finite(dist)&&dist<=Math.max(.60,atrPct*1.5);
+ // Directional framework: 1h is the bias; 15m confirms; 5m may be neutral but cannot oppose.
+ const longBias=t60==='BULLISH'&&t15==='BULLISH'&&t5!=='BEARISH';
+ const shortBias=t60==='BEARISH'&&t15==='BEARISH'&&t5!=='BULLISH';
+ const longTrigger=t1==='BULLISH'&&last.c>e9&&last.c>prev.c&&body==='UP'&&bodyPct>=.025&&closeLoc>=.58&&mom>=.015&&finite(rv)&&rv>=43&&rv<=70;
+ const shortTrigger=t1==='BEARISH'&&last.c<e9&&last.c<prev.c&&body==='DOWN'&&bodyPct>=.025&&closeLoc<=.42&&mom<=-.015&&finite(rv)&&rv>=30&&rv<=57;
+ let ls=0,ss=0;
+ if(t60==='BULLISH')ls+=3;if(t15==='BULLISH')ls+=2;if(t5==='BULLISH')ls+=2;if(t1==='BULLISH')ls++;
+ if(last.c>e9)ls++;if(last.c>e21)ls++;if(finite(rv)&&rv>=43&&rv<=70)ls++;if(mom>=.015)ls++;if(body==='UP'&&closeLoc>=.58)ls++;
+ if(t60==='BEARISH')ss+=3;if(t15==='BEARISH')ss+=2;if(t5==='BEARISH')ss+=2;if(t1==='BEARISH')ss++;
+ if(last.c<e9)ss++;if(last.c<e21)ss++;if(finite(rv)&&rv>=30&&rv<=57)ss++;if(mom<=-.015)ss++;if(body==='DOWN'&&closeLoc<=.42)ss++;
+ if(!notChasing){ls-=2;ss-=2}
+ let signal='WAIT',reason='Trend confirmation insufficient';
+ if([t1,t5,t15,t60].includes('UNAVAILABLE'))reason='Higher timeframe history unavailable';
+ else if(!notChasing)reason='Price extended from EMA21; avoiding late entry';
+ else if(longBias&&longTrigger&&ls>=8&&ls>ss){signal='LONG';reason='Bullish 1h bias + 15m confirmation + 1m close trigger · score '+ls}
+ else if(shortBias&&shortTrigger&&ss>=8&&ss>ls){signal='SHORT';reason='Bearish 1h bias + 15m confirmation + 1m close trigger · score '+ss}
+ else if(t60==='BULLISH'&&t15==='BEARISH')reason='15m trend opposes bullish 1h bias';
+ else if(t60==='BEARISH'&&t15==='BULLISH')reason='15m trend opposes bearish 1h bias';
+ else if(longBias&&!longTrigger)reason='LONG bias valid; waiting for bullish 1m close / momentum / RSI';
+ else if(shortBias&&!shortTrigger)reason='SHORT bias valid; waiting for bearish 1m close / momentum / RSI';
+ else if(t60==='SIDEWAYS')reason='1h trend sideways; no directional edge';
+ else reason='Trend alignment or confirmation score insufficient · UP '+ls+' / DOWN '+ss;
+ m.ready=true;m.ind={t1,t5,t15,t60,rsi:rv,mom,ls,ss,body,bodyPct,closeLocation:closeLoc,dist,lastTime:last.t};
+ m.signal=signal;m.reason=reason;m.lastAnalyzedTime=last.t;return true;
+}
+function candleFresh(m){
+ if(!m||!m.ready||!m.candles.length)return false;
+ const last=m.candles[m.candles.length-1],age=Date.now()-(last.t+60000);
+ return age>=-60000&&age<180000
+}
 function tickerFresh(m){return !!m&&m.price>0&&!!m.tickerAt&&Date.now()-m.tickerAt>=0&&Date.now()-m.tickerAt<30000}
 function fresh(m){return candleFresh(m)&&tickerFresh(m)}
 function livePrice(m){if(!m)return 0;if(tickerFresh(m))return m.price;return m.candles[m.candles.length-1]?.c||0}
-function calcPosition(p,price){const move=p.side==='LONG'?(price/p.entry-1):(p.entry/price-1),gross=p.margin*move,exitFee=p.margin*(p.feeRate??settings.fee)/100;return {gross,net:gross-p.entryFee-exitFee,exitFee,move}}
+function calcPosition(p,price){
+ const move=p.side==='LONG'?(price/p.entry-1):(p.entry/price-1),gross=p.margin*move,exitFee=p.margin*(p.feeRate??settings.fee)/100;
+ return {gross,net:gross-p.entryFee-exitFee,exitFee,move}
+}
 function allocate(m){
  if(!running||paused||state.dailyBlocked||!fresh(m)||!['LONG','SHORT'].includes(m.signal))return false;
- if(m.signal==='LONG'&&!(m.ind?.t1==='BULLISH'&&m.ind?.t5==='BULLISH'&&m.ind?.t15==='BULLISH'&&m.ind?.t60==='BULLISH'))return false;
- if(m.signal==='SHORT'&&!(m.ind?.t1==='BEARISH'&&m.ind?.t5==='BEARISH'&&m.ind?.t15==='BEARISH'&&m.ind?.t60==='BEARISH'))return false;
- const candleTime=m.ind?.lastTime||0;if(!candleTime||state.processed[m.base]===candleTime)return false;
+ const bias=m.ind||{};
+ if(m.signal==='LONG'&&!(bias.t60==='BULLISH'&&bias.t15==='BULLISH'&&bias.t5!=='BEARISH'))return false;
+ if(m.signal==='SHORT'&&!(bias.t60==='BEARISH'&&bias.t15==='BEARISH'&&bias.t5!=='BULLISH'))return false;
+ const candleTime=bias.lastTime||0;if(!candleTime||state.processed[m.base]===candleTime)return false;
  if(state.positions.some(p=>p.base===m.base)||state.positions.length>=settings.maxPositions)return false;
  if(dailyRiskPnl()<=-settings.dailyLimit){state.dailyBlocked=true;running=false;save();renderAll();return false}
- const free=available(),slots=settings.maxPositions-state.positions.length,budget=free/slots,riskBudget=state.capital*settings.risk/100,riskSized=riskBudget/(settings.sl/100),margin=Math.min(budget,riskSized,free);if(margin<settings.minMargin)return false;
- const price=m.price;if(!price||!fresh(m))return false;const side=m.signal,stop=side==='LONG'?price*(1-settings.sl/100):price*(1+settings.sl/100),target=side==='LONG'?price*(1+settings.tp/100):price*(1-settings.tp/100),feeRate=settings.fee,entryFee=margin*feeRate/100;
- state.positions.push({id:Date.now()+'_'+m.base,base:m.base,side,entry:price,current:price,margin,stop,target,feeRate,entryFee,net:-entryFee,peak:0,opened:new Date().toISOString(),lastSignal:candleTime});state.processed[m.base]=candleTime;save();renderAll();return true
+ const free=available(),slots=settings.maxPositions-state.positions.length,budget=free/slots;
+ const riskBudget=state.capital*settings.risk/100,riskSized=riskBudget/(settings.sl/100),margin=Math.min(budget,riskSized,free);
+ if(margin<settings.minMargin)return false;
+ const price=m.price;if(!price||!fresh(m))return false;
+ const side=m.signal,stop=side==='LONG'?price*(1-settings.sl/100):price*(1+settings.sl/100);
+ const target=side==='LONG'?price*(1+settings.tp/100):price*(1-settings.tp/100),feeRate=settings.fee,entryFee=margin*feeRate/100;
+ state.positions.push({id:Date.now()+'_'+m.base,base:m.base,side,entry:price,current:price,margin,stop,target,feeRate,entryFee,net:-entryFee,peak:0,opened:new Date().toISOString(),lastSignal:candleTime});
+ state.processed[m.base]=candleTime;save();renderAll();return true
 }
 function attemptEntries(){if(!running||paused||state.dailyBlocked)return;for(const m of coins){if(state.positions.length>=settings.maxPositions)break;allocate(m)}}
-function closePosition(id,reason='Manual Paper Exit'){const i=state.positions.findIndex(p=>p.id===id);if(i<0)return;const p=state.positions[i],m=coins.find(x=>x.base===p.base),tickerIsFresh=tickerFresh(m),price=tickerIsFresh?m.price:(p.current>0?p.current:p.entry);if(!tickerIsFresh&&reason==='Manual Exit')reason='Manual Exit · last known tick (data stale)';const result=calcPosition(p,price),net=result.net;state.realized+=net;state.fees+=p.entryFee+result.exitFee;state.dailyPnl+=net;state.history.unshift({time:new Date().toISOString(),base:p.base,side:p.side,entry:p.entry,exit:price,margin:p.margin,net,reason});state.history=state.history.slice(0,500);state.positions.splice(i,1);if(dailyRiskPnl()<=-settings.dailyLimit){state.dailyBlocked=true;running=false}save();renderAll()}
+function closePosition(id,reason='Manual Paper Exit'){
+ const i=state.positions.findIndex(p=>p.id===id);if(i<0)return;
+ const p=state.positions[i],m=coins.find(x=>x.base===p.base),tickerIsFresh=tickerFresh(m);
+ const price=tickerIsFresh?m.price:(p.current>0?p.current:p.entry);
+ if(!tickerIsFresh&&reason==='Manual Exit')reason='Manual Exit · last known tick (data stale)';
+ const result=calcPosition(p,price),net=result.net;
+ state.realized+=net;state.fees+=p.entryFee+result.exitFee;state.dailyPnl+=net;
+ state.history.unshift({time:new Date().toISOString(),base:p.base,side:p.side,entry:p.entry,exit:price,margin:p.margin,net,reason});
+ state.history=state.history.slice(0,500);state.positions.splice(i,1);
+ if(dailyRiskPnl()<=-settings.dailyLimit){state.dailyBlocked=true;running=false}
+ save();renderAll()
+}
 function closeAll(){if(!confirm('सभी Paper Positions बंद करें?'))return;[...state.positions].forEach(p=>closePosition(p.id,'Close All'))}
-function updatePositions(){if(!state.positions.length)return;let changed=false;for(const p of [...state.positions]){const m=coins.find(x=>x.base===p.base);if(!tickerFresh(m)||!candleFresh(m))continue;const price=m.price;if(!price)continue;p.current=price;const r=calcPosition(p,price);p.net=r.net;p.peak=Math.max(p.peak,r.net);changed=true;let reason='';if(p.side==='LONG'){if(price<=p.stop)reason='Stop Loss';else if(price>=p.target)reason='Take Profit'}else{if(price>=p.stop)reason='Stop Loss';else if(price<=p.target)reason='Take Profit'}if(!reason&&r.net>=settings.quick&&settings.quick>0)reason='Quick Net Profit Booking';const trailArm=p.margin*((((p.feeRate??settings.fee)*2)/100)+Math.max(.0025,settings.sl/100*.5)),trailGiveback=p.margin*Math.max(.0015,settings.sl/100*.5);if(!reason&&p.peak>=trailArm&&p.peak-r.net>=trailGiveback)reason='Trailing Profit Protection';if(reason)closePosition(p.id,reason)}if(dailyRiskPnl()<=-settings.dailyLimit&&!state.dailyBlocked){state.dailyBlocked=true;running=false;$('engineMessage').textContent='Daily loss limit reached. Auto Paper stopped.';changed=true}if(changed){save();renderAll()}}
-async function fetchBatch(batch){const end=Math.floor(Date.now()/1000),start=end-1440*60,url=REST+'?assets='+encodeURIComponent(batch.map(x=>x.symbol).join(','))+'&aggregation=1m&start_time='+start+'&end_time='+end,j=await fetchJSON(url);if(j?.success===false)throw Error('Mudrex candle response error');let ready=0;for(const m of batch){const arr=candlesFor(j,m).map(parseCandle).filter(Boolean).filter(x=>x.t+60000<=Date.now()).sort((a,b)=>a.t-b.t).filter((x,i,a)=>i===0||x.t!==a[i-1].t).slice(-1440);if(arr.length>=60){m.candles=arr;analyze(m);if(m.ready)ready++}else{m.candles=arr;m.ready=false;m.signal='WAIT';m.reason='Candle history unavailable / insufficient';m.ind=null;m.lastAnalyzedTime=0}}return ready}
-async function runPool(items,limit,fn){let next=0;const workers=Array.from({length:Math.min(limit,items.length)},async()=>{while(next<items.length){const i=next++;await fn(items[i],i)}});await Promise.all(workers)}
-async function refresh(){if(busy||paused)return;busy=true;$('refresh').disabled=true;let good=0,failed=0,done=0;try{const batches=[];for(let i=0;i<coins.length;i+=20)batches.push(coins.slice(i,i+20));await runPool(batches,4,async batch=>{try{good+=await fetchBatch(batch)}catch(e){failed++;await runPool(batch,5,async m=>{try{good+=await fetchBatch([m])}catch(err){m.ready=false;m.signal='WAIT';m.reason='Candle refresh failed · '+err.message;m.ind=null}})}done+=batch.length;$('status').textContent='Candle batches '+done+'/'+coins.length+' · ready '+good;renderCoins()});lastRefresh=Date.now();$('status').textContent='REST candles '+good+'/'+coins.length+' ready · '+clock()+(failed?' · fallback used':'')}catch(e){$('status').textContent='Refresh error: '+e.message}finally{busy=false;$('refresh').disabled=false;renderAll();attemptEntries()}}
-function ticker(x){if(!x||typeof x!=='object')return false;const raw=x.s??x.symbol??x.asset??x.a??x.symbol_name??x.instrument??'',s=norm(String(raw).replace(/[\\/_-]/g,'')),m=coins.find(z=>norm(z.base+'USDT')===s||norm(z.ws)===s);if(!m)return false;const p=Number(x.p??x.price??x.lastPrice??x.c??x.last_price??x.last);if(p>0&&finite(p)){m.price=p;m.tickerAt=Date.now();return true}return false}
-function scanTickerPayload(d,depth=0){if(!d||depth>10)return;if(Array.isArray(d)){for(const x of d)scanTickerPayload(x,depth+1);return}if(typeof d!=='object')return;ticker(d);for(const k of Object.keys(d)){const v=d[k];if(v&&typeof v==='object')scanTickerPayload(v,depth+1)}}
-function connect(){try{if(ws){try{ws.onclose=null;ws.close()}catch(e){}}clearInterval(wsKeepAlive);ws=new WebSocket(WSURL);ws.onopen=()=>{try{ws.send(JSON.stringify({id:1,method:'SUBSCRIBE',params:['ticker@1s'],assets:coins.map(x=>x.ws)}));$('status').textContent='WebSocket open · ticker subscription requested'}catch(e){$('status').textContent='Ticker subscribe send failed: '+e.message}};ws.onmessage=e=>{let j;try{j=JSON.parse(e.data)}catch{return}if(j&&j.id===1){if(j.error){$('status').textContent='Ticker subscription rejected: '+(j.error.msg||j.error.message||JSON.stringify(j.error));return}if(j.result==='success'||j.result==='SUCCESS'){$('status').textContent='Ticker subscribed · waiting for first tick';try{ws.send(JSON.stringify({id:2,method:'LIST_SUBSCRIPTIONS'}))}catch(err){}}}else if(j&&j.id===2){const subs=Array.isArray(j.result)?j.result.join(', '):JSON.stringify(j.result??'');$('status').textContent='WebSocket subscriptions: '+subs+' · waiting for live ticker'}scanTickerPayload(j);const liveCount=coins.filter(tickerFresh).length;if(liveCount>0)$('status').textContent='Mudrex live ticker OK · '+liveCount+'/'+coins.length+' coins updated · '+clock();attemptEntries();updatePositions();renderCoins()};wsKeepAlive=setInterval(()=>{if(ws&&ws.readyState===WebSocket.OPEN){try{ws.send(JSON.stringify({id:2,method:'LIST_SUBSCRIPTIONS'}))}catch(e){}}},20000);ws.onclose=()=>{clearInterval(wsKeepAlive);if(!paused){$('status').textContent='WebSocket disconnected · reconnecting';clearTimeout(reconnectTimer);reconnectTimer=setTimeout(connect,5000)}};ws.onerror=()=>{$('status').textContent='WebSocket error · reconnect pending'}}catch(e){$('status').textContent='WebSocket unavailable: '+e.message}}
-function renderCoins(){const q=$('search').value.trim().toUpperCase(),f=$('filter').value,list=coins.filter(m=>(!q||m.base.includes(q))&&(f==='ALL'||(m.signal===f&&candleFresh(m))||(f==='WAIT'&&(!candleFresh(m)||m.signal==='WAIT'))));list.sort((a,b)=>{const rank=x=>x.signal==='LONG'||x.signal==='SHORT'?2:1;return rank(b)-rank(a)||Math.abs(b.ind?.mom||0)-Math.abs(a.ind?.mom||0)});$('markets').innerHTML=list.map(m=>{const cFresh=candleFresh(m),tFresh=tickerFresh(m),s=cFresh?m.signal:'WAIT',cls=s==='LONG'?'long':s==='SHORT'?'short':'wait',p=livePrice(m);let dataLabel='',reason=m.reason;if(!cFresh){dataLabel='CANDLE DATA STALE / NOT READY · ENTRY BLOCKED';reason='Candle data stale or unavailable. Last calculated signal: '+m.signal+' · '+m.reason}else if(!tFresh){dataLabel='TICKER STALE · SIGNAL RETAINED · NEW ENTRY BLOCKED';reason='Live ticker update is delayed. Last closed-candle signal retained: '+m.signal+' · '+m.reason}else{dataLabel=s==='WAIT'?'LIVE DATA · NO ENTRY SIGNAL':'LIVE DATA · SIGNAL CONFIRMED · PAPER ENGINE REQUIRED'}return `<article class="coin"><div class="top"><b class="symbol">${m.base}/USDT</b><span class="badge ${cls}">${s}</span></div><div class="price">${fmt(p)} <span class="small">USDT</span></div><div class="small">1m ${m.ind?.t1||'—'} · 5m ${m.ind?.t5||'—'} · 15m ${m.ind?.t15||'—'} · 1h ${m.ind?.t60||'—'}</div><div class="small">RSI ${finite(m.ind?.rsi)?m.ind.rsi.toFixed(1):'—'} · Momentum ${finite(m.ind?.mom)?m.ind.mom.toFixed(3):'—'}%</div><div class="reason">${reason}</div><div class="small ${(!cFresh||!tFresh)?'yellow':''}">${dataLabel}</div></article>`}).join('')||'<div class="panel">No matching coins.</div>'}
-function renderPositions(){if(!state.positions.length){$('positions').innerHTML='<tr><td colspan="9">No open positions</td></tr>';return}$('positions').innerHTML=state.positions.map(p=>`<tr><td>${p.base}</td><td class="${p.side==='LONG'?'green':'red'}">${p.side}</td><td>${fmt(p.entry)}</td><td>${fmt(p.current)}</td><td>${money(p.margin)}</td><td class="${p.net>=0?'green':'red'}">${money(p.net)}</td><td>${fmt(p.stop)}</td><td>${fmt(p.target)}</td><td><button data-exit="${p.id}">Exit</button></td></tr>`).join('');document.querySelectorAll('[data-exit]').forEach(b=>b.onclick=()=>closePosition(b.dataset.exit,'Manual Exit'))}
-function renderHistory(){$('history').innerHTML=state.history.slice(0,100).map(h=>`<tr><td>${new Date(h.time).toLocaleString('en-IN')}</td><td>${h.base}</td><td>${h.side}</td><td>${fmt(h.entry)}</td><td>${fmt(h.exit)}</td><td>${money(h.margin)}</td><td class="${h.net>=0?'green':'red'}">${money(h.net)}</td><td>${h.reason}</td></tr>`).join('')||'<tr><td colspan="8">No completed trades</td></tr>'}
-function renderStats(){const unreal=unrealized(),total=state.history.length,wins=state.history.filter(x=>x.net>0),losses=state.history.filter(x=>x.net<=0),gp=wins.reduce((s,x)=>s+x.net,0),gl=Math.abs(losses.reduce((s,x)=>s+x.net,0));$('equity').textContent=money(equity());$('available').textContent=money(available());$('realized').textContent=money(state.realized);$('openCount').textContent=state.positions.length;$('totalTrades').textContent=total;$('wins').textContent=wins.length;$('losses').textContent=losses.length;$('winRate').textContent=total?(wins.length/total*100).toFixed(1)+'%':'0%';$('unrealized').textContent=money(unreal);const openFees=state.positions.reduce((s,p)=>s+p.entryFee+p.margin*(p.feeRate??settings.fee)/100,0);$('feesPaid').textContent=money(state.fees+openFees);$('dailyPnl').textContent=money(dailyRiskPnl());$('profitFactor').textContent=gl?(gp/gl).toFixed(2):gp?'∞':'—'}
-function renderAll(){renderStats();renderPositions();renderHistory();renderCoins();$('engineBadge').textContent=running?'RUNNING':'STOPPED';$('engineBadge').className='badge '+(running?'long':'wait');$('engineMessage').textContent=state.dailyBlocked?'Daily loss limit reached. Auto Paper stopped.':running?'Auto Paper active · simulated trades only.':'Engine stopped. Existing positions are monitored while data runs.'}
-function exportCSV(){const rows=[['Time','Coin','Side','Entry','Exit','Margin','Net PnL','Reason'],...state.history.map(h=>[h.time,h.base,h.side,h.entry,h.exit,h.margin,h.net,h.reason])],csv=rows.map(r=>r.map(x=>'"'+String(x??'').replace(/"/g,'""')+'"').join(',')).join('\n'),blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a'),url=URL.createObjectURL(blob);a.href=url;a.download='Mudrex_Paper_Trades_V20.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
-function clearHistory(){if(!confirm('Trade history और performance reset करें?'))return;if(state.positions.length){alert('पहले सभी open positions बंद करें।');return}state.history=[];state.realized=0;state.fees=0;state.dailyPnl=0;state.dailyBlocked=false;save();renderAll()}
+function updatePositions(){
+ if(!state.positions.length)return;let changed=false;
+ for(const p of [...state.positions]){
+  const m=coins.find(x=>x.base===p.base);
+  // Open positions are monitored from a fresh live ticker; candle history is NOT required here.
+  if(!tickerFresh(m))continue;
+  const price=m.price;if(!price)continue;
+  p.current=price;const r=calcPosition(p,price);p.net=r.net;p.peak=Math.max(p.peak,r.net);changed=true;
+  let reason='';
+  if(p.side==='LONG'){if(price<=p.stop)reason='Stop Loss';else if(price>=p.target)reason='Take Profit'}
+  else{if(price>=p.stop)reason='Stop Loss';else if(price<=p.target)reason='Take Profit'}
+  if(!reason&&r.net>=settings.quick&&settings.quick>0)reason='Quick Net Profit Booking';
+  const trailArm=p.margin*((((p.feeRate??settings.fee)*2)/100)+Math.max(.0025,settings.sl/100*.5));
+  const trailGiveback=p.margin*Math.max(.0015,settings.sl/100*.5);
+  if(!reason&&p.peak>=trailArm&&p.peak-r.net>=trailGiveback)reason='Trailing Profit Protection';
+  if(reason)closePosition(p.id,reason)
+ }
+ if(dailyRiskPnl()<=-settings.dailyLimit&&!state.dailyBlocked){state.dailyBlocked=true;running=false;$('engineMessage').textContent='Daily loss limit reached. Auto Paper stopped.';changed=true}
+ if(changed){save();renderAll()}
+}
+function mergeCandles(oldArr,newArr){
+ const map=new Map();for(const x of [...(oldArr||[]),...(newArr||[])])if(x&&finite(x.t))map.set(x.t,x);
+ return [...map.values()].sort((a,b)=>a.t-b.t).filter(x=>x.t+60000<=Date.now()).slice(-1440)
+}
+async function fetchBatch(batch){
+ const end=Math.floor(Date.now()/1000),start=end-1440*60;
+ const url=REST+'?assets='+encodeURIComponent(batch.map(x=>x.symbol).join(','))+'&aggregation=1m&start_time='+start+'&end_time='+end;
+ const j=await fetchJSON(url);if(j?.success===false)throw Error('Mudrex candle response error');
+ let ready=0;
+ for(const m of batch){
+  const arr=candlesFor(j,m).map(parseCandle).filter(Boolean).sort((a,b)=>a.t-b.t);
+  const merged=mergeCandles(m.candles,arr);
+  // Never replace a working cache with an empty/short response.
+  if(arr.length>=60&&merged.length>=60){
+   m.candles=merged;
+   if(analyze(m))ready++;
+   else if(m.ready&&m.ind){/* retain previous valid signal/indicators if new timeframe aggregation is incomplete */}
+   else{m.ready=false;m.signal='WAIT';m.reason='Higher timeframe history incomplete';}
+  }else if(m.candles.length>=60&&m.ind){
+   // Keep last good candle cache and signal when this refresh is empty or incomplete.
+   m.reason='Refresh returned insufficient candles; retaining last valid analysis';
+  }else{
+   if(merged.length)m.candles=merged;
+   m.ready=false;m.signal='WAIT';m.reason='Candle history unavailable / insufficient';
+  }
+ }
+ return batch.filter(m=>m.ready).length
+}
+async function runPool(items,limit,fn){
+ let next=0;const workers=Array.from({length:Math.min(limit,items.length)},async()=>{while(next<items.length){const i=next++;await fn(items[i],i)}});
+ await Promise.all(workers)
+}
+async function refresh(){
+ if(busy||paused)return;busy=true;$('refresh').disabled=true;let good=0,failed=0,done=0;
+ try{
+  const batches=[];for(let i=0;i<coins.length;i+=20)batches.push(coins.slice(i,i+20));
+  await runPool(batches,3,async batch=>{
+   try{good+=await fetchBatch(batch)}
+   catch(e){
+    failed++;
+    await runPool(batch,4,async m=>{
+     try{good+=await fetchBatch([m])}
+     catch(err){if(!(m.candles.length>=60&&m.ind)){m.ready=false;m.signal='WAIT';m.reason='Candle refresh failed · '+err.message}}
+    })
+   }
+   done+=batch.length;$('status').textContent='Candle scan '+done+'/'+coins.length+' · ready '+good;renderCoins()
+  });
+  lastRefresh=Date.now();$('status').textContent='Mudrex REST candles · '+coins.filter(m=>m.ready).length+'/'+coins.length+' ready · '+clock()+(failed?' · some batch retries used':'');
+ }catch(e){$('status').textContent='Refresh error: '+e.message}
+ finally{busy=false;$('refresh').disabled=false;renderAll();attemptEntries()}
+}
+function ticker(x){
+ if(!x||typeof x!=='object')return false;
+ const raw=x.s??x.symbol??x.asset??x.a??x.symbol_name??x.instrument??'';
+ const s=norm(String(raw).replace(/[\\/_-]/g,'')),m=coins.find(z=>norm(z.base+'USDT')===s||norm(z.ws)===s);
+ if(!m)return false;const p=Number(x.p??x.price??x.lastPrice??x.c??x.last_price??x.last);
+ if(p>0&&finite(p)){m.price=p;m.tickerAt=Date.now();return true}return false
+}
+function scanTickerPayload(d,depth=0){
+ if(!d||depth>10)return;if(Array.isArray(d)){for(const x of d)scanTickerPayload(x,depth+1);return}
+ if(typeof d!=='object')return;ticker(d);for(const k of Object.keys(d)){const v=d[k];if(v&&typeof v==='object')scanTickerPayload(v,depth+1)}
+}
+function connect(){
+ try{
+  if(ws){try{ws.onclose=null;ws.close()}catch(e){}}
+  clearInterval(wsKeepAlive);ws=new WebSocket(WSURL);
+  ws.onopen=()=>{try{ws.send(JSON.stringify({id:1,method:'SUBSCRIBE',params:['ticker@1s'],assets:coins.map(x=>x.ws)}));$('status').textContent='WebSocket open · ticker subscription requested'}catch(e){$('status').textContent='Ticker subscribe send failed: '+e.message}};
+  ws.onmessage=e=>{
+   let j;try{j=JSON.parse(e.data)}catch{return}
+   if(j&&j.id===1){if(j.error){$('status').textContent='Ticker subscription rejected: '+(j.error.msg||j.error.message||JSON.stringify(j.error));return}
+    if(j.result==='success'||j.result==='SUCCESS'){$('status').textContent='Ticker subscribed · waiting for first tick';try{ws.send(JSON.stringify({id:2,method:'LIST_SUBSCRIPTIONS'}))}catch(err){}}}
+   else if(j&&j.id===2){const subs=Array.isArray(j.result)?j.result.join(', '):JSON.stringify(j.result??'');$('status').textContent='WebSocket subscriptions: '+subs+' · waiting for live ticker'}
+   scanTickerPayload(j);const liveCount=coins.filter(tickerFresh).length;
+   if(liveCount>0)$('status').textContent='Mudrex live ticker OK · '+liveCount+'/'+coins.length+' coins updated · '+clock();
+   attemptEntries();updatePositions();renderCoins()
+  };
+  wsKeepAlive=setInterval(()=>{if(ws&&ws.readyState===WebSocket.OPEN){try{ws.send(JSON.stringify({id:2,method:'LIST_SUBSCRIPTIONS'}))}catch(e){}}},20000);
+  ws.onclose=()=>{clearInterval(wsKeepAlive);if(!paused){$('status').textContent='WebSocket disconnected · reconnecting';clearTimeout(reconnectTimer);reconnectTimer=setTimeout(connect,5000)}};
+  ws.onerror=()=>{$('status').textContent='WebSocket error · reconnect pending'}
+ }catch(e){$('status').textContent='WebSocket unavailable: '+e.message}
+}
+function renderCoins(){
+ const q=$('search').value.trim().toUpperCase(),f=$('filter').value;
+ const list=coins.filter(m=>(!q||m.base.includes(q))&&(f==='ALL'||(f===m.signal&&candleFresh(m))||(f==='WAIT'&&(!candleFresh(m)||m.signal==='WAIT'))));
+ list.sort((a,b)=>{const rank=x=>x.signal==='LONG'||x.signal==='SHORT'?2:1;return rank(b)-rank(a)||Math.abs(b.ind?.mom||0)-Math.abs(a.ind?.mom||0)});
+ $('markets').innerHTML=list.map(m=>{
+  const cFresh=candleFresh(m),tFresh=tickerFresh(m),s=cFresh?m.signal:'WAIT',cls=s==='LONG'?'long':s==='SHORT'?'short':'wait',p=livePrice(m);
+  let dataLabel='',reason=m.reason;
+  if(!cFresh){dataLabel='CANDLE DATA STALE / NOT READY · ENTRY BLOCKED';reason='Candle data stale or unavailable. Last signal: '+m.signal+' · '+m.reason}
+  else if(!tFresh){dataLabel='TICKER STALE · SIGNAL RETAINED · NEW ENTRY BLOCKED';reason='Live ticker delayed. Closed-candle signal retained: '+m.signal+' · '+m.reason}
+  else{dataLabel=s==='WAIT'?'LIVE DATA · NO ENTRY SIGNAL':'LIVE DATA · SIGNAL CONFIRMED · PAPER ENGINE REQUIRED'}
+  return `<article class="coin"><div class="top"><b class="symbol">${m.base}/USDT</b><span class="badge ${cls}">${s}</span></div><div class="price">${fmt(p)} <span class="small">USDT</span></div><div class="small">1m ${m.ind?.t1||'—'} · 5m ${m.ind?.t5||'—'} · 15m ${m.ind?.t15||'—'} · 1h ${m.ind?.t60||'—'}</div><div class="small">RSI ${finite(m.ind?.rsi)?m.ind.rsi.toFixed(1):'—'} · Momentum ${finite(m.ind?.mom)?m.ind.mom.toFixed(3):'—'}%</div><div class="reason">${reason}</div><div class="small ${(!cFresh||!tFresh)?'yellow':''}">${dataLabel}</div></article>`
+ }).join('')||'<div class="panel">No matching coins.</div>'
+}
+function renderPositions(){
+ if(!state.positions.length){$('positions').innerHTML='<tr><td colspan="9">No open positions</td></tr>';return}
+ $('positions').innerHTML=state.positions.map(p=>`<tr><td>${p.base}</td><td class="${p.side==='LONG'?'green':'red'}">${p.side}</td><td>${fmt(p.entry)}</td><td>${fmt(p.current)}</td><td>${money(p.margin)}</td><td class="${p.net>=0?'green':'red'}">${money(p.net)}</td><td>${fmt(p.stop)}</td><td>${fmt(p.target)}</td><td><button data-exit="${p.id}">Exit</button></td></tr>`).join('');
+ document.querySelectorAll('[data-exit]').forEach(b=>b.onclick=()=>closePosition(b.dataset.exit,'Manual Exit'))
+}
+function renderHistory(){
+ $('history').innerHTML=state.history.slice(0,100).map(h=>`<tr><td>${new Date(h.time).toLocaleString('en-IN')}</td><td>${h.base}</td><td>${h.side}</td><td>${fmt(h.entry)}</td><td>${fmt(h.exit)}</td><td>${money(h.margin)}</td><td class="${h.net>=0?'green':'red'}">${money(h.net)}</td><td>${h.reason}</td></tr>`).join('')||'<tr><td colspan="8">No completed trades</td></tr>'
+}
+function renderStats(){
+ const unreal=unrealized(),total=state.history.length,wins=state.history.filter(x=>x.net>0),losses=state.history.filter(x=>x.net<=0);
+ const gp=wins.reduce((s,x)=>s+x.net,0),gl=Math.abs(losses.reduce((s,x)=>s+x.net,0));
+ $('equity').textContent=money(equity());$('available').textContent=money(available());$('realized').textContent=money(state.realized);$('openCount').textContent=state.positions.length;
+ $('totalTrades').textContent=total;$('wins').textContent=wins.length;$('losses').textContent=losses.length;$('winRate').textContent=total?(wins.length/total*100).toFixed(1)+'%':'0%';
+ $('unrealized').textContent=money(unreal);const openFees=state.positions.reduce((s,p)=>s+p.entryFee+p.margin*(p.feeRate??settings.fee)/100,0);
+ $('feesPaid').textContent=money(state.fees+openFees);$('dailyPnl').textContent=money(dailyRiskPnl());$('profitFactor').textContent=gl?(gp/gl).toFixed(2):gp?'∞':'—'
+}
+function renderAll(){
+ renderStats();renderPositions();renderHistory();renderCoins();$('engineBadge').textContent=running?'RUNNING':'STOPPED';
+ $('engineBadge').className='badge '+(running?'long':'wait');
+ $('engineMessage').textContent=state.dailyBlocked?'Daily loss limit reached. Auto Paper stopped.':running?'Auto Paper active · simulated trades only.':'Engine stopped. Existing positions are monitored while live ticker data is available.'
+}
+function exportCSV(){
+ const rows=[['Time','Coin','Side','Entry','Exit','Margin','Net PnL','Reason'],...state.history.map(h=>[h.time,h.base,h.side,h.entry,h.exit,h.margin,h.net,h.reason])];
+ const csv=rows.map(r=>r.map(x=>'"'+String(x??'').replace(/"/g,'""')+'"').join(',')).join('\n');
+ const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a'),url=URL.createObjectURL(blob);
+ a.href=url;a.download='Mudrex_Paper_Trades_V21.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
+}
+function clearHistory(){
+ if(!confirm('Trade history और performance reset करें?'))return;
+ if(state.positions.length){alert('पहले सभी open positions बंद करें।');return}
+ state.history=[];state.realized=0;state.fees=0;state.dailyPnl=0;state.dailyBlocked=false;save();renderAll()
+}
 $('saveSettings').onclick=saveSettings;$('resetSettings').onclick=defaults;
-$('start').onclick=()=>{resetDailyIfNeeded();if(state.dailyBlocked){alert('Daily loss limit reached.');return}if(!coins.some(fresh)){alert('पहले LIVE market data और fresh candles आने दें।');return}running=true;coins.forEach(m=>{if(m.ind?.lastTime)state.processed[m.base]=m.ind.lastTime});save();renderAll();$('engineMessage').textContent='Started. अगली नई बंद 1m candle पर योग्य signal आने पर paper entry होगी।'};
+$('start').onclick=()=>{
+ resetDailyIfNeeded();if(state.dailyBlocked){alert('Daily loss limit reached.');return}
+ if(!coins.some(fresh)){alert('पहले LIVE market data और fresh candles आने दें।');return}
+ running=true;coins.forEach(m=>{if(m.ind?.lastTime)state.processed[m.base]=m.ind.lastTime});
+ save();renderAll();$('engineMessage').textContent='Started. अगली नई बंद 1m candle पर योग्य signal पर paper entry होगी।'
+};
 $('stop').onclick=()=>{running=false;save();renderAll()};$('closeAll').onclick=closeAll;$('refresh').onclick=refresh;
-$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'Resume Data':'Pause Data';if(paused){clearTimeout(reconnectTimer);if(ws){ws.onclose=null;ws.close()}$('status').textContent='Data paused'}else{connect();refresh()}};
+$('pause').onclick=()=>{
+ paused=!paused;$('pause').textContent=paused?'Resume Data':'Pause Data';
+ if(paused){clearTimeout(reconnectTimer);if(ws){ws.onclose=null;ws.close()}$('status').textContent='Data paused'}
+ else{connect();refresh()}
+};
 $('search').oninput=renderCoins;$('filter').onchange=renderCoins;$('export').onclick=exportCSV;$('clearHistory').onclick=clearHistory;
-load();if(!Object.keys(settings).length)settings={capital:500,risk:1,maxPositions:3,sl:.5,tp:1,quick:.5,fee:.05,dailyLimit:15,minMargin:25};settings={...{capital:500,risk:1,maxPositions:3,sl:.5,tp:1,quick:.5,fee:.05,dailyLimit:15,minMargin:25},...settings};if(settings.quick===2)settings.quick=.5;loadInputs();state.capital=settings.capital;running=false;save();connect();refresh();renderAll();
+load();settings={...DEFAULTS,...settings};if(settings.quick===2)settings.quick=.5;loadInputs();
+state.capital=Number(settings.capital)||state.capital||500;running=false;save();connect();refresh();renderAll();
 setInterval(()=>{if(paused)return;resetDailyIfNeeded();attemptEntries();updatePositions();renderStats();renderCoins()},1000);
 setInterval(()=>{if(!paused&&!busy&&Date.now()-lastRefresh>60000)refresh()},5000);
 window.addEventListener('beforeunload',save);
 </script>
-</body></html>
+</body>
+</html>
